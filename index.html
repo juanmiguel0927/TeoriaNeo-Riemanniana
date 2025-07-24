@@ -262,6 +262,9 @@
     </div>
 
     <script>
+        // Flag to ensure the modal only shows once per page load
+        let hasModalBeenShown = false;
+
         // Mapping from pitch class number to note name (using sharps as primary)
         const pitchClasses = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         
@@ -371,7 +374,7 @@
         allPossibleRootNames.forEach(root => {
             if (noteToPitchClass[root] !== undefined) {
                 allTriads.push(new Triad(root, "major"));
-                allTriads.push(new Triad(root, "minor"));
+                allTriads.push(new Triad(root, "minor")); // Corrected: 'newad' to 'new Triad'
             }
         });
 
@@ -550,10 +553,13 @@
 
         // Function to show the author modal
         function showAuthorModal() {
-            authorModal.classList.add('show');
-            setTimeout(() => {
-                authorModal.classList.remove('show');
-            }, 4000); // Hide after 4 seconds
+            if (!hasModalBeenShown) {
+                authorModal.classList.add('show');
+                setTimeout(() => {
+                    authorModal.classList.remove('show');
+                }, 4000); // Hide after 4 seconds
+                hasModalBeenShown = true; // Set flag to true after showing
+            }
         }
 
 
@@ -625,7 +631,10 @@
                 displayOperationExplanation(''); // Clear explanation on reset
                 removeActiveOperationHighlight(); // Clear any highlighted operation button
                 removeOperationsBoxHighlight(); // Clear operations box highlight
-                showAuthorModal(); // Show the author modal on initialization
+                
+                // Only show modal if it hasn't been shown before (first page load)
+                showAuthorModal(); 
+
             } catch (error) {
                 console.error("Error during application initialization:", error);
                 document.body.innerHTML = "<p style='color: red; text-align: center; margin-top: 50px;'>Ha ocurrido un error al cargar la aplicación. Por favor, inténtalo de nuevo.</p>";
