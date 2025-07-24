@@ -132,6 +132,41 @@
                 font-size: 0.875rem;
             }
         }
+
+        /* Modal specific styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.2), 0 8px 15px -5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="p-4">
@@ -213,6 +248,17 @@
                 </p>
             </div>
         </div>
+        <p class="text-center text-gray-700 text-sm font-semibold mt-8">
+            Herramienta realizada por Juan Miguel Ríos Redondo
+        </p>
+    </div>
+
+    <!-- Modal for author information -->
+    <div id="authorModal" class="modal-overlay">
+        <div class="modal-content">
+            <p class="text-gray-800 text-lg">Esta herramienta fue realizada por:</p>
+            <p class="text-blue-600 text-2xl font-bold mt-2">Juan Miguel Ríos Redondo</p>
+        </div>
     </div>
 
     <script>
@@ -273,79 +319,33 @@
                 const fifthPc = this.pitchClasses[2];
 
                 // Helper to get the correct enharmonic spelling based on the root of the triad
-                const getNoteSpelling = (pc, intervalType) => { // intervalType: 'third' or 'fifth'
+                const getNoteSpelling = (pc) => {
                     // Special cases for C# Major (E#) and F# Major (B#)
                     if (this.root === "C#" && this.type === "major" && pc === 5) return "E#"; // F -> E#
                     if (this.root === "F#" && this.type === "major" && pc === 0) return "B#"; // C -> B#
 
-                    // Determine the natural note name corresponding to the pitch class
-                    // This helps in deciding if it should be sharp or flat
-                    const naturalNotePc = (pc === 1) ? 0 : (pc === 3) ? 2 : (pc === 6) ? 5 : (pc === 8) ? 7 : (pc === 10) ? 9 : pc; // C#, D#, F#, G#, A# -> C, D, F, G, A
-                    const naturalNoteName = pitchClasses[naturalNotePc]; // e.g., for C# (pc 1), natural is C (pc 0)
+                    // Determine if we should generally prefer flat spellings for the internal notes
+                    // This is a heuristic based on the root of the chord and common musical practice
+                    const preferFlats = ["Db", "Eb", "Gb", "Ab", "Bb"].includes(this.root) || // If root is explicitly flat
+                                        (this.root === "F") || // F major/minor often use Bb
+                                        (this.root === "C" && this.type === "minor") || // Cm uses Eb
+                                        (this.root === "G" && this.type === "minor"); // Gm uses Bb
 
-                    // Get the natural note name of the root for comparison
-                    const rootNaturalNotePc = (noteToPitchClass[this.root] === 1) ? 0 : (noteToPitchClass[this.root] === 3) ? 2 : (noteToPitchClass[this.root] === 6) ? 5 : (noteToPitchClass[this.root] === 8) ? 7 : (noteToPitchClass[this.root] === 10) ? 9 : noteToPitchClass[this.root];
-                    const rootNaturalNoteName = pitchClasses[rootNaturalNotePc];
-
-                    // Heuristic: Prefer flats if the root is flat, or if the natural note of the current pitch
-                    // is a half step above the natural note of the root, suggesting a flat context.
-                    // This is a more robust way to handle diatonic spelling.
-
-                    // Check if the target natural note is 'higher' than the root's natural note for the interval
-                    // e.g., for Ab minor, root natural is A. Third is Cb. Natural C is higher than A.
-                    // This helps in determining if a flat is needed to keep the interval 'correct'.
-                    const naturalNoteOrder = ["C", "D", "E", "F", "G", "A", "B"];
-                    const rootNaturalIndex = naturalNoteOrder.indexOf(rootNaturalNoteName);
-                    const currentNaturalIndex = naturalNoteOrder.indexOf(naturalNoteName);
-
-                    let preferFlats = false;
-
-                    // If the root itself is flat, generally prefer flats for other notes
-                    if (this.root.includes("b")) {
-                        preferFlats = true;
-                    }
-
-                    // For minor chords, if the third is a half step below the natural third, it's flat
-                    if (this.type === "minor" && intervalType === "third") {
-                        const expectedMajorThirdPc = normalizePitch(noteToPitchClass[this.root] + 4);
-                        if (pc === normalizePitch(expectedMajorThirdPc - 1)) {
-                            preferFlats = true;
-                        }
-                    }
-
-                    // Specific cases for common flat keys/chords
-                    if (flatSpelling[pc] && (
-                        (this.root.includes("b")) || // If root is explicitly flat
-                        (this.root === "F" && pc === 10) || // F major/minor (Bb)
-                        (this.root === "Bb" && (pc === 3 || pc === 6)) || // Bb major/minor (Eb, Gb)
-                        (this.root === "Eb" && (pc === 8 || pc === 1)) || // Eb major/minor (Ab, Db)
-                        (this.root === "Ab" && (pc === 1 || pc === 6)) || // Ab major/minor (Db, Gb)
-                        (this.root === "Db" && (pc === 6 || pc === 10)) || // Db major/minor (Gb, Bb)
-                        (this.root === "Gb" && (pc === 10 || pc === 3)) || // Gb major/minor (Bb, Eb)
-                        (this.root === "C" && this.type === "minor" && pc === 3) || // Cm (Eb)
-                        (this.root === "G" && this.type === "minor" && pc === 10) || // Gm (Bb)
-                        (this.root === "D" && this.type === "minor" && pc === 5) || // Dm (F) - not flat but natural
-                        (this.root === "A" && this.type === "minor" && pc === 0) || // Am (C)
-                        (this.root === "E" && this.type === "minor" && pc === 7) || // Em (G)
-                        (this.root === "B" && this.type === "minor" && pc === 2) || // Bm (D)
-                        (this.root === "F#" && this.type === "minor" && pc === 9) // F#m (A)
-                    )) {
-                        preferFlats = true;
-                    }
-
-                    // Handle specific enharmonic notes based on context
+                    // Specific checks for common flat notes based on pitch class and context
                     if (pc === 11 && preferFlats) return "Cb"; // B -> Cb (e.g., in Ab minor)
                     if (pc === 4 && preferFlats) return "Fb";  // E -> Fb (e.g., in Db major)
+                    if (pc === 1 && preferFlats) return "Db";
+                    if (pc === 3 && preferFlats) return "Eb";
+                    if (pc === 6 && preferFlats) return "Gb";
+                    if (pc === 8 && preferFlats) return "Ab";
+                    if (pc === 10 && preferFlats) return "Bb";
 
-                    if (preferFlats && flatSpelling[pc]) {
-                        return flatSpelling[pc];
-                    } else {
-                        return canonicalSpelling[pc];
-                    }
+                    // Otherwise, use canonical (sharp/natural) spelling
+                    return canonicalSpelling[pc];
                 };
 
-                notes.push(getNoteSpelling(thirdPc, 'third')); // Third
-                notes.push(getNoteSpelling(fifthPc, 'fifth')); // Fifth
+                notes.push(getNoteSpelling(thirdPc)); // Third
+                notes.push(getNoteSpelling(fifthPc)); // Fifth
 
                 return notes;
             }
@@ -531,6 +531,7 @@
         const currentWeitzmannRegionSpan = document.getElementById("currentWeitzmannRegion");
         const weitzmannRegionMembersDiv = document.getElementById("weitzmannRegionMembers");
         const sharedChordsDiv = document.getElementById("sharedChords");
+        const authorModal = document.getElementById('authorModal'); // Modal element
 
         // Explanations for operations
         const explanations = {
@@ -545,6 +546,14 @@
         // Function to display operation explanation
         function displayOperationExplanation(opCode) {
             operationExplanation.textContent = explanations[opCode] || "Selecciona una operación para ver su descripción.";
+        }
+
+        // Function to show the author modal
+        function showAuthorModal() {
+            authorModal.classList.add('show');
+            setTimeout(() => {
+                authorModal.classList.remove('show');
+            }, 4000); // Hide after 4 seconds
         }
 
 
@@ -616,6 +625,7 @@
                 displayOperationExplanation(''); // Clear explanation on reset
                 removeActiveOperationHighlight(); // Clear any highlighted operation button
                 removeOperationsBoxHighlight(); // Clear operations box highlight
+                showAuthorModal(); // Show the author modal on initialization
             } catch (error) {
                 console.error("Error during application initialization:", error);
                 document.body.innerHTML = "<p style='color: red; text-align: center; margin-top: 50px;'>Ha ocurrido un error al cargar la aplicación. Por favor, inténtalo de nuevo.</p>";
