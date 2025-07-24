@@ -55,8 +55,7 @@
         /* Custom styles for the circular visualization */
         .circle-container {
             position: relative;
-            width: 300px;
-            height: 300px;
+            /* Removed fixed width/height for responsiveness */
             margin: 0 auto;
             border: 2px solid #cbd5e1;
             border-radius: 50%;
@@ -64,6 +63,8 @@
             justify-content: center;
             align-items: center;
             background-color: #f8fafc; /* Lighter background for the circle */
+            width: 100%; /* Fill parent width */
+            height: 100%; /* Fill parent height */
         }
         .chord-node {
             position: absolute;
@@ -124,8 +125,8 @@
                 font-size: 0.65rem;
             }
             .circle-container {
-                width: 250px;
-                height: 250px;
+                /* width: 250px; */ /* Removed fixed width */
+                /* height: 250px; */ /* Removed fixed height */
             }
             .btn {
                 padding: 0.6rem 1rem;
@@ -166,6 +167,53 @@
         }
         .modal-overlay.show .modal-content {
             transform: translateY(0);
+        }
+
+        /* Collapsible section styles */
+        .collapsible-header {
+            @apply bg-blue-500 text-white p-3 rounded-lg cursor-pointer flex justify-between items-center mt-6 shadow-md;
+        }
+        .collapsible-header span {
+            transition: transform 0.3s ease-in-out;
+        }
+        .collapsible-header.expanded span {
+            transform: rotate(180deg);
+        }
+        .collapsible-content {
+            @apply p-4 bg-white rounded-lg border border-gray-200 mt-2;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .collapsible-content.show {
+            max-height: 2000px; /* Increased for more content */
+            transition: max-height 0.5s ease-in;
+        }
+
+        /* Tonnetz visualization specific styles */
+        .tonnetz-node-circle { /* Renamed from .tonnetz-node to avoid conflict */
+            transition: fill 0.2s ease-in-out, stroke 0.2s ease-in-out;
+        }
+        .tonnetz-node-circle.active {
+            fill: #3b82f6;
+            stroke: #1d4ed8;
+        }
+        .tonnetz-node-text {
+            transition: fill 0.2s ease-in-out;
+        }
+        .tonnetz-node-text.active {
+            fill: white;
+            font-weight: bold;
+        }
+        .tonnetz-triad-outline {
+            transition: stroke 0.2s ease-in-out;
+        }
+        .tonnetz-triad-outline.active {
+            stroke: #3b82f6;
+            stroke-width: 3;
+        }
+        .tonnetz-triad-fill {
+            transition: fill 0.2s ease-in-out;
         }
     </style>
 </head>
@@ -230,24 +278,45 @@
                 </div>
             </div>
 
-            <div class="md:w-1/2 flex flex-col items-center justify-center p-4">
-                <h3 class="text-lg font-semibold mb-3 text-gray-800">Visualización (Ciclo Hexatónico):</h3>
-                <div id="hexatonicCircle" class="circle-container">
-                    <svg width="100%" height="100%" viewBox="0 0 300 300">
-                        <defs>
-                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                                <polygon points="0 0, 10 3.5, 0 7" />
-                            </marker>
-                        </defs>
-                        <!-- Nodes will be added dynamically -->
-                    </svg>
+            <!-- Container for both visualizations -->
+            <div class="md:w-1/2 flex flex-col md:flex-row gap-6"> 
+                <!-- Hexatonic Cycle Visualization -->
+                <div class="flex-1 p-4 flex flex-col items-center justify-center bg-white rounded-lg shadow-inner border border-blue-100 h-[400px]">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Visualización (Ciclo Hexatónico):</h3>
+                    <div id="hexatonicCircle" class="circle-container w-full h-full">
+                        <svg width="100%" height="100%" viewBox="0 0 300 300">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" />
+                                </marker>
+                            </defs>
+                            <!-- Nodes will be added dynamically -->
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center">
+                        Esta visualización muestra un ciclo hexatónico. El acorde activo se resaltará.
+                        Las operaciones R, N y S pueden llevarte a un ciclo diferente.
+                    </p>
                 </div>
-                <p class="text-sm text-gray-600 mt-2 text-center">
-                    Esta visualización muestra un ciclo hexatónico. El acorde activo se resaltará.
-                    Las operaciones R, N y S pueden llevarte a un ciclo diferente.
-                </p>
+
+                <!-- Dynamic Tonnetz Visualization Section -->
+                <div class="flex-1 p-4 bg-white rounded-lg shadow-inner border border-blue-100 flex flex-col items-center justify-center h-[400px]">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800 text-center">Visualización Dinámica del Tonnetz</h3>
+                    <div id="tonnetzVisualization" class="w-full h-full border border-gray-200 rounded-lg bg-white flex justify-center items-center">
+                        <!-- SVG Tonnetz will be drawn here dynamically -->
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center">
+                        Esta es una representación dinámica de un segmento del Tonnetz.
+                        Las notas del acorde actual se resaltarán en azul (mayor) o rojo (menor).
+                    </p>
+                </div>
             </div>
         </div>
+
+
+        <!-- Tonnetz Explanation Section -->
+        <!-- Removed collapsible-header and collapsible-content for Tonnetz Explanation -->
+
         <p class="text-center text-gray-700 text-sm font-semibold mt-8">
             Herramienta realizada por Juan Miguel Ríos Redondo
         </p>
@@ -374,7 +443,7 @@
         allPossibleRootNames.forEach(root => {
             if (noteToPitchClass[root] !== undefined) {
                 allTriads.push(new Triad(root, "major"));
-                allTriads.push(new Triad(root, "minor")); // Corrected: 'newad' to 'new Triad'
+                allTriads.push(new Triad(root, "minor")); 
             }
         });
 
@@ -502,7 +571,7 @@
             { name: "Región de D-F#-Bb", members: [
                 getTriadByName("D Mayor"), getTriadByName("D menor"),
                 getTriadByName("F# Mayor"), getTriadByName("F# menor"),
-                getTriadByName("Bb Mayor"), getTriadByName("Bb menor")
+                getTriadByName("Bb Mayor"), getTriadByName("Bb menor") 
             ].filter(Boolean)},
             { name: "Región de D#-G-B", members: [
                 getTriadByName("D# Mayor"), getTriadByName("D# menor"),
@@ -536,19 +605,38 @@
         const sharedChordsDiv = document.getElementById("sharedChords");
         const authorModal = document.getElementById('authorModal'); // Modal element
 
+        // Tonnetz explanation elements
+        const tonnetzHeader = document.getElementById('tonnetzHeader');
+        const tonnetzContent = document.getElementById('tonnetzContent');
+
+        // New Tonnetz visualization elements
+        const tonnetzVisualizerDiv = document.getElementById('tonnetzVisualization'); 
+        const tonnetzSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        tonnetzSvg.setAttribute("width", "100%");
+        tonnetzSvg.setAttribute("height", "100%"); // Make it fill parent
+        tonnetzVisualizerDiv.appendChild(tonnetzSvg);
+
+        // Tonnetz grid data structure
+        let tonnetzGrid = {}; // Stores { noteName: { x, y, pc } }
+
+        // Define spacing constants for the Tonnetz grid
+        const P5_HORIZONTAL_SPACING = 80; // Horizontal distance for a perfect fifth (increased for more space)
+        const THIRD_VERTICAL_SPACING = 45; // Vertical distance for a major/minor third (increased for more space)
+        const THIRD_HORIZONTAL_OFFSET = P5_HORIZONTAL_SPACING / 2; // Horizontal offset for thirds
+
         // Explanations for operations
         const explanations = {
-            "L": "La operación **L (Leittonechel / Intercambio de Tono Principal)** transforma una tríada mayor en una menor (y viceversa) moviendo una voz por semitono. Por ejemplo, C Mayor (C-E-G) a E menor (E-G-B).",
-            "P": "La operación **P (Parallel / Paralelo)** transforma una tríada mayor en su paralela menor (y viceversa) manteniendo la tónica y la quinta, y moviendo la tercera un semitono. Por ejemplo, C Mayor (C-E-G) a C menor (C-Eb-G).",
-            "R": "La operación **R (Relative / Relativo)** transforma una tríada mayor en su relativa menor (y viceversa) moviendo la tónica o la quinta un tono. Por ejemplo, C Mayor (C-E-G) a A menor (A-C-E).",
-            "N": "La operación **N (Next Related / Próximo Relacionado)** transforma una tríada mayor en una menor (y viceversa) moviendo dos voces por semitono. Por ejemplo, C Mayor (C-E-G) a F menor (F-Ab-C).",
-            "H": "La operación **H (Hexatonic Pole / Polo Hexatónico)** es una operación compuesta (PLP o LPL) que conecta dos tríadas dentro del mismo ciclo hexatónico que no comparten ninguna nota. Por ejemplo, C Mayor a Ab menor.",
-            "S": "La operación **S (Slide / Deslizamiento)** transforma una tríada mayor en una menor (y viceversa) moviendo la tónica y la quinta un semitono en la misma dirección. Por ejemplo, C Mayor (C-E-G) a C# menor (C#-E-G#)."
+            "L": "La operación **L (Leittonechel / Intercambio de Tono Principal)** transforma una tríada mayor en una menor (y viceversa) moviendo una voz por semitono. Por ejemplo, C Mayor (C-E-G) &rarr; L E menor (E-G-B).",
+            "P": "La operación **P (Parallel / Paralelo)** transforma una tríada mayor en su paralela menor (y viceversa) manteniendo la tónica y la quinta, y moviendo la tercera un semitono. Por ejemplo, C Mayor (C-E-G) &rarr; P C menor (C-Eb-G).",
+            "R": "La operación **R (Relative / Relativo)** transforma una tríada mayor en su relativa menor (o viceversa) moviendo la tónica o la quinta un tono. Por ejemplo, C Mayor (C-E-G) &rarr; R A menor (A-C-E).",
+            "N": "La operación **N (Next Related / Próximo Relacionado)** transforma una tríada mayor en una menor (y viceversa) moviendo dos voces por semitono. Por ejemplo, C Mayor (C-E-G) &rarr; N F menor (F-Ab-C).",
+            "H": "La operación **H (Hexatonic Pole / Polo Hexatónico)** es una operación compuesta (PLP o LPL) que conecta dos tríadas dentro del mismo ciclo hexatónico que no comparten ninguna nota. Por ejemplo, C Mayor &rarr; H Ab menor (Ab-Cb-Eb).",
+            "S": "La operación **S (Slide / Deslizamiento)** transforma una tríada mayor en una menor (y viceversa) moviendo la tónica y la quinta un semitono en la misma dirección. Por ejemplo, C Mayor (C-E-G) &rarr; S C# menor (C#-E-G#)."
         };
 
         // Function to display operation explanation
         function displayOperationExplanation(opCode) {
-            operationExplanation.textContent = explanations[opCode] || "Selecciona una operación para ver su descripción.";
+            operationExplanation.innerHTML = explanations[opCode] || "Selecciona una operación para ver su descripción.";
         }
 
         // Function to show the author modal
@@ -559,6 +647,216 @@
                     authorModal.classList.remove('show');
                 }, 4000); // Hide after 4 seconds
                 hasModalBeenShown = true; // Set flag to true after showing
+            }
+        }
+
+        // Function to generate and display Tonnetz explanation (simplified)
+        function displayTonnetzExplanation() {
+            // This function is no longer called as the section is removed from HTML.
+            // Keeping it here in case it's needed for future reference or re-addition.
+            tonnetzContent.innerHTML = `
+                <h3 class="text-xl font-bold mb-4 text-blue-700">El Tonnetz: Una Red Geométrica de Tonos</h3>
+                <p class="text-gray-700 mb-4">
+                    El **Tonnetz** es una representación gráfica de las relaciones entre las clases de tono y los acordes. Cada punto representa una nota, y las líneas conectan notas separadas por quintas justas, terceras mayores y terceras menores. Las tríadas se visualizan como triángulos en esta red.
+                </p>
+                <div class="flex justify-center my-6">
+                    <img src="https://placehold.co/400x250/E0F2F7/334155?text=Diagrama+Tonnetz+Mayor+y+Menor" alt="Diagrama Tonnetz mostrando tríadas mayores y menores" class="rounded-lg shadow-lg max-w-full h-auto">
+                </div>
+                <p class="text-sm text-gray-600 mt-2 text-center mb-4">
+                    *Este es un ejemplo visual de cómo se ven las tríadas mayor y menor en el Tonnetz. Nota la orientación opuesta de los triángulos.*
+                </p>
+
+                <h3 class="text-xl font-bold mb-4 text-blue-700">Regiones de Weitzmann</h3>
+                <p class="text-gray-700 mb-4">
+                    Las **Regiones de Weitzmann** son conjuntos de tríadas que comparten propiedades específicas y se relacionan en el Tonnetz. Agrupan acordes que pueden transformarse entre sí mediante las operaciones P, L y R sin salir de la región, destacando conexiones estructurales profundas.
+                </p>
+            `;
+        }
+
+        // Function to generate positions for a segment of the Tonnetz grid
+        function generateTonnetzPositions(centerNote = "C", maxDistance = 3) {
+            tonnetzGrid = {}; // Clear previous grid
+
+            // Initial position for C in the center of our desired view
+            const initialX = 250;
+            const initialY = 200;
+
+            // Define a queue for BFS to build the grid
+            const queue = [{ note: centerNote, x: initialX, y: initialY, pc: noteToPitchClass[centerNote], dist: 0 }];
+            const visited = new Set([centerNote]);
+
+            let head = 0;
+            while(head < queue.length) {
+                const current = queue[head++];
+                const currentNote = current.note;
+                const currentPc = current.pc;
+                const currentDist = current.dist;
+
+                if (currentDist > maxDistance) continue;
+
+                // Add current note to grid
+                if (!tonnetzGrid[currentNote]) {
+                    tonnetzGrid[currentNote] = { x: current.x, y: current.y, pc: currentPc };
+                }
+
+                // Define potential neighbors based on intervals and their spatial offsets
+                // P5 (horizontal)
+                const p5UpPc = normalizePitch(currentPc + 7);
+                const p5DownPc = normalizePitch(currentPc - 7);
+                // M3 (diagonal up-right)
+                const m3UpRightPc = normalizePitch(currentPc + 4);
+                // m3 (diagonal up-left)
+                const m3UpLeftPc = normalizePitch(currentPc + 3);
+
+                const neighborsToExplore = [
+                    { pc: p5UpPc, x: current.x + P5_HORIZONTAL_SPACING, y: current.y },
+                    { pc: p5DownPc, x: current.x - P5_HORIZONTAL_SPACING, y: current.y },
+                    { pc: m3UpRightPc, x: current.x + THIRD_HORIZONTAL_OFFSET, y: current.y - THIRD_VERTICAL_SPACING },
+                    { pc: normalizePitch(currentPc - 4), x: current.x - THIRD_HORIZONTAL_OFFSET, y: current.y + THIRD_VERTICAL_SPACING }, // M3 down-left (inverse of M3 up-right)
+                    { pc: m3UpLeftPc, x: current.x - THIRD_HORIZONTAL_OFFSET, y: current.y - THIRD_VERTICAL_SPACING },
+                    { pc: normalizePitch(currentPc - 3), x: current.x + THIRD_HORIZONTAL_OFFSET, y: current.y + THIRD_VERTICAL_SPACING }  // m3 down-right (inverse of m3 up-left)
+                ];
+
+                for (const neighbor of neighborsToExplore) {
+                    const neighborNote = canonicalSpelling[neighbor.pc];
+                    if (!visited.has(neighborNote)) {
+                        visited.add(neighborNote);
+                        queue.push({ note: neighborNote, x: neighbor.x, y: neighbor.y, pc: neighbor.pc, dist: currentDist + 1 });
+                    }
+                }
+            }
+
+            // Adjust all coordinates to be relative to the top-leftmost point for a clean viewBox
+            let minX = Infinity, minY = Infinity;
+            for (const note in tonnetzGrid) {
+                minX = Math.min(minX, tonnetzGrid[note].x);
+                minY = Math.min(minY, tonnetzGrid[note].y);
+            }
+
+            // Apply offset to all coordinates
+            const offsetX = minX - 50; // Padding
+            const offsetY = minY - 50; // Padding
+            for (const note in tonnetzGrid) {
+                tonnetzGrid[note].x -= offsetX;
+                tonnetzGrid[note].y -= offsetY;
+            }
+        }
+
+        // Helper to draw a line in SVG
+        function drawLine(svg, p1, p2, color, strokeWidth = "1") {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", p1.x);
+            line.setAttribute("y1", p1.y);
+            line.setAttribute("x2", p2.x);
+            line.setAttribute("y2", p2.y);
+            line.setAttribute("stroke", color);
+            line.setAttribute("stroke-width", strokeWidth);
+            svg.appendChild(line);
+        }
+
+        function drawFullTonnetz() {
+            tonnetzSvg.innerHTML = ''; // Clear existing content
+            generateTonnetzPositions("C", 3); // Generate a segment centered on C, max distance 3 steps
+
+            // Draw connections first (lines)
+            for (const noteName in tonnetzGrid) {
+                const currentPos = tonnetzGrid[noteName];
+                const currentPc = currentPos.pc;
+
+                // Define potential neighbors for drawing lines
+                const potentialNeighbors = [
+                    normalizePitch(currentPc + 7), // P5 up
+                    normalizePitch(currentPc + 4), // M3 up-right
+                    normalizePitch(currentPc + 3)  // m3 up-left
+                ];
+
+                potentialNeighbors.forEach(neighborPc => {
+                    const neighborNote = canonicalSpelling[neighborPc];
+                    if (tonnetzGrid[neighborNote]) { // Only draw if the neighbor is in our current grid segment
+                        drawLine(tonnetzSvg, currentPos, tonnetzGrid[neighborNote], "#cbd5e1");
+                    }
+                });
+            }
+
+            // Draw nodes (circles and text) on top of lines
+            for (const noteName in tonnetzGrid) {
+                const pos = tonnetzGrid[noteName];
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", pos.x);
+                circle.setAttribute("cy", pos.y);
+                circle.setAttribute("r", 15);
+                circle.setAttribute("fill", "#e2e8f0");
+                circle.setAttribute("stroke", "#94a3b8");
+                circle.setAttribute("stroke-width", "1");
+                circle.classList.add("tonnetz-node-circle"); // Renamed class
+                circle.dataset.note = noteName;
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", pos.x);
+                text.setAttribute("y", pos.y + 5);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("fill", "#475569");
+                text.textContent = noteName;
+                text.classList.add("tonnetz-node-text");
+                text.dataset.note = noteName;
+
+                tonnetzSvg.appendChild(circle);
+                tonnetzSvg.appendChild(text);
+            }
+
+            // Update viewBox to fit the generated content
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (const note in tonnetzGrid) {
+                minX = Math.min(minX, tonnetzGrid[note].x - 15); // Node radius
+                minY = Math.min(minY, tonnetzGrid[note].y - 15);
+                maxX = Math.max(maxX, tonnetzGrid[note].x + 15);
+                maxY = Math.max(maxY, tonnetzGrid[note].y + 15);
+            }
+            const padding = 20; // Extra padding for the viewBox
+            const finalWidth = maxX - minX + 2 * padding;
+            const finalHeight = maxY - minY + 2 * padding;
+            tonnetzSvg.setAttribute("viewBox", `${minX - padding} ${minY - padding} ${finalWidth} ${finalHeight}`);
+            // Removed tonnetzSvg.setAttribute("height", finalHeight); // Let CSS handle height
+        }
+
+
+        // Update highlightTonnetzTriad to use the new tonnetzGrid
+        function highlightTonnetzTriad(triad) {
+            // Remove existing highlights
+            tonnetzSvg.querySelectorAll('.tonnetz-node-circle.active').forEach(node => node.classList.remove('active'));
+            tonnetzSvg.querySelectorAll('.tonnetz-node-text.active').forEach(node => node.classList.remove('active'));
+            tonnetzSvg.querySelectorAll('.tonnetz-triad-fill').forEach(fill => fill.remove()); // Remove dynamic fill
+
+            const triadNotes = triad.getNotes(); // Get notes with correct enharmonic spelling
+
+            // Highlight nodes
+            triadNotes.forEach(note => {
+                // Find the canonical spelling in the tonnetzGrid for highlighting
+                const canonicalNote = Object.keys(tonnetzGrid).find(key => 
+                    noteToPitchClass[key] === noteToPitchClass[note] && tonnetzGrid[key] // Ensure it's in the current grid
+                );
+                if (canonicalNote) {
+                    tonnetzSvg.querySelectorAll(`.tonnetz-node-circle[data-note="${canonicalNote}"]`).forEach(node => node.classList.add('active'));
+                    tonnetzSvg.querySelectorAll(`.tonnetz-node-text[data-note="${canonicalNote}"]`).forEach(node => node.classList.add('active'));
+                }
+            });
+
+            // Draw and highlight the triad triangle
+            const triadPcs = triad.pitchClasses;
+            const triadCoords = triadPcs.map(pc => {
+                const noteName = canonicalSpelling[pc];
+                return tonnetzGrid[noteName];
+            }).filter(c => c); // Filter out notes not in the current Tonnetz view
+
+            if (triadCoords.length === 3) {
+                const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                polygon.setAttribute("points", `${triadCoords[0].x},${triadCoords[0].y} ${triadCoords[1].x},${triadCoords[1].y} ${triadCoords[2].x},${triadCoords[2].y}`);
+                polygon.setAttribute("fill", triad.type === 'major' ? "rgba(255, 0, 0, 0.4)" : "rgba(0, 0, 255, 0.4)"); // Red for major, blue for minor, slightly more opaque
+                polygon.setAttribute("stroke", triad.type === 'major' ? "red" : "blue");
+                polygon.setAttribute("stroke-width", "3");
+                polygon.classList.add("tonnetz-triad-fill");
+                tonnetzSvg.prepend(polygon); // Add to the beginning so it's behind notes/lines
             }
         }
 
@@ -649,6 +947,7 @@
             updateHistoryLog();
             highlightHexatonicNode(currentTriad);
             updateSetRelationshipsDisplay();
+            highlightTonnetzTriad(currentTriad); // Call to update the new Tonnetz visualization
         }
 
         // Add an entry to the history log
@@ -711,7 +1010,7 @@
 
         function updateSetRelationshipsDisplay() {
             const hexCycle = getHexatonicCycleForTriad(currentTriad);
-            const weitzRegion = getWeitzmannRegionForTriad(currentTriad);
+            const weitzRegion = getWeitzmannRegionForTriad(currentTriad); // Corrected typo here
 
             if (hexCycle) {
                 currentHexatonicCycleSpan.textContent = hexCycle.name;
@@ -931,12 +1230,21 @@
             highlightActiveOperation(event.target.dataset.op);
         });
 
+        // Toggle Tonnetz explanation visibility
+        // Removed event listener for tonnetzHeader as the section is removed.
+        // tonnetzHeader.addEventListener('click', () => {
+        //     tonnetzContent.classList.toggle('show');
+        //     tonnetzHeader.classList.toggle('expanded'); // Toggle expanded class for arrow rotation
+        // });
+
         // Initial setup on page load
         window.onload = () => {
             populateStartChordSelect();
             initializeApp();
+            // Removed displayTonnetzExplanation() as the section is no longer in the HTML.
+            // displayTonnetzExplanation(); // Load Tonnetz explanation content
+            drawFullTonnetz(); // Draw the new dynamic Tonnetz visualization
         };
     </script>
 </body>
 </html>
-
