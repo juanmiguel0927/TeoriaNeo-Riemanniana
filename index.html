@@ -224,6 +224,17 @@
             "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11
         };
 
+        // Define a canonical spelling for each pitch class (prefer sharps by default)
+        const canonicalSpelling = {
+            0: "C", 1: "C#", 2: "D", 3: "D#", 4: "E", 5: "F",
+            6: "F#", 7: "G", 8: "G#", 9: "A", 10: "A#", 11: "B"
+        };
+
+        // Alternative flat spellings for display purposes
+        const flatSpelling = {
+            1: "Db", 3: "Eb", 6: "Gb", 8: "Ab", 10: "Bb", 11: "Cb", 4: "Fb" // Added Cb and Fb
+        };
+
         // Function to normalize a pitch class (keep it within 0-11)
         function normalizePitch(pc) {
             return (pc % 12 + 12) % 12;
@@ -262,36 +273,79 @@
                 const fifthPc = this.pitchClasses[2];
 
                 // Helper to get the correct enharmonic spelling based on the root of the triad
-                const getCorrectSpelling = (pc, rootNote) => {
-                    // Default to sharp spelling from pitchClasses array
-                    let noteName = pitchClasses[pc];
-
+                const getNoteSpelling = (pc, intervalType) => { // intervalType: 'third' or 'fifth'
                     // Special cases for C# Major (E#) and F# Major (B#)
-                    if (rootNote === "C#" && pc === 5) return "E#"; // F -> E#
-                    if (rootNote === "F#" && pc === 0) return "B#"; // C -> B#
+                    if (this.root === "C#" && this.type === "major" && pc === 5) return "E#"; // F -> E#
+                    if (this.root === "F#" && this.type === "major" && pc === 0) return "B#"; // C -> B#
 
-                    // If the root is a flat, or if it's a natural root that commonly leads to flat spellings (like G, C, F),
-                    // prefer flat spellings for other notes.
-                    if (rootNote.includes("b") || ["G", "C", "F"].includes(rootNote)) {
-                        if (pc === 1) return "Db";
-                        else if (pc === 3) return "Eb";
-                        else if (pc === 6) return "Gb";
-                        else if (pc === 8) return "Ab";
-                        else if (pc === 10) return "Bb";
+                    // Determine the natural note name corresponding to the pitch class
+                    // This helps in deciding if it should be sharp or flat
+                    const naturalNotePc = (pc === 1) ? 0 : (pc === 3) ? 2 : (pc === 6) ? 5 : (pc === 8) ? 7 : (pc === 10) ? 9 : pc; // C#, D#, F#, G#, A# -> C, D, F, G, A
+                    const naturalNoteName = pitchClasses[naturalNotePc]; // e.g., for C# (pc 1), natural is C (pc 0)
+
+                    // Get the natural note name of the root for comparison
+                    const rootNaturalNotePc = (noteToPitchClass[this.root] === 1) ? 0 : (noteToPitchClass[this.root] === 3) ? 2 : (noteToPitchClass[this.root] === 6) ? 5 : (noteToPitchClass[this.root] === 8) ? 7 : (noteToPitchClass[this.root] === 10) ? 9 : noteToPitchClass[this.root];
+                    const rootNaturalNoteName = pitchClasses[rootNaturalNotePc];
+
+                    // Heuristic: Prefer flats if the root is flat, or if the natural note of the current pitch
+                    // is a half step above the natural note of the root, suggesting a flat context.
+                    // This is a more robust way to handle diatonic spelling.
+
+                    // Check if the target natural note is 'higher' than the root's natural note for the interval
+                    // e.g., for Ab minor, root natural is A. Third is Cb. Natural C is higher than A.
+                    // This helps in determining if a flat is needed to keep the interval 'correct'.
+                    const naturalNoteOrder = ["C", "D", "E", "F", "G", "A", "B"];
+                    const rootNaturalIndex = naturalNoteOrder.indexOf(rootNaturalNoteName);
+                    const currentNaturalIndex = naturalNoteOrder.indexOf(naturalNoteName);
+
+                    let preferFlats = false;
+
+                    // If the root itself is flat, generally prefer flats for other notes
+                    if (this.root.includes("b")) {
+                        preferFlats = true;
                     }
-                    // Otherwise (sharp or other natural roots), prefer sharp spellings.
-                    else {
-                        if (pc === 1) return "C#";
-                        else if (pc === 3) return "D#";
-                        else if (pc === 6) return "F#";
-                        else if (pc === 8) return "G#";
-                        else if (pc === 10) return "A#";
+
+                    // For minor chords, if the third is a half step below the natural third, it's flat
+                    if (this.type === "minor" && intervalType === "third") {
+                        const expectedMajorThirdPc = normalizePitch(noteToPitchClass[this.root] + 4);
+                        if (pc === normalizePitch(expectedMajorThirdPc - 1)) {
+                            preferFlats = true;
+                        }
                     }
-                    return noteName;
+
+                    // Specific cases for common flat keys/chords
+                    if (flatSpelling[pc] && (
+                        (this.root.includes("b")) || // If root is explicitly flat
+                        (this.root === "F" && pc === 10) || // F major/minor (Bb)
+                        (this.root === "Bb" && (pc === 3 || pc === 6)) || // Bb major/minor (Eb, Gb)
+                        (this.root === "Eb" && (pc === 8 || pc === 1)) || // Eb major/minor (Ab, Db)
+                        (this.root === "Ab" && (pc === 1 || pc === 6)) || // Ab major/minor (Db, Gb)
+                        (this.root === "Db" && (pc === 6 || pc === 10)) || // Db major/minor (Gb, Bb)
+                        (this.root === "Gb" && (pc === 10 || pc === 3)) || // Gb major/minor (Bb, Eb)
+                        (this.root === "C" && this.type === "minor" && pc === 3) || // Cm (Eb)
+                        (this.root === "G" && this.type === "minor" && pc === 10) || // Gm (Bb)
+                        (this.root === "D" && this.type === "minor" && pc === 5) || // Dm (F) - not flat but natural
+                        (this.root === "A" && this.type === "minor" && pc === 0) || // Am (C)
+                        (this.root === "E" && this.type === "minor" && pc === 7) || // Em (G)
+                        (this.root === "B" && this.type === "minor" && pc === 2) || // Bm (D)
+                        (this.root === "F#" && this.type === "minor" && pc === 9) // F#m (A)
+                    )) {
+                        preferFlats = true;
+                    }
+
+                    // Handle specific enharmonic notes based on context
+                    if (pc === 11 && preferFlats) return "Cb"; // B -> Cb (e.g., in Ab minor)
+                    if (pc === 4 && preferFlats) return "Fb";  // E -> Fb (e.g., in Db major)
+
+                    if (preferFlats && flatSpelling[pc]) {
+                        return flatSpelling[pc];
+                    } else {
+                        return canonicalSpelling[pc];
+                    }
                 };
 
-                notes.push(getCorrectSpelling(thirdPc, this.root));
-                notes.push(getCorrectSpelling(fifthPc, this.root));
+                notes.push(getNoteSpelling(thirdPc, 'third')); // Third
+                notes.push(getNoteSpelling(fifthPc, 'fifth')); // Fifth
 
                 return notes;
             }
@@ -309,14 +363,12 @@
             }
         }
 
-        // Define all 12 unique root names using sharps as primary for the dropdown,
-        // but include common flat spellings for internal Triad creation if needed.
+        // Define all 12 unique root names to create all 24 triads
         const allPossibleRootNames = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
 
         // All possible major and minor triads (24 total) generated from allPossibleRootNames
         const allTriads = [];
         allPossibleRootNames.forEach(root => {
-            // Only create triad if the root name maps to a valid pitch class
             if (noteToPitchClass[root] !== undefined) {
                 allTriads.push(new Triad(root, "major"));
                 allTriads.push(new Triad(root, "minor"));
@@ -328,64 +380,59 @@
             return allTriads.find(t => t.name === name);
         }
 
-        // --- Neo-Riemannian Operations (re-defined for clarity and to ensure consistency) ---
-        // L (Leittonechel - Leading-tone exchange)
+        // --- Neo-Riemannian Operations ---
         function opL(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") { // C Mayor (0,4,7) -> E menor (4,7,11)
+            if (triad.type === "major") {
                 newPcs = [t, f, normalizePitch(r + 11)];
                 newType = "minor";
-            } else { // C menor (0,3,7) -> Ab Mayor (8,0,3)
+            } else {
                 newPcs = [normalizePitch(f + 1), r, t];
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
 
-        // P (Parallel)
         function opP(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") { // C Mayor (0,4,7) -> C menor (0,3,7)
+            if (triad.type === "major") {
                 newPcs = [r, normalizePitch(t - 1), f];
                 newType = "minor";
-            } else { // C menor (0,3,7) -> C Mayor (0,4,7)
+            } else {
                 newPcs = [r, normalizePitch(t + 1), f];
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
 
-        // R (Relative)
         function opR(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") { // C Mayor (0,4,7) -> A menor (9,0,4)
+            if (triad.type === "major") {
                 newPcs = [normalizePitch(r + 9), r, t];
                 newType = "minor";
-            } else { // C menor (0,3,7) -> Eb Mayor (3,7,10)
+            } else {
                 newPcs = [normalizePitch(r + 3), f, normalizePitch(t + 7)];
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
 
-        // N (Next Related - Nebenverwandt)
         function opN(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") { // C Mayor (0,4,7) -> F menor (5,8,0)
+            if (triad.type === "major") {
                 newPcs = [normalizePitch(r + 5), normalizePitch(t + 4), r];
                 newType = "minor";
-            } else { // C menor (0,3,7) -> G Mayor (7,11,2)
+            } else {
                 newPcs = [f, normalizePitch(r + 2), normalizePitch(t + 8)];
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
 
-        // H (Hexatonic Pole) - equivalent to PLP or LPL
         function opH(triad) {
             let result = opP(triad);
             result = opL(result);
@@ -393,14 +440,13 @@
             return result;
         }
 
-        // S (Slide)
         function opS(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") { // C Mayor (0,4,7) -> C# menor (1,4,8)
+            if (triad.type === "major") {
                 newPcs = [normalizePitch(r + 1), t, normalizePitch(f + 1)];
                 newType = "minor";
-            } else { // C# menor (1,4,8) -> C Mayor (0,4,7)
+            } else {
                 newPcs = [normalizePitch(r - 1), t, normalizePitch(f - 1)];
                 newType = "major";
             }
@@ -409,15 +455,13 @@
 
 
         // Corrected Pre-defined Hexatonic Cycles (dynamically generated for accuracy)
-        // Each cycle contains 3 major and 3 minor triads.
         const hexatonicCycles = [
-            { name: "Ciclo I (C/E/G#)", members: [] }, // Will be populated dynamically
+            { name: "Ciclo I (C/E/G#)", members: [] },
             { name: "Ciclo II (C#/F/A)", members: [] },
             { name: "Ciclo III (D/F#/Bb)", members: [] },
             { name: "Ciclo IV (D#/G/B)", members: [] }
         ];
 
-        // Function to generate and populate a single hexatonic cycle
         function generateAndPopulateHexatonicCycle(startMajorTriad, cycleIndex) {
             const cycle = [];
             let current = startMajorTriad;
@@ -429,19 +473,18 @@
                     current = opP(current);
                 }
             }
-            hexatonicCycles[cycleIndex].members = cycle.filter(Boolean); // Ensure no nulls
+            hexatonicCycles[cycleIndex].members = cycle.filter(Boolean);
         }
 
         // Populate hexatonic cycles after allTriads and operations are defined
         // Ensure these starting triads exist in allTriads.
-        generateAndPopulateHexatonicCycle(getTriadByName("C Mayor"), 0); // C-E-G# system
-        generateAndPopulateHexatonicCycle(getTriadByName("C# Mayor"), 1); // C#-F-A system
-        generateAndPopulateHexatonicCycle(getTriadByName("D Mayor"), 2); // D-F#-Bb system
-        generateAndPopulateHexatonicCycle(getTriadByName("D# Mayor"), 3); // D#-G-B system
+        generateAndPopulateHexatonicCycle(getTriadByName("C Mayor"), 0);
+        generateAndPopulateHexatonicCycle(getTriadByName("C# Mayor"), 1);
+        generateAndPopulateHexatonicCycle(getTriadByName("D Mayor"), 2);
+        generateAndPopulateHexatonicCycle(getTriadByName("D# Mayor"), 3);
 
 
-        // Pre-defined Weitzmann Regions (based on augmented triads C-E-G#, C#-F-A, D-F#-Bb, D#-G-B)
-        // Each region contains 3 major and 3 minor triads whose roots form an augmented triad.
+        // Pre-defined Weitzmann Regions
         const weitzmannRegions = [
             { name: "Región de C-E-G#", members: [
                 getTriadByName("C Mayor"), getTriadByName("C menor"),
@@ -489,104 +532,104 @@
         const weitzmannRegionMembersDiv = document.getElementById("weitzmannRegionMembers");
         const sharedChordsDiv = document.getElementById("sharedChords");
 
+        // Explanations for operations
+        const explanations = {
+            "L": "La operación **L (Leittonechel / Intercambio de Tono Principal)** transforma una tríada mayor en una menor (y viceversa) moviendo una voz por semitono. Por ejemplo, C Mayor (C-E-G) a E menor (E-G-B).",
+            "P": "La operación **P (Parallel / Paralelo)** transforma una tríada mayor en su paralela menor (y viceversa) manteniendo la tónica y la quinta, y moviendo la tercera un semitono. Por ejemplo, C Mayor (C-E-G) a C menor (C-Eb-G).",
+            "R": "La operación **R (Relative / Relativo)** transforma una tríada mayor en su relativa menor (y viceversa) moviendo la tónica o la quinta un tono. Por ejemplo, C Mayor (C-E-G) a A menor (A-C-E).",
+            "N": "La operación **N (Next Related / Próximo Relacionado)** transforma una tríada mayor en una menor (y viceversa) moviendo dos voces por semitono. Por ejemplo, C Mayor (C-E-G) a F menor (F-Ab-C).",
+            "H": "La operación **H (Hexatonic Pole / Polo Hexatónico)** es una operación compuesta (PLP o LPL) que conecta dos tríadas dentro del mismo ciclo hexatónico que no comparten ninguna nota. Por ejemplo, C Mayor a Ab menor.",
+            "S": "La operación **S (Slide / Deslizamiento)** transforma una tríada mayor en una menor (y viceversa) moviendo la tónica y la quinta un semitono en la misma dirección. Por ejemplo, C Mayor (C-E-G) a C# menor (C#-E-G#)."
+        };
+
+        // Function to display operation explanation
+        function displayOperationExplanation(opCode) {
+            operationExplanation.textContent = explanations[opCode] || "Selecciona una operación para ver su descripción.";
+        }
+
 
         // Populate initial chord options
         function populateStartChordSelect() {
-            // Define a preferred order for enharmonic roots in the dropdown
-            // This list ensures each pitch class is represented once, prioritizing common spellings.
-            const canonicalRootNames = [
+            // Define a canonical order for roots in the dropdown
+            const orderedRoots = [
                 "C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"
             ];
             
-            const uniqueTriadsForDropdown = [];
-            
-            // Create a temporary map to store triads by their canonical root name
-            const canonicalTriadsMap = new Map(); // Map: canonicalRootName -> { major: Triad, minor: Triad }
+            // Create a temporary list of triads to populate the dropdown, ensuring no duplicates
+            const dropdownTriads = [];
+            const addedNames = new Set(); // To track names already added
 
-            allTriads.forEach(triad => {
-                let canonicalRoot = triad.root;
-                // Determine canonical root name for enharmonic equivalents
-                // Prioritize flat spellings for Db, Eb, Ab, Bb
-                if (triad.root === "C#") canonicalRoot = "Db";
-                else if (triad.root === "D#") canonicalRoot = "Eb";
-                else if (triad.root === "Gb") canonicalRoot = "F#"; // F# is generally preferred over Gb
-                else if (triad.root === "G#") canonicalRoot = "Ab";
-                else if (triad.root === "A#") canonicalRoot = "Bb";
+            // Iterate through the ordered roots to ensure consistent dropdown order
+            orderedRoots.forEach(rootName => {
+                // Find major and minor triads for this root
+                const majorTriad = allTriads.find(t => t.root === rootName && t.type === "major");
+                const minorTriad = allTriads.find(t => t.root === rootName && t.type === "minor");
 
-                if (!canonicalTriadsMap.has(canonicalRoot)) {
-                    canonicalTriadsMap.set(canonicalRoot, { major: null, minor: null });
+                if (majorTriad && !addedNames.has(majorTriad.name)) {
+                    dropdownTriads.push(majorTriad);
+                    addedNames.add(majorTriad.name);
                 }
-                if (triad.type === "major") {
-                    canonicalTriadsMap.get(canonicalRoot).major = triad;
-                } else {
-                    canonicalTriadsMap.get(canonicalRoot).minor = triad;
+                if (minorTriad && !addedNames.has(minorTriad.name)) {
+                    dropdownTriads.push(minorTriad);
+                    addedNames.add(minorTriad.name);
                 }
             });
 
-            // Populate uniqueTriadsForDropdown based on preferredRootOrder
-            canonicalRootNames.forEach(rootName => {
-                if (canonicalTriadsMap.has(rootName)) {
-                    const triadPair = canonicalTriadsMap.get(rootName);
-                    if (triadPair.major) uniqueTriadsForDropdown.push(triadPair.major);
-                    if (triadPair.minor) uniqueTriadsForDropdown.push(triadPair.minor);
+            // Sort the final list for the dropdown
+            const sortedDropdownTriads = [...dropdownTriads].sort((a, b) => {
+                const indexA = orderedRoots.indexOf(a.root);
+                const indexB = orderedRoots.indexOf(b.root);
+
+                if (indexA !== indexB) {
+                    return indexA - indexB;
                 }
+                return a.type.localeCompare(b.type); // Major before minor
             });
 
-            // Sort uniqueTriadsForDropdown by name for a consistent dropdown order
-            const sortedTriads = [...uniqueTriadsForDropdown].sort((a, b) => {
-                const rootOrderMap = new Map();
-                canonicalRootNames.forEach((root, index) => rootOrderMap.set(root, index));
-
-                // Get the canonical root for sorting purposes
-                const getCanonicalRootForSort = (rootName) => {
-                    if (rootName === "C#") return "Db";
-                    if (rootName === "D#") return "Eb";
-                    if (rootName === "Gb") return "F#";
-                    if (rootName === "G#") return "Ab";
-                    if (rootName === "A#") return "Bb";
-                    return rootName;
-                };
-
-                const indexA = rootOrderMap.get(getCanonicalRootForSort(a.root));
-                const indexB = rootOrderMap.get(getCanonicalRootForSort(b.root));
-
-                if (indexA === indexB) {
-                    return a.type.localeCompare(b.type);
-                }
-                return indexA - indexB;
-            });
-
-            sortedTriads.forEach(triad => {
+            sortedDropdownTriads.forEach(triad => {
                 const option = document.createElement("option");
                 option.value = triad.name;
                 option.textContent = triad.name;
                 startChordSelect.appendChild(option);
             });
-            // Set default to C Mayor
             startChordSelect.value = "C Mayor";
         }
 
         // Initialize or reset the application state
         function initializeApp() {
-            const selectedTriadName = startChordSelect.value;
-            currentTriad = allTriads.find(t => t.name === selectedTriadName);
-            history = [];
-            updateUI();
-            updateHexatonicCircleVisualization(currentTriad);
-            displayOperationExplanation(''); // Clear explanation on reset
-            removeActiveOperationHighlight(); // Clear any highlighted operation button
-            removeOperationsBoxHighlight(); // Clear operations box highlight
+            try {
+                const selectedTriadName = startChordSelect.value;
+                currentTriad = allTriads.find(t => t.name === selectedTriadName);
+                if (!currentTriad) {
+                    console.error("Error: Initial triad not found for name:", selectedTriadName);
+                    // Fallback to a default if the selected one is not found
+                    currentTriad = getTriadByName("C Mayor");
+                    if (!currentTriad) {
+                        console.error("Critical Error: C Mayor not found. Cannot initialize.");
+                        document.body.innerHTML = "<p style='color: red; text-align: center; margin-top: 50px;'>Error crítico al cargar la aplicación. Por favor, recarga.</p>";
+                        return;
+                    }
+                }
+                history = [];
+                updateUI();
+                updateHexatonicCircleVisualization(currentTriad);
+                displayOperationExplanation(''); // Clear explanation on reset
+                removeActiveOperationHighlight(); // Clear any highlighted operation button
+                removeOperationsBoxHighlight(); // Clear operations box highlight
+            } catch (error) {
+                console.error("Error during application initialization:", error);
+                document.body.innerHTML = "<p style='color: red; text-align: center; margin-top: 50px;'>Ha ocurrido un error al cargar la aplicación. Por favor, inténtalo de nuevo.</p>";
+            }
         }
 
         // Update the UI with current triad information
         function updateUI() {
             currentChordName.textContent = currentTriad.name;
             const notes = currentTriad.getNotes();
-            // Display notes explicitly as Root, Third, Fifth
             currentChordNotes.innerHTML = `Raíz: <span class="font-bold">${notes[0]}</span>, Tercera: <span class="font-bold">${notes[1]}</span>, Quinta: <span class="font-bold">${notes[2]}</span>`;
             updateHistoryLog();
             highlightHexatonicNode(currentTriad);
-            updateSetRelationshipsDisplay(); // Call new function to update set relationships
+            updateSetRelationshipsDisplay();
         }
 
         // Add an entry to the history log
@@ -598,7 +641,7 @@
                 timestamp: new Date().toLocaleTimeString()
             };
             history.push(entry);
-            historyLog.scrollTop = historyLog.scrollHeight; // Scroll to bottom
+            historyLog.scrollTop = historyLog.scrollHeight;
         }
 
         // Render the history log
@@ -631,7 +674,6 @@
         // --- Set Relationship Functions ---
         function getHexatonicCycleForTriad(triad) {
             for (const cycle of hexatonicCycles) {
-                // CRITICAL FIX: Use hasSamePitchClasses for membership check
                 if (cycle.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)) {
                     return cycle;
                 }
@@ -641,7 +683,6 @@
 
         function getWeitzmannRegionForTriad(triad) {
             for (const region of weitzmannRegions) {
-                // CRITICAL FIX: Use hasSamePitchClasses for membership check
                 if (region.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)) {
                     return region;
                 }
@@ -669,7 +710,6 @@
                 weitzmannRegionMembersDiv.innerHTML = "";
             }
 
-            // Find shared chords
             if (hexCycle && weitzRegion) {
                 const shared = hexCycle.members.filter(hexMember =>
                     weitzRegion.members.some(weitzMember => weitzMember.hasSamePitchClasses(hexMember) && weitzMember.type === hexMember.type)
@@ -681,23 +721,22 @@
         }
 
 
-        // --- Hexatonic Cycle Visualization (corrected logic) ---
+        // --- Hexatonic Cycle Visualization ---
         function updateHexatonicCircleVisualization(activeTriad) {
             hexatonicCircleSvg.innerHTML = `<defs>
                                                 <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
                                                     <polygon points="0 0, 10 3.5, 0 7" />
                                                 </marker>
-                                            </defs>`; // Clear previous nodes/arrows
+                                            </defs>`;
 
             const foundCycle = getHexatonicCycleForTriad(activeTriad);
 
             if (!foundCycle) {
                 hexatonicCircleSvg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="#64748b" class="text-xs">El acorde actual no está en el ciclo hexatónico visualizado.</text>`;
-                hexatonicCycleChords = []; // Clear the cycle chords
+                hexatonicCycleChords = [];
                 return;
             }
 
-            // Directly use the members of the found cycle for visualization
             hexatonicCycleChords = foundCycle.members;
 
             const centerX = 150;
@@ -707,7 +746,7 @@
             const nodeHeight = 30;
 
             hexatonicCycleChords.forEach((triad, index) => {
-                const angle = (index * (360 / hexatonicCycleChords.length) - 90) * Math.PI / 180; // -90 to start at top
+                const angle = (index * (360 / hexatonicCycleChords.length) - 90) * Math.PI / 180;
                 const x = centerX + radius * Math.cos(angle);
                 const y = centerY + radius * Math.sin(angle);
 
@@ -717,7 +756,6 @@
                 node.setAttribute("width", nodeWidth);
                 node.setAttribute("height", nodeHeight);
                 node.classList.add("chord-node");
-                // Use hasSamePitchClasses for highlighting in visualization
                 if (triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
                     node.classList.add("active");
                 }
@@ -725,8 +763,6 @@
                 hexatonicCircleSvg.appendChild(node);
 
                 node.addEventListener('click', () => {
-                    // When clicking a node, use its exact root and type to set currentTriad
-                    // Find the triad by its name to ensure we get the canonical object
                     currentTriad = getTriadByName(triad.name);
                     history = [];
                     updateUI();
@@ -744,8 +780,6 @@
                 const nextY = centerY + radius * Math.sin(nextAngle);
 
                 let isArrowActive = false;
-                // Determine if the operation between current and next is L or P for active arrow
-                // This logic is based on the predefined cycle order (L then P)
                 if (triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
                     const expectedNextByL = opL(triad);
                     const expectedNextByP = opP(triad);
@@ -778,10 +812,9 @@
             document.querySelectorAll('.chord-node').forEach(node => {
                 node.classList.remove('active');
             });
-            // Use hasSamePitchClasses for finding the node to highlight
             const index = hexatonicCycleChords.findIndex(t => t.hasSamePitchClasses(triadToHighlight) && t.type === triadToHighlight.type);
             if (index !== -1) {
-                const nodeElement = hexatonicCircleSvg.children[index + 1]; // +1 because of <defs>
+                const nodeElement = hexatonicCircleSvg.children[index + 1];
                 if (nodeElement) {
                     nodeElement.classList.add('active');
                 }
@@ -790,12 +823,12 @@
 
         // Function to highlight the active operation button
         function highlightActiveOperation(opCode) {
-            removeActiveOperationHighlight(); // First, remove any existing highlight
+            removeActiveOperationHighlight();
             const button = document.querySelector(`[data-op="${opCode}"]`);
             if (button) {
                 button.classList.add('active-op-btn');
             }
-            highlightOperationsBox(); // Highlight the operations box
+            highlightOperationsBox();
         }
 
         // Function to remove all active operation button highlights
