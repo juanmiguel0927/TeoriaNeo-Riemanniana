@@ -55,7 +55,6 @@
         /* Custom styles for the circular visualization */
         .circle-container {
             position: relative;
-            /* Removed fixed width/height for responsiveness */
             margin: 0 auto;
             border: 2px solid #cbd5e1;
             border-radius: 50%;
@@ -335,22 +334,22 @@
         let hasModalBeenShown = false;
 
         // Mapping from pitch class number to note name (using sharps as primary)
-        const pitchClasses = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]; // Using Unicode sharps
         
         // Mapping from note name to pitch class number (handles both sharps and flats)
         const noteToPitchClass = {
-            "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11
+            "C": 0, "C♯": 1, "D♭": 1, "D": 2, "D♯": 3, "E♭": 3, "E": 4, "F": 5, "F♯": 6, "G♭": 6, "G": 7, "G♯": 8, "A♭": 8, "A": 9, "A♯": 10, "B♭": 10, "B": 11
         };
 
         // Define a canonical spelling for each pitch class (prefer sharps by default)
         const canonicalSpelling = {
-            0: "C", 1: "C#", 2: "D", 3: "D#", 4: "E", 5: "F",
-            6: "F#", 7: "G", 8: "G#", 9: "A", 10: "A#", 11: "B"
+            0: "C", 1: "C♯", 2: "D", 3: "D♯", 4: "E", 5: "F",
+            6: "F♯", 7: "G", 8: "G♯", 9: "A", 10: "A♯", 11: "B"
         };
 
-        // Alternative flat spellings for display purposes
-        const flatSpelling = {
-            1: "Db", 3: "Eb", 6: "Gb", 8: "Ab", 10: "Bb", 11: "Cb", 4: "Fb" // Added Cb and Fb
+        // Specific pitch class mapping for Tonnetz display notes (including enharmonic spellings as they appear in the image)
+        const tonnetzNoteToPc = {
+            "C": 0, "C♯": 1, "D♭": 1, "D": 2, "D♯": 3, "E♭": 3, "E": 4, "E♯": 5, "F": 5, "F♯": 6, "G♭": 6, "G": 7, "G♯": 8, "A♭": 8, "A": 9, "A♯": 10, "B♭": 10, "B": 11, "B♯": 0, "C♭": 11, "F♭": 4, "Gx": 9, "Ax": 11
         };
 
         // Function to normalize a pitch class (keep it within 0-11)
@@ -393,24 +392,24 @@
                 // Helper to get the correct enharmonic spelling based on the root of the triad
                 const getNoteSpelling = (pc) => {
                     // Special cases for C# Major (E#) and F# Major (B#)
-                    if (this.root === "C#" && this.type === "major" && pc === 5) return "E#"; // F -> E#
-                    if (this.root === "F#" && this.type === "major" && pc === 0) return "B#"; // C -> B#
+                    if (this.root === "C♯" && this.type === "major" && pc === 5) return "E♯"; // F -> E#
+                    if (this.root === "F♯" && this.type === "major" && pc === 0) return "B♯"; // C -> B#
 
                     // Determine if we should generally prefer flat spellings for the internal notes
                     // This is a heuristic based on the root of the chord and common musical practice
-                    const preferFlats = ["Db", "Eb", "Gb", "Ab", "Bb"].includes(this.root) || // If root is explicitly flat
+                    const preferFlats = ["D♭", "E♭", "G♭", "A♭", "B♭"].includes(this.root) || // If root is explicitly flat
                                         (this.root === "F") || // F major/minor often use Bb
                                         (this.root === "C" && this.type === "minor") || // Cm uses Eb
                                         (this.root === "G" && this.type === "minor"); // Gm uses Bb
 
                     // Specific checks for common flat notes based on pitch class and context
-                    if (pc === 11 && preferFlats) return "Cb"; // B -> Cb (e.g., in Ab minor)
-                    if (pc === 4 && preferFlats) return "Fb";  // E -> Fb (e.g., in Db major)
-                    if (pc === 1 && preferFlats) return "Db";
-                    if (pc === 3 && preferFlats) return "Eb";
-                    if (pc === 6 && preferFlats) return "Gb";
-                    if (pc === 8 && preferFlats) return "Ab";
-                    if (pc === 10 && preferFlats) return "Bb";
+                    if (pc === 11 && preferFlats) return "C♭"; // B -> Cb (e.g., in Ab minor)
+                    if (pc === 4 && preferFlats) return "F♭";  // E -> Fb (e.g., in Db major)
+                    if (pc === 1 && preferFlats) return "D♭";
+                    if (pc === 3 && preferFlats) return "E♭";
+                    if (pc === 6 && preferFlats) return "G♭";
+                    if (pc === 8 && preferFlats) return "A♭";
+                    if (pc === 10 && preferFlats) return "B♭";
 
                     // Otherwise, use canonical (sharp/natural) spelling
                     return canonicalSpelling[pc];
@@ -436,7 +435,7 @@
         }
 
         // Define all 12 unique root names to create all 24 triads
-        const allPossibleRootNames = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
+        const allPossibleRootNames = ["C", "C♯", "D♭", "D", "D♯", "E♭", "E", "F", "F♯", "G♭", "G", "G♯", "A♭", "A", "A♯", "B♭", "B"];
 
         // All possible major and minor triads (24 total) generated from allPossibleRootNames
         const allTriads = [];
@@ -528,10 +527,10 @@
 
         // Corrected Pre-defined Hexatonic Cycles (dynamically generated for accuracy)
         const hexatonicCycles = [
-            { name: "Ciclo I (C/E/G#)", members: [] },
-            { name: "Ciclo II (C#/F/A)", members: [] },
-            { name: "Ciclo III (D/F#/Bb)", members: [] },
-            { name: "Ciclo IV (D#/G/B)", members: [] }
+            { name: "Ciclo I (C/E/G♯)", members: [] },
+            { name: "Ciclo II (C♯/F/A)", members: [] },
+            { name: "Ciclo III (D/F♯/B♭)", members: [] },
+            { name: "Ciclo IV (D♯/G/B)", members: [] }
         ];
 
         function generateAndPopulateHexatonicCycle(startMajorTriad, cycleIndex) {
@@ -551,30 +550,30 @@
         // Populate hexatonic cycles after allTriads and operations are defined
         // Ensure these starting triads exist in allTriads.
         generateAndPopulateHexatonicCycle(getTriadByName("C Mayor"), 0);
-        generateAndPopulateHexatonicCycle(getTriadByName("C# Mayor"), 1);
+        generateAndPopulateHexatonicCycle(getTriadByName("C♯ Mayor"), 1);
         generateAndPopulateHexatonicCycle(getTriadByName("D Mayor"), 2);
-        generateAndPopulateHexatonicCycle(getTriadByName("D# Mayor"), 3);
+        generateAndPopulateHexatonicCycle(getTriadByName("D♯ Mayor"), 3);
 
 
         // Pre-defined Weitzmann Regions
         const weitzmannRegions = [
-            { name: "Región de C-E-G#", members: [
+            { name: "Región de C-E-G♯", members: [
                 getTriadByName("C Mayor"), getTriadByName("C menor"),
                 getTriadByName("E Mayor"), getTriadByName("E menor"),
-                getTriadByName("G# Mayor"), getTriadByName("G# menor")
+                getTriadByName("G♯ Mayor"), getTriadByName("G♯ menor")
             ].filter(Boolean)},
-            { name: "Región de C#-F-A", members: [
-                getTriadByName("C# Mayor"), getTriadByName("C# menor"),
+            { name: "Región de C♯-F-A", members: [
+                getTriadByName("C♯ Mayor"), getTriadByName("C♯ menor"),
                 getTriadByName("F Mayor"), getTriadByName("F menor"),
                 getTriadByName("A Mayor"), getTriadByName("A menor")
             ].filter(Boolean)},
-            { name: "Región de D-F#-Bb", members: [
+            { name: "Región de D-F♯-B♭", members: [
                 getTriadByName("D Mayor"), getTriadByName("D menor"),
-                getTriadByName("F# Mayor"), getTriadByName("F# menor"),
-                getTriadByName("Bb Mayor"), getTriadByName("Bb menor") 
+                getTriadByName("F♯ Mayor"), getTriadByName("F♯ menor"),
+                getTriadByName("B♭ Mayor"), getTriadByName("B♭ menor") 
             ].filter(Boolean)},
-            { name: "Región de D#-G-B", members: [
-                getTriadByName("D# Mayor"), getTriadByName("D# menor"),
+            { name: "Región de D♯-G-B", members: [
+                getTriadByName("D♯ Mayor"), getTriadByName("D♯ menor"),
                 getTriadByName("G Mayor"), getTriadByName("G menor"),
                 getTriadByName("B Mayor"), getTriadByName("B menor")
             ].filter(Boolean)}
@@ -616,22 +615,74 @@
         tonnetzSvg.setAttribute("height", "100%"); // Make it fill parent
         tonnetzVisualizerDiv.appendChild(tonnetzSvg);
 
-        // Tonnetz grid data structure
-        let tonnetzGrid = {}; // Stores { noteName: { x, y, pc } }
+        // Global coordToNodeMap for quick lookup
+        let coordToNodeMap = new Map();
 
-        // Define spacing constants for the Tonnetz grid
-        const P5_HORIZONTAL_SPACING = 80; // Horizontal distance for a perfect fifth (increased for more space)
-        const THIRD_VERTICAL_SPACING = 45; // Vertical distance for a major/minor third (increased for more space)
+        // Define spacing constants for the Tonnetz grid based on the image
+        const P5_HORIZONTAL_SPACING = 80; // Horizontal distance for a perfect fifth
+        const THIRD_VERTICAL_SPACING = 45; // Vertical distance for a major/minor third
         const THIRD_HORIZONTAL_OFFSET = P5_HORIZONTAL_SPACING / 2; // Horizontal offset for thirds
+
+        // Define the Tonnetz nodes with their precise coordinates and note names as in the image
+        // Using Unicode flat and sharp symbols for exact match with the image
+        const tonnetzNodesData = [
+            // Row 1: D# A# E# B# Gx
+            { note: "D♯", pc: tonnetzNoteToPc["D♯"], x: 0, y: 0 },
+            { note: "A♯", pc: tonnetzNoteToPc["A♯"], x: 80, y: 0 },
+            { note: "E♯", pc: tonnetzNoteToPc["E♯"], x: 160, y: 0 },
+            { note: "B♯", pc: tonnetzNoteToPc["B♯"], x: 240, y: 0 },
+            { note: "Gx", pc: tonnetzNoteToPc["Gx"], x: 320, y: 0 },
+
+            // Row 2: B F# C# G# D# A#
+            { note: "B", pc: tonnetzNoteToPc["B"], x: -40, y: 45 },
+            { note: "F♯", pc: tonnetzNoteToPc["F♯"], x: 40, y: 45 },
+            { note: "C♯", pc: tonnetzNoteToPc["C♯"], x: 120, y: 45 },
+            { note: "G♯", pc: tonnetzNoteToPc["G♯"], x: 200, y: 45 },
+            { note: "D♯", pc: tonnetzNoteToPc["D♯"], x: 280, y: 45 },
+            { note: "A♯", pc: tonnetzNoteToPc["A♯"], x: 360, y: 45 },
+
+            // Row 3: D A E B F# C#
+            { note: "D", pc: tonnetzNoteToPc["D"], x: 0, y: 90 },
+            { note: "A", pc: tonnetzNoteToPc["A"], x: 80, y: 90 },
+            { note: "E", pc: tonnetzNoteToPc["E"], x: 160, y: 90 },
+            { note: "B", pc: tonnetzNoteToPc["B"], x: 240, y: 90 },
+            { note: "F♯", pc: tonnetzNoteToPc["F♯"], x: 320, y: 90 },
+            { note: "C♯", pc: tonnetzNoteToPc["C♯"], x: 400, y: 90 },
+
+            // Row 4: Bb F C G D A
+            { note: "B♭", pc: tonnetzNoteToPc["B♭"], x: -40, y: 135 },
+            { note: "F", pc: tonnetzNoteToPc["F"], x: 40, y: 135 },
+            { note: "C", pc: tonnetzNoteToPc["C"], x: 120, y: 135 },
+            { note: "G", pc: tonnetzNoteToPc["G"], x: 200, y: 135 },
+            { note: "D", pc: tonnetzNoteToPc["D"], x: 280, y: 135 },
+            { note: "A", pc: tonnetzNoteToPc["A"], x: 360, y: 135 },
+
+            // Row 5: Db Ab Eb Bb F C
+            { note: "D♭", pc: tonnetzNoteToPc["D♭"], x: 0, y: 180 },
+            { note: "A♭", pc: tonnetzNoteToPc["A♭"], x: 80, y: 180 },
+            { note: "E♭", pc: tonnetzNoteToPc["E♭"], x: 160, y: 180 },
+            { note: "B♭", pc: tonnetzNoteToPc["B♭"], x: 240, y: 180 },
+            { note: "F", pc: tonnetzNoteToPc["F"], x: 320, y: 180 },
+            { note: "C", pc: tonnetzNoteToPc["C"], x: 400, y: 180 },
+
+            // Row 6: Ax Fb Cb Gb Db Ab
+            { note: "Ax", pc: tonnetzNoteToPc["Ax"], x: -40, y: 225 },
+            { note: "F♭", pc: tonnetzNoteToPc["F♭"], x: 40, y: 225 },
+            { note: "C♭", pc: tonnetzNoteToPc["C♭"], x: 120, y: 225 },
+            { note: "G♭", pc: tonnetzNoteToPc["G♭"], x: 200, y: 225 },
+            { note: "D♭", pc: tonnetzNoteToPc["D♭"], x: 280, y: 225 },
+            { note: "A♭", pc: tonnetzNoteToPc["A♭"], x: 360, y: 225 },
+        ];
+
 
         // Explanations for operations
         const explanations = {
-            "L": "La operación **L (Leittonechel / Intercambio de Tono Principal)** transforma una tríada mayor en una menor (y viceversa) moviendo una voz por semitono. Por ejemplo, C Mayor (C-E-G) &rarr; L E menor (E-G-B).",
-            "P": "La operación **P (Parallel / Paralelo)** transforma una tríada mayor en su paralela menor (y viceversa) manteniendo la tónica y la quinta, y moviendo la tercera un semitono. Por ejemplo, C Mayor (C-E-G) &rarr; P C menor (C-Eb-G).",
-            "R": "La operación **R (Relative / Relativo)** transforma una tríada mayor en su relativa menor (o viceversa) moviendo la tónica o la quinta un tono. Por ejemplo, C Mayor (C-E-G) &rarr; R A menor (A-C-E).",
-            "N": "La operación **N (Next Related / Próximo Relacionado)** transforma una tríada mayor en una menor (y viceversa) moviendo dos voces por semitono. Por ejemplo, C Mayor (C-E-G) &rarr; N F menor (F-Ab-C).",
-            "H": "La operación **H (Hexatonic Pole / Polo Hexatónico)** es una operación compuesta (PLP o LPL) que conecta dos tríadas dentro del mismo ciclo hexatónico que no comparten ninguna nota. Por ejemplo, C Mayor &rarr; H Ab menor (Ab-Cb-Eb).",
-            "S": "La operación **S (Slide / Deslizamiento)** transforma una tríada mayor en una menor (y viceversa) moviendo la tónica y la quinta un semitono en la misma dirección. Por ejemplo, C Mayor (C-E-G) &rarr; S C# menor (C#-E-G#)."
+            "L": "La operación **L (Leittonechel / Intercambio de Tono Principal)** transforma una tríada mayor en una menor (y viceversa) moviendo una voz por semitono. Por ejemplo, C Mayor (C-E-G) → L E menor (E-G-B).",
+            "P": "La operación **P (Parallel / Paralelo)** transforma una tríada mayor en su paralela menor (y viceversa) manteniendo la tónica y la quinta, y moviendo la tercera un semitono. Por ejemplo, C Mayor (C-E-G) → P C menor (C-E♭-G).",
+            "R": "La operación **R (Relative / Relativo)** transforma una tríada mayor en su relativa menor (o viceversa) moviendo la tónica o la quinta un tono. Por ejemplo, C Mayor (C-E-G) → R A menor (A-C-E).",
+            "N": "La operación **N (Next Related / Próximo Relacionado)** transforma una tríada mayor en una menor (y viceversa) moviendo dos voces por semitono. Por ejemplo, C Mayor (C-E-G) → N F menor (F-A♭-C).",
+            "H": "La operación **H (Hexatonic Pole / Polo Hexatónico)** es una operación compuesta (PLP o LPL) que conecta dos tríadas dentro del mismo ciclo hexatónico que no comparten ninguna nota. Por ejemplo, C Mayor → H A♭ menor (A♭-C♭-E♭).",
+            "S": "La operación **S (Slide / Deslizamiento)** transforma una tríada mayor en una menor (y viceversa) moviendo la tónica y la quinta un semitono en la misma dirección. Por ejemplo, C Mayor (C-E-G) → S C♯ menor (C♯-E-G♯)."
         };
 
         // Function to display operation explanation
@@ -650,98 +701,6 @@
             }
         }
 
-        // Function to generate and display Tonnetz explanation (simplified)
-        function displayTonnetzExplanation() {
-            // This function is no longer called as the section is removed from HTML.
-            // Keeping it here in case it's needed for future reference or re-addition.
-            tonnetzContent.innerHTML = `
-                <h3 class="text-xl font-bold mb-4 text-blue-700">El Tonnetz: Una Red Geométrica de Tonos</h3>
-                <p class="text-gray-700 mb-4">
-                    El **Tonnetz** es una representación gráfica de las relaciones entre las clases de tono y los acordes. Cada punto representa una nota, y las líneas conectan notas separadas por quintas justas, terceras mayores y terceras menores. Las tríadas se visualizan como triángulos en esta red.
-                </p>
-                <div class="flex justify-center my-6">
-                    <img src="https://placehold.co/400x250/E0F2F7/334155?text=Diagrama+Tonnetz+Mayor+y+Menor" alt="Diagrama Tonnetz mostrando tríadas mayores y menores" class="rounded-lg shadow-lg max-w-full h-auto">
-                </div>
-                <p class="text-sm text-gray-600 mt-2 text-center mb-4">
-                    *Este es un ejemplo visual de cómo se ven las tríadas mayor y menor en el Tonnetz. Nota la orientación opuesta de los triángulos.*
-                </p>
-
-                <h3 class="text-xl font-bold mb-4 text-blue-700">Regiones de Weitzmann</h3>
-                <p class="text-gray-700 mb-4">
-                    Las **Regiones de Weitzmann** son conjuntos de tríadas que comparten propiedades específicas y se relacionan en el Tonnetz. Agrupan acordes que pueden transformarse entre sí mediante las operaciones P, L y R sin salir de la región, destacando conexiones estructurales profundas.
-                </p>
-            `;
-        }
-
-        // Function to generate positions for a segment of the Tonnetz grid
-        function generateTonnetzPositions(centerNote = "C", maxDistance = 3) {
-            tonnetzGrid = {}; // Clear previous grid
-
-            // Initial position for C in the center of our desired view
-            const initialX = 250;
-            const initialY = 200;
-
-            // Define a queue for BFS to build the grid
-            const queue = [{ note: centerNote, x: initialX, y: initialY, pc: noteToPitchClass[centerNote], dist: 0 }];
-            const visited = new Set([centerNote]);
-
-            let head = 0;
-            while(head < queue.length) {
-                const current = queue[head++];
-                const currentNote = current.note;
-                const currentPc = current.pc;
-                const currentDist = current.dist;
-
-                if (currentDist > maxDistance) continue;
-
-                // Add current note to grid
-                if (!tonnetzGrid[currentNote]) {
-                    tonnetzGrid[currentNote] = { x: current.x, y: current.y, pc: currentPc };
-                }
-
-                // Define potential neighbors based on intervals and their spatial offsets
-                // P5 (horizontal)
-                const p5UpPc = normalizePitch(currentPc + 7);
-                const p5DownPc = normalizePitch(currentPc - 7);
-                // M3 (diagonal up-right)
-                const m3UpRightPc = normalizePitch(currentPc + 4);
-                // m3 (diagonal up-left)
-                const m3UpLeftPc = normalizePitch(currentPc + 3);
-
-                const neighborsToExplore = [
-                    { pc: p5UpPc, x: current.x + P5_HORIZONTAL_SPACING, y: current.y },
-                    { pc: p5DownPc, x: current.x - P5_HORIZONTAL_SPACING, y: current.y },
-                    { pc: m3UpRightPc, x: current.x + THIRD_HORIZONTAL_OFFSET, y: current.y - THIRD_VERTICAL_SPACING },
-                    { pc: normalizePitch(currentPc - 4), x: current.x - THIRD_HORIZONTAL_OFFSET, y: current.y + THIRD_VERTICAL_SPACING }, // M3 down-left (inverse of M3 up-right)
-                    { pc: m3UpLeftPc, x: current.x - THIRD_HORIZONTAL_OFFSET, y: current.y - THIRD_VERTICAL_SPACING },
-                    { pc: normalizePitch(currentPc - 3), x: current.x + THIRD_HORIZONTAL_OFFSET, y: current.y + THIRD_VERTICAL_SPACING }  // m3 down-right (inverse of m3 up-left)
-                ];
-
-                for (const neighbor of neighborsToExplore) {
-                    const neighborNote = canonicalSpelling[neighbor.pc];
-                    if (!visited.has(neighborNote)) {
-                        visited.add(neighborNote);
-                        queue.push({ note: neighborNote, x: neighbor.x, y: neighbor.y, pc: neighbor.pc, dist: currentDist + 1 });
-                    }
-                }
-            }
-
-            // Adjust all coordinates to be relative to the top-leftmost point for a clean viewBox
-            let minX = Infinity, minY = Infinity;
-            for (const note in tonnetzGrid) {
-                minX = Math.min(minX, tonnetzGrid[note].x);
-                minY = Math.min(minY, tonnetzGrid[note].y);
-            }
-
-            // Apply offset to all coordinates
-            const offsetX = minX - 50; // Padding
-            const offsetY = minY - 50; // Padding
-            for (const note in tonnetzGrid) {
-                tonnetzGrid[note].x -= offsetX;
-                tonnetzGrid[note].y -= offsetY;
-            }
-        }
-
         // Helper to draw a line in SVG
         function drawLine(svg, p1, p2, color, strokeWidth = "1") {
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -756,31 +715,39 @@
 
         function drawFullTonnetz() {
             tonnetzSvg.innerHTML = ''; // Clear existing content
-            generateTonnetzPositions("C", 3); // Generate a segment centered on C, max distance 3 steps
+
+            // Create a map for quick lookup by coordinates
+            coordToNodeMap = new Map(); // Re-initialize global map
+            tonnetzNodesData.forEach(node => {
+                coordToNodeMap.set(`${node.x},${node.y}`, node);
+            });
 
             // Draw connections first (lines)
-            for (const noteName in tonnetzGrid) {
-                const currentPos = tonnetzGrid[noteName];
-                const currentPc = currentPos.pc;
+            tonnetzNodesData.forEach(node => {
+                // Check for P5 right neighbor (horizontal)
+                const p5RightCoord = `${node.x + P5_HORIZONTAL_SPACING},${node.y}`;
+                const p5RightNode = coordToNodeMap.get(p5RightCoord);
+                if (p5RightNode) {
+                    drawLine(tonnetzSvg, node, p5RightNode, "#cbd5e1");
+                }
 
-                // Define potential neighbors for drawing lines
-                const potentialNeighbors = [
-                    normalizePitch(currentPc + 7), // P5 up
-                    normalizePitch(currentPc + 4), // M3 up-right
-                    normalizePitch(currentPc + 3)  // m3 up-left
-                ];
+                // Check for M3 up-right neighbor (diagonal)
+                const m3UpRightCoord = `${node.x + THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`;
+                const m3UpRightNode = coordToNodeMap.get(m3UpRightCoord);
+                if (m3UpRightNode) {
+                    drawLine(tonnetzSvg, node, m3UpRightNode, "#cbd5e1");
+                }
 
-                potentialNeighbors.forEach(neighborPc => {
-                    const neighborNote = canonicalSpelling[neighborPc];
-                    if (tonnetzGrid[neighborNote]) { // Only draw if the neighbor is in our current grid segment
-                        drawLine(tonnetzSvg, currentPos, tonnetzGrid[neighborNote], "#cbd5e1");
-                    }
-                });
-            }
+                // Check for m3 up-left neighbor (diagonal)
+                const m3UpLeftCoord = `${node.x - THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`;
+                const m3UpLeftNode = coordToNodeMap.get(m3UpLeftCoord);
+                if (m3UpLeftNode) {
+                    drawLine(tonnetzSvg, node, m3UpLeftNode, "#cbd5e1");
+                }
+            });
 
             // Draw nodes (circles and text) on top of lines
-            for (const noteName in tonnetzGrid) {
-                const pos = tonnetzGrid[noteName];
+            tonnetzNodesData.forEach(pos => {
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 circle.setAttribute("cx", pos.x);
                 circle.setAttribute("cy", pos.y);
@@ -789,7 +756,7 @@
                 circle.setAttribute("stroke", "#94a3b8");
                 circle.setAttribute("stroke-width", "1");
                 circle.classList.add("tonnetz-node-circle"); // Renamed class
-                circle.dataset.note = noteName;
+                circle.dataset.note = pos.note; // Store the exact note name for highlighting
 
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 text.setAttribute("x", pos.x);
@@ -797,27 +764,26 @@
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("font-size", "10");
                 text.setAttribute("fill", "#475569");
-                text.textContent = noteName;
+                text.textContent = pos.note; // Use the exact note name from tonnetzNodesData
                 text.classList.add("tonnetz-node-text");
-                text.dataset.note = noteName;
+                text.dataset.note = pos.note;
 
                 tonnetzSvg.appendChild(circle);
                 tonnetzSvg.appendChild(text);
-            }
+            });
 
             // Update viewBox to fit the generated content
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            for (const note in tonnetzGrid) {
-                minX = Math.min(minX, tonnetzGrid[note].x - 15); // Node radius
-                minY = Math.min(minY, tonnetzGrid[note].y - 15);
-                maxX = Math.max(maxX, tonnetzGrid[note].x + 15);
-                maxY = Math.max(maxY, tonnetzGrid[note].y + 15);
-            }
+            tonnetzNodesData.forEach(node => {
+                minX = Math.min(minX, node.x - 15); // Node radius
+                minY = Math.min(minY, node.y - 15);
+                maxX = Math.max(maxX, node.x + 15);
+                maxY = Math.max(maxY, node.y + 15);
+            });
             const padding = 20; // Extra padding for the viewBox
             const finalWidth = maxX - minX + 2 * padding;
             const finalHeight = maxY - minY + 2 * padding;
             tonnetzSvg.setAttribute("viewBox", `${minX - padding} ${minY - padding} ${finalWidth} ${finalHeight}`);
-            // Removed tonnetzSvg.setAttribute("height", finalHeight); // Let CSS handle height
         }
 
 
@@ -828,30 +794,65 @@
             tonnetzSvg.querySelectorAll('.tonnetz-node-text.active').forEach(node => node.classList.remove('active'));
             tonnetzSvg.querySelectorAll('.tonnetz-triad-fill').forEach(fill => fill.remove()); // Remove dynamic fill
 
-            const triadNotes = triad.getNotes(); // Get notes with correct enharmonic spelling
+            const triadPcs = triad.pitchClasses; // These are 0-11 pitch classes
 
-            // Highlight nodes
-            triadNotes.forEach(note => {
-                // Find the canonical spelling in the tonnetzGrid for highlighting
-                const canonicalNote = Object.keys(tonnetzGrid).find(key => 
-                    noteToPitchClass[key] === noteToPitchClass[note] && tonnetzGrid[key] // Ensure it's in the current grid
-                );
-                if (canonicalNote) {
-                    tonnetzSvg.querySelectorAll(`.tonnetz-node-circle[data-note="${canonicalNote}"]`).forEach(node => node.classList.add('active'));
-                    tonnetzSvg.querySelectorAll(`.tonnetz-node-text[data-note="${canonicalNote}"]`).forEach(node => node.classList.add('active'));
-                }
+            // Highlight nodes that match the triad's pitch classes (reverted to previous behavior)
+            triadPcs.forEach(pc => {
+                // Find all notes in tonnetzNodesData that have this pitch class
+                const matchingTonnetzNodes = tonnetzNodesData.filter(node => node.pc === pc);
+
+                matchingTonnetzNodes.forEach(tonnetzNode => {
+                    tonnetzSvg.querySelectorAll(`.tonnetz-node-circle[data-note="${tonnetzNode.note}"]`).forEach(node => node.classList.add('active'));
+                    tonnetzSvg.querySelectorAll(`.tonnetz-node-text[data-note="${tonnetzNode.note}"]`).forEach(node => node.classList.add('active'));
+                });
             });
 
             // Draw and highlight the triad triangle
-            const triadPcs = triad.pitchClasses;
-            const triadCoords = triadPcs.map(pc => {
-                const noteName = canonicalSpelling[pc];
-                return tonnetzGrid[noteName];
-            }).filter(c => c); // Filter out notes not in the current Tonnetz view
+            const rootPc = triad.pitchClasses[0];
+            const thirdPc = triad.pitchClasses[1];
+            const fifthPc = triad.pitchClasses[2];
 
-            if (triadCoords.length === 3) {
+            let foundTriadNodes = [];
+
+            // Iterate through all nodes that match the root's pitch class to find the correct triangle
+            const possibleRootNodes = tonnetzNodesData.filter(node => node.pc === rootPc);
+
+            for (const pRootNode of possibleRootNodes) {
+                let pThirdNode = null;
+                let pFifthNode = null;
+
+                if (triad.type === "major") {
+                    // Expected Major Third position (up-right)
+                    const m3UpRightCoord = `${pRootNode.x + THIRD_HORIZONTAL_OFFSET},${pRootNode.y - THIRD_VERTICAL_SPACING}`;
+                    pThirdNode = coordToNodeMap.get(m3UpRightCoord);
+                    // Expected Perfect Fifth position (right)
+                    const p5RightCoord = `${pRootNode.x + P5_HORIZONTAL_SPACING},${pRootNode.y}`;
+                    pFifthNode = coordToNodeMap.get(p5RightCoord);
+                } else { // minor
+                    // Expected Minor Third position (up-left)
+                    const m3UpLeftCoord = `${pRootNode.x - THIRD_HORIZONTAL_OFFSET},${pRootNode.y - THIRD_VERTICAL_SPACING}`;
+                    pThirdNode = coordToNodeMap.get(m3UpLeftCoord);
+                    // Expected Perfect Fifth position (right)
+                    const p5RightCoord = `${pRootNode.x + P5_HORIZONTAL_SPACING},${pRootNode.y}`;
+                    pFifthNode = coordToNodeMap.get(p5RightCoord);
+                }
+
+                // Check if the found nodes exist and have the correct pitch classes
+                if (pThirdNode && pFifthNode &&
+                    pThirdNode.pc === thirdPc && pFifthNode.pc === fifthPc) {
+                    foundTriadNodes = [pRootNode, pThirdNode, pFifthNode];
+                    break; // Found the correct set of nodes for the triangle
+                }
+            }
+
+            if (foundTriadNodes.length === 3) {
                 const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                polygon.setAttribute("points", `${triadCoords[0].x},${triadCoords[0].y} ${triadCoords[1].x},${triadCoords[1].y} ${triadCoords[2].x},${triadCoords[2].y}`);
+                // Sort coords by x then y to ensure consistent drawing order for polygon
+                foundTriadNodes.sort((a, b) => {
+                    if (a.x !== b.x) return a.x - b.x;
+                    return a.y - b.y;
+                });
+                polygon.setAttribute("points", `${foundTriadNodes[0].x},${foundTriadNodes[0].y} ${foundTriadNodes[1].x},${foundTriadNodes[1].y} ${foundTriadNodes[2].x},${foundTriadNodes[2].y}`);
                 polygon.setAttribute("fill", triad.type === 'major' ? "rgba(255, 0, 0, 0.4)" : "rgba(0, 0, 255, 0.4)"); // Red for major, blue for minor, slightly more opaque
                 polygon.setAttribute("stroke", triad.type === 'major' ? "red" : "blue");
                 polygon.setAttribute("stroke-width", "3");
@@ -865,7 +866,7 @@
         function populateStartChordSelect() {
             // Define a canonical order for roots in the dropdown
             const orderedRoots = [
-                "C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"
+                "C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"
             ];
             
             // Create a temporary list of triads to populate the dropdown, ensuring no duplicates
@@ -1230,21 +1231,14 @@
             highlightActiveOperation(event.target.dataset.op);
         });
 
-        // Toggle Tonnetz explanation visibility
-        // Removed event listener for tonnetzHeader as the section is removed.
-        // tonnetzHeader.addEventListener('click', () => {
-        //     tonnetzContent.classList.toggle('show');
-        //     tonnetzHeader.classList.toggle('expanded'); // Toggle expanded class for arrow rotation
-        // });
-
         // Initial setup on page load
         window.onload = () => {
             populateStartChordSelect();
             initializeApp();
-            // Removed displayTonnetzExplanation() as the section is no longer in the HTML.
-            // displayTonnetzExplanation(); // Load Tonnetz explanation content
             drawFullTonnetz(); // Draw the new dynamic Tonnetz visualization
         };
     </script>
 </body>
 </html>
+
+
