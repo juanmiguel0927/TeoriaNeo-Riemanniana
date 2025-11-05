@@ -1179,13 +1179,15 @@
             startChordSelect.value = "C Mayor";
         }
 
-        // Inicializar o reiniciar la app
-        function initializeApp() {
+        /**
+         * NUEVA FUNCIÓN: Establece el acorde de inicio y reinicia la UI.
+         * Separada de initializeApp para evitar que el modal se muestre en cada cambio.
+         */
+        function setStartChord(chordName) {
             try {
-                exitAnalysis(); // <-- Asegurarse de que el modo análisis esté desactivado
+                exitAnalysis(); // Asegurarse de que el modo análisis esté desactivado
                 
-                const selectedTriadName = startChordSelect.value;
-                currentTriad = allTriads.find(t => t.name === selectedTriadName);
+                currentTriad = allTriads.find(t => t.name === chordName);
                 previousTriad = null;
                 if (!currentTriad) {
                     currentTriad = getTriadByName("C Mayor");
@@ -1203,12 +1205,18 @@
                 displayOperationExplanation('');
                 removeActiveOperationHighlight();
                 removeOperationsBoxHighlight();
-                updateOperationButtonHighlights(); // <-- LLAMAR AL INICIAR
-                showAuthorModal(); 
+                updateOperationButtonHighlights();
 
             } catch (error) {
-                console.error("Error al inicializar la app:", error);
+                console.error("Error al establecer el acorde de inicio:", error);
             }
+        }
+
+        // Inicializar o reiniciar la app
+        function initializeApp() {
+            // Ahora solo llama a setStartChord y muestra el modal
+            setStartChord(startChordSelect.value);
+            showAuthorModal();
         }
 
         // Actualizar toda la UI
@@ -1352,8 +1360,23 @@
             const cycleChords = cycle.members;
             const centerX = 150, centerY = 150, radius = 120, nodeWidth = 60, nodeHeight = 30;
 
+            // --- NUEVA LÓGICA DE ROTACIÓN ---
+            // 1. Encontrar el índice del acorde activo en el ciclo.
+            const activeIndex = cycleChords.findIndex(t => t.hasSamePitchClasses(activeTriad) && t.type === activeTriad.type);
+            
+            // 2. Calcular el ángulo por nodo.
+            const anglePerNode = (360 / cycleChords.length); // Usualmente 60 grados
+
+            // 3. Determinar el "desplazamiento" angular necesario para poner el activeIndex en la parte superior (-90 grados).
+            // El ángulo normal del activeIndex sería (activeIndex * anglePerNode - 90).
+            // Queremos que sea -90. Así que el desplazamiento es (activeIndex * anglePerNode).
+            const angleOffset = (activeIndex !== -1) ? (activeIndex * anglePerNode) : 0;
+            // --- FIN DE LA NUEVA LÓGICA ---
+
             cycleChords.forEach((triad, index) => {
-                const angle = (index * (360 / cycleChords.length) - 90) * Math.PI / 180;
+                // MODIFICADO: Aplicar el desplazamiento al calcular el ángulo.
+                const angle = ((index * anglePerNode) - angleOffset - 90) * Math.PI / 180;
+                
                 const x = centerX + radius * Math.cos(angle);
                 const y = centerY + radius * Math.sin(angle);
 
@@ -1403,9 +1426,10 @@
                     }
                 });
 
-                // Dibujar flechas (simplificado)
+                // Dibujar flechas
+                // MODIFICADO: Recalcular el ángulo para la flecha también
                 const nextIndex = (index + 1) % cycleChords.length;
-                const nextAngle = (nextIndex * (360 / cycleChords.length) - 90) * Math.PI / 180;
+                const nextAngle = (((nextIndex * anglePerNode) - angleOffset - 90)) * Math.PI / 180;
                 const nextX = centerX + radius * Math.cos(nextAngle);
                 const nextY = centerY + radius * Math.sin(nextAngle);
                 drawArrow(hexatonicCircleSvg, x, y, nextX, nextY, nodeWidth / 2);
@@ -1590,6 +1614,11 @@
         
         resetButton.addEventListener("click", initializeApp);
         
+        // NUEVO: Listener para el <select> de acorde inicial
+        startChordSelect.addEventListener('change', (event) => {
+            setStartChord(event.target.value);
+        });
+        
         playChordButton.addEventListener('click', () => {
             startAudioContext(); // Asegurarse de que el audio esté iniciado
             const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
@@ -1618,10 +1647,10 @@
                 }
 
                 if (newTriad) {
-                    // Calcular y reproducir voicing
-                    const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-                    const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
-                    playVoicing(newMidiVoicing);
+                    // MODIFICADO: Audio de operación deshabilitado por solicitud del usuario
+                    // const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                    // const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
+                    // playVoicing(newMidiVoicing);
 
                     previousTriad = oldTriad; // Guardar el anterior
                     currentTriad = newTriad;
