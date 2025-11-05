@@ -536,15 +536,21 @@
         // --- Funciones de Audio y Voice Leading ---
 
         /**
+         * NUEVA FUNCIÓN: Actualiza el 'lastPlayedVoicing' sin reproducir sonido.
+         */
+        function updateVoicing(midiNotes) {
+            const toneNotes = midiNotes.map(midi => Tone.Frequency(midi, "midi").toNote());
+            lastPlayedVoicing = toneNotes; // Guarda el nuevo voicing
+        }
+
+        /**
          * Reproduce un array de notas MIDI y lo guarda como el último voicing.
          */
         function playVoicing(midiNotes) {
             startAudioContext();
-            // Convierte MIDI a nombres de nota para Tone.js (ej: 60 -> "C4")
-            const toneNotes = midiNotes.map(midi => Tone.Frequency(midi, "midi").toNote());
-            
-            lastPlayedVoicing = toneNotes; // Guarda el nuevo voicing
-            synth.triggerAttackRelease(toneNotes, "1s");
+            updateVoicing(midiNotes); // <-- MODIFICADO: Llama a la nueva función para actualizar el estado
+            // lastPlayedVoicing ya está actualizado
+            synth.triggerAttackRelease(lastPlayedVoicing, "1s");
         }
 
         /**
@@ -1552,13 +1558,17 @@
                 // Si hay un acorde anterior, calcular el voice leading
                 const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                 const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
-                playVoicing(newMidiVoicing);
+                // MODIFICADO: No reproducir, solo actualizar el voicing
+                // playVoicing(newMidiVoicing); 
+                updateVoicing(newMidiVoicing);
             } else {
                 // Si es el primer acorde, tocarlo en la octava 4
                 const rootNotes = newTriad.getNotes();
                 const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
                 const midiNotes = toneNotes.map(n => Tone.Frequency(n).toMidi());
-                playVoicing(midiNotes);
+                // MODIFICADO: No reproducir, solo actualizar el voicing
+                // playVoicing(midiNotes);
+                updateVoicing(midiNotes);
             }
 
             // Actualizar UI
