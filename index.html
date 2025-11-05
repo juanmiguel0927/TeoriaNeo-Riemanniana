@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explorador de Teoría Neo-Riemanniana</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Incluir Tone.js para Web Audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8; /* Light blue-gray background */
-            color: #334155; /* Darker text */
+            background-color: #f0f4f8; /* Fondo gris-azulado claro */
+            color: #334155; /* Texto oscuro */
         }
         .container {
-            max-width: 900px;
+            max-width: 1200px; /* Ampliado para la nueva visualización */
             margin: 2rem auto;
             padding: 1.5rem;
             background-color: #ffffff;
@@ -29,19 +30,18 @@
         .btn-secondary {
             @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 shadow-md transform hover:scale-105;
         }
-        /* Style for active operation button */
+        /* Estilo para el botón de operación activo */
         .btn-secondary.active-op-btn {
             @apply bg-yellow-400 text-gray-900 border-2 border-yellow-600 shadow-xl transform scale-105;
         }
 
-        /* Style for the operations box */
+        /* Estilo para la caja de operaciones */
         #operationsBox {
             transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
         }
-        /* New style for the active operations box */
         #operationsBox.operations-box-active {
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 10px 20px -5px rgba(59, 130, 246, 0.3); /* Blue glow/shadow */
-            border-color: #3b82f6; /* Brighter border */
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 10px 20px -5px rgba(59, 130, 246, 0.3); /* Resplandor azul */
+            border-color: #3b82f6; /* Borde más brillante */
         }
 
         .chord-display {
@@ -51,10 +51,9 @@
             @apply bg-gray-50 p-2 rounded-md mb-2 text-sm border border-gray-100;
         }
         .explanation-box {
-            @apply bg-green-50 p-4 rounded-lg my-4 border border-green-100;
-            min-height: 120px; /* Damos un alto mínimo para que no salte tanto la UI */
+            @apply bg-green-50 p-4 rounded-lg text-sm my-4 border border-green-100;
         }
-        /* Custom styles for the circular visualization */
+        /* Estilos para la visualización circular */
         .circle-container {
             position: relative;
             margin: 0 auto;
@@ -63,9 +62,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #f8fafc; /* Lighter background for the circle */
-            width: 100%; /* Fill parent width */
-            height: 100%; /* Fill parent height */
+            background-color: #f8fafc; /* Fondo más claro para el círculo */
+            width: 100%; /* Rellenar el ancho del padre */
+            height: 100%; /* Rellenar la altura del padre */
         }
         .chord-node {
             position: absolute;
@@ -89,8 +88,17 @@
             color: white;
             border-color: #1d4ed8;
             box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.4), 0 3px 7px -3px rgba(59, 130, 246, 0.3);
-            animation: pulse 1.5s infinite alternate; /* Subtle pulse effect */
+            animation: pulse 1.5s infinite alternate; /* Efecto de pulso sutil */
         }
+        /* Acorde "fantasma" anterior */
+        .chord-node.previous-active {
+            background-color: #94a3b8; /* Gris */
+            color: #e2e8f0;
+            border-color: #64748b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            opacity: 0.7;
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             100% { transform: scale(1.03); }
@@ -98,7 +106,7 @@
 
         .arrow {
             position: absolute;
-            stroke: #94a3b8; /* Lighter grey for default arrows */
+            stroke: #94a3b8; /* Gris más claro para las flechas por defecto */
             stroke-width: 2;
             fill: none;
             marker-end: url(#arrowhead);
@@ -114,7 +122,7 @@
             fill: #3b82f6;
         }
 
-        /* Responsive adjustments */
+        /* Ajustes responsivos */
         @media (max-width: 640px) {
             .container {
                 margin: 1rem;
@@ -125,17 +133,13 @@
                 height: 25px;
                 font-size: 0.65rem;
             }
-            .circle-container {
-                /* width: 250px; */ /* Removed fixed width */
-                /* height: 250px; */ /* Removed fixed height */
-            }
             .btn {
                 padding: 0.6rem 1rem;
                 font-size: 0.875rem;
             }
         }
 
-        /* Modal specific styles */
+        /* Estilos del Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -160,68 +164,98 @@
             padding: 2rem;
             border-radius: 1rem;
             box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.2), 0 8px 15px -5px rgba(0, 0, 0, 0.1);
-            text-align: center;
             max-width: 90%;
-            width: 400px;
+            width: 500px; /* Ancho del modal de glosario */
             transform: translateY(-20px);
             transition: transform 0.3s ease-in-out;
+            max-height: 80vh; /* Altura máxima */
+            overflow-y: auto; /* Scroll si el contenido es muy largo */
         }
         .modal-overlay.show .modal-content {
             transform: translateY(0);
         }
 
-        /* Collapsible section styles */
-        .collapsible-header {
-            @apply bg-blue-500 text-white p-3 rounded-lg cursor-pointer flex justify-between items-center mt-6 shadow-md;
+        /* Estilos del interruptor (toggle) */
+        .toggle-switch-container {
+            @apply flex items-center justify-center space-x-2 my-2;
         }
-        .collapsible-header span {
-            transition: transform 0.3s ease-in-out;
+        .toggle-switch-label {
+            @apply text-sm font-medium text-gray-700;
         }
-        .collapsible-header.expanded span {
-            transform: rotate(180deg);
+        .toggle-switch {
+            @apply relative inline-block w-10 h-6;
         }
-        .collapsible-content {
-            @apply p-4 bg-white rounded-lg border border-gray-200 mt-2;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-out;
+        .toggle-switch-input {
+            @apply opacity-0 w-0 h-0;
         }
-        .collapsible-content.show {
-            max-height: 2000px; /* Increased for more content */
-            transition: max-height 0.5s ease-in;
+        .toggle-switch-slider {
+            @apply absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all;
+        }
+        .toggle-switch-slider:before {
+            @apply absolute content-[''] h-4 w-4 left-1 bottom-1 bg-white rounded-full transition-all;
+        }
+        .toggle-switch-input:checked + .toggle-switch-slider {
+            @apply bg-blue-600;
+        }
+        .toggle-switch-input:checked + .toggle-switch-slider:before {
+            transform: translateX(16px);
         }
 
-        /* Tonnetz visualization specific styles */
-        .tonnetz-node-circle { /* Renamed from .tonnetz-node to avoid conflict */
+        /* Estilos de las pestañas de visualización */
+        .viz-tab-container {
+            @apply flex border-b border-gray-300 mb-4;
+        }
+        .viz-tab-btn {
+            @apply px-4 py-2 -mb-px font-semibold text-gray-600 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-600;
+        }
+        .viz-tab-btn.active {
+            @apply text-blue-600 border-blue-600;
+        }
+        .viz-pane {
+            @apply hidden; /* Oculto por defecto */
+        }
+        .viz-pane.active {
+            @apply block; /* Visible cuando está activo */
+        }
+        
+        /* Estilos de visualización del Tonnetz */
+        .tonnetz-node-circle {
             transition: fill 0.2s ease-in-out, stroke 0.2s ease-in-out;
         }
         .tonnetz-node-circle.active {
             fill: #3b82f6;
             stroke: #1d4ed8;
+            stroke-width: 2px;
+        }
+        .tonnetz-node-circle.previous-active {
+            fill: #94a3b8;
+            stroke: #64748b;
+            stroke-width: 1px;
+            opacity: 0.7;
         }
         .tonnetz-node-text {
             transition: fill 0.2s ease-in-out;
         }
-        
-        /* Toggle Switch Styles */
-        .toggle-switch {
-            @apply relative inline-flex items-center cursor-pointer;
+        .tonnetz-node-text.active {
+            fill: white;
+            font-weight: bold;
         }
-        .toggle-switch-input {
-            @apply sr-only;
+        .tonnetz-node-text.previous-active {
+            fill: #e2e8f0;
+            opacity: 0.7;
         }
-        .toggle-switch-label {
-            @apply relative inline-block w-14 h-8 bg-gray-300 rounded-full transition-colors duration-200 ease-in-out;
+        .tonnetz-triad-fill {
+            transition: fill 0.2s ease-in-out;
+            opacity: 0.4;
         }
-        .toggle-switch-label:after {
-            @apply content-[''] absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out;
+        .tonnetz-triad-fill.active {
+            fill: #3b82f6; /* Azul para el acorde activo */
         }
-        .toggle-switch-input:checked + .toggle-switch-label {
-            @apply bg-blue-600;
+        .tonnetz-triad-fill.previous-active {
+            fill: #94a3b8; /* Gris para el acorde anterior */
+            opacity: 0.3;
         }
-        .toggle-switch-input:checked + .toggle-switch-label:after {
-            @apply transform translate-x-6;
-        }
+
     </style>
 </head>
 <body class="p-4">
@@ -233,33 +267,34 @@
         </p>
 
         <div class="flex flex-col md:flex-row gap-6">
-            <div class="md:w-1/2">
+            <!-- Columna Izquierda: Controles -->
+            <div class="md:w-1/2 flex flex-col">
                 <div class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
                     <label for="startChord" class="block text-gray-700 text-sm font-bold mb-2">Selecciona un acorde inicial:</label>
                     <select id="startChord" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
-                        <!-- Options will be populated by JS -->
+                        <!-- Opciones pobladas por JS -->
                     </select>
-                    <div class="flex gap-3">
-                        <button id="resetButton" class="btn btn-primary w-1/2 mt-3">Reiniciar</button>
-                        <button id="glossaryButton" class="btn btn-secondary w-1/2 mt-3">Glosario</button>
+                    <div class="flex gap-3 mt-3">
+                        <button id="resetButton" class="btn btn-primary w-1/2">Reiniciar</button>
+                        <button id="glossaryButton" class="btn btn-secondary w-1/2">Glosario</button>
                     </div>
                 </div>
 
                 <div class="chord-display">
-                    <div class="flex justify-center items-center gap-4">
-                        <div class="text-center"> <!-- Mantenemos el texto centrado -->
-                            <h2 class="text-xl font-bold mb-2 text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
-                            <p class="text-lg text-gray-700">Notas: <span id="currentChordNotes">C, E, G</span></p>
-                        </div>
-                        <button id="playChordButton" class="btn btn-secondary p-3 rounded-full shadow-lg transform hover:scale-110 active:scale-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <div class="flex justify-center items-center gap-2">
+                        <h2 class="text-xl font-bold text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
+                        <button id="playChordButton" class="btn btn-secondary p-2 leading-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
+                                <path d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.707.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.198 5.303z"/>
+                                <path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89z"/>
+                                <path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.489 3.489 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"/>
                             </svg>
                         </button>
                     </div>
+                    <p class="text-lg text-gray-700">Notas: <span id="currentChordNotes">C, E, G</span></p>
                 </div>
 
-                <div id="operationsBox" class="mb-4 p-4 bg-blue-50 rounded-lg shadow-inner border border-blue-100"> <!-- Colored box for operations -->
+                <div id="operationsBox" class="mb-4 p-4 bg-blue-50 rounded-lg shadow-inner border border-blue-100"> <!-- Caja coloreada para operaciones -->
                     <h3 class="text-lg font-semibold mb-3 text-gray-800">Operaciones:</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <button id="opL" class="btn btn-secondary" data-op="L">L (Leittonechel)</button>
@@ -273,134 +308,143 @@
 
                 <div class="explanation-box">
                     <h3 class="text-lg font-semibold mb-2 text-green-800">Explicación de la Operación:</h3>
-                    <p id="operationExplanation" class="text-gray-800 text-sm">Selecciona una operación para ver su descripción.</p>
+                    <p id="operationExplanation" class="text-gray-800">Selecciona una operación para ver su descripción.</p>
                 </div>
 
-                <div class="p-4 bg-gray-50 rounded-lg shadow-inner">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Historial de Transformaciones:</h3>
-                    <div id="historyLog" class="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-white">
-                        <!-- History items will be added here -->
-                    </div>
-                </div>
-
-                <!-- New UI Section for Set Relationships -->
+                <!-- Nueva Sección UI para Relaciones de Conjuntos -->
                 <div class="p-4 bg-gray-50 rounded-lg shadow-inner mt-6">
                     <h3 class="text-lg font-semibold mb-3 text-gray-800">Relación entre Conjuntos:</h3>
                     <div id="setRelationships" class="bg-white p-3 rounded-lg border border-gray-200">
-                        <p class="mb-2"><strong class="text-blue-700">Ciclo Hexatónico Actual:</strong> <span id="currentHexatonicCycle"></span></p>
+                        <p class="mb-2"><strong class="text-blue-700">Ciclo Hexatónico Actual (L/P):</strong> <span id="currentHexatonicCycle"></span></p>
                         <div id="hexatonicCycleMembers" class="flex flex-wrap gap-2 text-sm"></div>
-                        <p class="mt-4 mb-2"><strong class="text-green-700">Región de Weitzmann Actual:</strong> <span id="currentWeitzmannRegion"></span></p>
+                        <p class="mt-4 mb-2"><strong class="text-green-700">Región de Weitzmann Actual (R/N):</strong> <span id="currentWeitzmannRegion"></span></p>
                         <div id="weitzmannRegionMembers" class="flex flex-wrap gap-2 text-sm"></div>
                         <p class="mt-4 mb-2"><strong class="text-purple-700">Acordes Compartidos:</strong></p>
                         <div id="sharedChords" class="flex flex-wrap gap-2 text-sm"></div>
                     </div>
                 </div>
+
+                <div class="p-4 bg-gray-50 rounded-lg shadow-inner mt-6 flex-grow">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Historial de Transformaciones:</h3>
+                    <div id="historyLog" class="h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-white">
+                        <!-- Items del historial se añadirán aquí -->
+                    </div>
+                </div>
             </div>
 
-            <!-- Container for both visualizations -->
-            <div class="md:w-1/2 flex flex-col md:flex-row gap-6"> 
-                <!-- Hexatonic Cycle Visualization -->
-                <div class="flex-1 p-4 flex flex-col items-center justify-center bg-white rounded-lg shadow-inner border border-blue-100 h-[400px]">
-                    
-                    <!-- Título y Toggle Switch -->
-                    <div class="flex items-center justify-between w-full mb-3">
-                        <h3 id="circleTitle" class="text-lg font-semibold text-gray-800">Visualización (Ciclo L/P)</h3>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-sm font-medium text-gray-700">L/P</span>
-                            <label for="vizToggle" class="toggle-switch">
+            <!-- Columna Derecha: Visualizaciones -->
+            <div class="md:w-1/2 flex flex-col">
+                <!-- Pestañas de Visualización -->
+                <div class="viz-tab-container">
+                    <button id="tabBtnCircle" class="viz-tab-btn active" data-viz="circle">Círculo</button>
+                    <button id="tabBtnTonnetz" class="viz-tab-btn" data-viz="tonnetz">Tonnetz</button>
+                </div>
+
+                <!-- Panel de Visualización del Círculo -->
+                <div id="vizPaneCircle" class="viz-pane active">
+                    <div class="p-4 flex flex-col items-center justify-center bg-white rounded-lg shadow-inner border border-blue-100 h-[450px]">
+                        <h3 id="circleTitle" class="text-lg font-semibold mb-3 text-gray-800">Visualización (Ciclo L/P)</h3>
+                        <div class="toggle-switch-container">
+                            <span class="toggle-switch-label">L/P</span>
+                            <label class="toggle-switch">
                                 <input type="checkbox" id="vizToggle" class="toggle-switch-input">
-                                <span class="toggle-switch-label"></span>
+                                <span class="toggle-switch-slider"></span>
                             </label>
-                            <span class="text-sm font-medium text-gray-700">R/N</span>
+                            <span class="toggle-switch-label">R/N</span>
                         </div>
+                        <div id="hexatonicCircle" class="circle-container w-full h-full">
+                            <svg width="100%" height="100%" viewBox="0 0 300 300">
+                                <defs>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                        <polygon points="0 0, 10 3.5, 0 7" />
+                                    </marker>
+                                </defs>
+                                <!-- Nodos se añadirán dinámicamente -->
+                            </svg>
+                        </div>
+                        <p id="circleDescription" class="text-sm text-gray-600 mt-2 text-center">
+                            Ciclo Hexatónico. Las operaciones R, N y S pueden llevarte a un ciclo diferente.
+                        </p>
                     </div>
-
-                    <div id="hexatonicCircle" class="circle-container w-full h-full">
-                        <svg width="100%" height="100%" viewBox="0 0 300 300">
-                            <defs>
-                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                                    <polygon points="0 0, 10 3.5, 0 7" />
-                                </marker>
-                            </defs>
-                            <!-- Nodes will be added dynamically -->
-                        </svg>
-                    </div>
-                    <p id="circleDescription" class="text-sm text-gray-600 mt-2 text-center">
-                        Esta visualización muestra un ciclo hexatónico (L/P).
-                        Las operaciones R, N y S pueden llevarte a un ciclo diferente.
-                    </p>
                 </div>
 
-                <!-- Dynamic Tonnetz Visualization Section -->
-                <div class="flex-1 p-4 bg-white rounded-lg shadow-inner border border-blue-100 flex flex-col items-center justify-center h-[400px]">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800 text-center">Visualización Dinámica del Tonnetz</h3>
-                    <div id="tonnetzVisualization" class="w-full h-full border border-gray-200 rounded-lg bg-white flex justify-center items-center">
-                        <!-- SVG Tonnetz will be drawn here dynamically -->
+                <!-- Panel de Visualización del Tonnetz -->
+                <div id="vizPaneTonnetz" class="viz-pane">
+                    <div class="p-4 bg-white rounded-lg shadow-inner border border-blue-100 flex flex-col items-center justify-center h-[450px]">
+                        <h3 class="text-lg font-semibold mb-3 text-gray-800 text-center">Visualización del Tonnetz</h3>
+                        <div id="tonnetzVisualization" class="w-full h-full border border-gray-200 rounded-lg bg-white flex justify-center items-center">
+                            <!-- SVG Tonnetz se dibujará aquí dinámicamente -->
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2 text-center">
+                            Representación del Tonnetz. Las notas del acorde activo se resaltarán.
+                        </p>
                     </div>
-                    <p class="text-sm text-gray-600 mt-2 text-center">
-                        Esta es una representación dinámica de un segmento del Tonnetz.
-                        Las notas del acorde actual se resaltarán en azul (mayor) o rojo (menor).
-                    </p>
                 </div>
+
             </div>
         </div>
 
-
-        <!-- Tonnetz Explanation Section -->
-        <!-- Removed collapsible-header and collapsible-content for Tonnetz Explanation -->
 
         <p class="text-center text-gray-700 text-sm font-semibold mt-8">
             Herramienta realizada por Juan Miguel Ríos Redondo
         </p>
     </div>
 
-    <!-- Modal for author information -->
+    <!-- Modal para información del autor -->
     <div id="authorModal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content text-center">
             <p class="text-gray-800 text-lg">Esta herramienta fue realizada por:</p>
             <p class="text-blue-600 text-2xl font-bold mt-2">Juan Miguel Ríos Redondo</p>
         </div>
     </div>
-
-    <!-- Modal para Glosario -->
+    
+    <!-- Modal para el Glosario -->
     <div id="glossaryModal" class="modal-overlay">
-        <div class="modal-content text-left w-full max-w-lg">
-            <h2 class="text-2xl font-bold text-center mb-6 text-blue-700">Glosario de Términos</h2>
-            <div class="space-y-4">
-                <div>
-                    <h3 class="font-semibold text-lg text-gray-800">Involución</h3>
-                    <p class="text-gray-700">Una operación que es su propio inverso. Al aplicarla dos veces consecutivas, se vuelve al punto de partida.</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg text-gray-800">Conducción Idealizada</h3>
-                    <p class="text-gray-700">Aquella conducción en la que los acordes se disponen de manera tal que cada voz se desplace la menor distancia posible, manteniendo fijas las notas en común.</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg text-gray-800">Operación Compuesta</h3>
-                    <p class="text-gray-700">Dos o tres operaciones simples condensadas en una sola (ej. H es PLP, S es RNR).</p>
-                </div>
-            </div>
-            <button id="closeGlossaryButton" class="btn btn-primary mt-8 w-full">Cerrar</button>
+        <div class="modal-content text-left">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">Glosario de Términos</h2>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mt-4">Involución</h3>
+            <p class="text-gray-700">Una operación que es su propio inverso. Al aplicarla dos veces consecutivas, se vuelve al punto de partida.</p>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mt-4">Conducción Idealizada (más eficiente)</h3>
+            <p class="text-gray-700">Aquella conducción en la que los acordes se disponen de manera tal que cada voz se desplace la menor distancia posible, manteniendo fijas las notas en común.</p>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mt-4">Ciclo Hexatónico</h3>
+            <p class="text-gray-700">Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones **L** y **P**.</p>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mt-4">Región de Weitzmann</h3>
+            <p class="text-gray-700">Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones **R** y **N**. También puede generarse a partir de un acorde aumentado, moviendo cada una de sus notas un semitono hacia arriba (para crear las 3 menores) o hacia abajo (para crear las 3 mayores).</p>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mt-4">Operación Compuesta</h3>
+            <p class="text-gray-700">Dos o tres operaciones simples condensadas en una sola (ej. H = PLP, S = RNR).</p>
+
+            <button id="closeGlossaryButton" class="btn btn-primary w-full mt-6">Cerrar</button>
         </div>
     </div>
 
     <script>
-        // Flag to ensure the modal only shows once per page load
+        // --- Banderas y Estado Global ---
         let hasModalBeenShown = false;
+        let currentTriad;
+        let previousTriad = null; // Para la visualización "fantasma"
+        let history = [];
+        let hexatonicCycleChords = []; // Acordes para la visualización del ciclo L/P
+        let weitzmannCycleChords = []; // Acordes para la visualización del ciclo R/N
+        let currentVisualizationMode = 'lp'; // 'lp' o 'rn'
 
         // --- Audio Context ---
         let isToneStarted = false;
         const synth = new Tone.PolySynth(Tone.Synth).toDestination();
-        let lastPlayedVoicing = []; // NUEVO: Guarda el último voicing reproducido (como array de notas, ej: ["C4", "E4", "G4"])
+        let lastPlayedVoicing = []; // Guarda el último voicing reproducido (ej: ["C4", "E4", "G4"])
 
         async function startAudioContext() {
             if (isToneStarted) return;
             try {
                 await Tone.start();
                 isToneStarted = true;
-                console.log("Audio context started.");
+                console.log("Audio context iniciado");
             } catch (e) {
-                console.error("Could not start audio context", e);
+                console.error("No se pudo iniciar el audio context", e);
             }
         }
 
@@ -491,35 +535,37 @@
         }
 
 
-        // Mapping from pitch class number to note name (using sharps as primary)
-        const pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]; // Using Unicode sharps
+        // --- Definiciones de Acordes y Notas ---
         
-        // Mapping from note name to pitch class number (handles both sharps and flats)
+        // Mapeo de clase de altura (PC) a nombre de nota (usando sostenidos como primarios)
+        const pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+        
+        // Mapeo de nombre de nota a PC (maneja sostenidos y bemoles)
         const noteToPitchClass = {
             "C": 0, "C♯": 1, "D♭": 1, "D": 2, "D♯": 3, "E♭": 3, "E": 4, "F": 5, "F♯": 6, "G♭": 6, "G": 7, "G♯": 8, "A♭": 8, "A": 9, "A♯": 10, "B♭": 10, "B": 11
         };
 
-        // Define a canonical spelling for each pitch class (prefer sharps by default)
+        // Define una escritura canónica para cada PC (prefiere sostenidos por defecto)
         const canonicalSpelling = {
             0: "C", 1: "C♯", 2: "D", 3: "D♯", 4: "E", 5: "F",
             6: "F♯", 7: "G", 8: "G♯", 9: "A", 10: "A♯", 11: "B"
         };
 
-        // Specific pitch class mapping for Tonnetz display notes (including enharmonic spellings as they appear in the image)
+        // Mapeo específico de PC para las notas del Tonnetz (incluyendo enarmonías)
         const tonnetzNoteToPc = {
             "C": 0, "C♯": 1, "D♭": 1, "D": 2, "D♯": 3, "E♭": 3, "E": 4, "E♯": 5, "F": 5, "F♯": 6, "G♭": 6, "G": 7, "G♯": 8, "A♭": 8, "A": 9, "A♯": 10, "B♭": 10, "B": 11, "B♯": 0, "C♭": 11, "F♭": 4, "Gx": 9, "Ax": 11
         };
 
-        // Function to normalize a pitch class (keep it within 0-11)
+        // Función para normalizar una clase de altura (mantenerla entre 0-11)
         function normalizePitch(pc) {
             return (pc % 12 + 12) % 12;
         }
 
-        // Triad class
+        // Clase Triad
         class Triad {
             constructor(root, type) {
-                this.root = root; // Note name (e.g., "C", "C#", "Db")
-                this.type = type; // "major" or "minor"
+                this.root = root; // Nombre de la nota (ej. "C", "C#", "Db")
+                this.type = type; // "major" o "minor"
                 this.pitchClasses = this.calculatePitchClasses();
                 this.name = `${root} ${type === 'major' ? 'Mayor' : 'menor'}`;
             }
@@ -529,62 +575,54 @@
                 let thirdPc, fifthPc;
 
                 if (this.type === "major") {
-                    thirdPc = normalizePitch(rootPc + 4); // Major third
-                    fifthPc = normalizePitch(rootPc + 7); // Perfect fifth
+                    thirdPc = normalizePitch(rootPc + 4); // 3ra Mayor
+                    fifthPc = normalizePitch(rootPc + 7); // 5ta Justa
                 } else { // minor
-                    thirdPc = normalizePitch(rootPc + 3); // Minor third
-                    fifthPc = normalizePitch(rootPc + 7); // Perfect fifth
+                    thirdPc = normalizePitch(rootPc + 3); // 3ra menor
+                    fifthPc = normalizePitch(rootPc + 7); // 5ta Justa
                 }
                 return [rootPc, thirdPc, fifthPc];
             }
 
             getNotes() {
                 const notes = [];
-                
-                // Root note (always use the triad's root name as is)
-                notes.push(this.root);
+                notes.push(this.root); // Raíz
 
                 const thirdPc = this.pitchClasses[1];
                 const fifthPc = this.pitchClasses[2];
 
-                // Helper to get the correct enharmonic spelling based on the root of the triad
+                // Ayudante para obtener la enarmonía correcta
                 const getNoteSpelling = (pc) => {
-                    // Special cases for C# Major (E#) and F# Major (B#)
-                    if (this.root === "C♯" && this.type === "major" && pc === 5) return "E♯"; // F -> E#
-                    if (this.root === "F♯" && this.type === "major" && pc === 0) return "B♯"; // C -> B#
+                    // Casos especiales
+                    if (this.root === "C♯" && this.type === "major" && pc === 5) return "E♯";
+                    if (this.root === "F♯" && this.type === "major" && pc === 0) return "B♯";
 
-                    // Determine if we should generally prefer flat spellings for the internal notes
-                    // This is a heuristic based on the root of the chord and common musical practice
-                    const preferFlats = ["D♭", "E♭", "G♭", "A♭", "B♭"].includes(this.root) || // If root is explicitly flat
-                                        (this.root === "F") || // F major/minor often use Bb
-                                        (this.root === "C" && this.type === "minor") || // Cm uses Eb
-                                        (this.root === "G" && this.type === "minor"); // Gm uses Bb
+                    const preferFlats = ["D♭", "E♭", "G♭", "A♭", "B♭"].includes(this.root) || 
+                                        (this.root === "F") || 
+                                        (this.root === "C" && this.type === "minor") || 
+                                        (this.root === "G" && this.type === "minor");
 
-                    // Specific checks for common flat notes based on pitch class and context
-                    if (pc === 11 && preferFlats) return "C♭"; // B -> Cb (e.g., in Ab minor)
-                    if (pc === 4 && preferFlats) return "F♭";  // E -> Fb (e.g., in Db major)
                     if (pc === 1 && preferFlats) return "D♭";
                     if (pc === 3 && preferFlats) return "E♭";
                     if (pc === 6 && preferFlats) return "G♭";
                     if (pc === 8 && preferFlats) return "A♭";
                     if (pc === 10 && preferFlats) return "B♭";
 
-                    // Otherwise, use canonical (sharp/natural) spelling
                     return canonicalSpelling[pc];
                 };
 
-                notes.push(getNoteSpelling(thirdPc)); // Third
-                notes.push(getNoteSpelling(fifthPc)); // Fifth
+                notes.push(getNoteSpelling(thirdPc)); // Tercera
+                notes.push(getNoteSpelling(fifthPc)); // Quinta
 
                 return notes;
             }
 
-            // Checks if two triads are the same (same root and type)
+            // Comprueba si dos tríadas son la misma (misma raíz y tipo)
             isEqual(otherTriad) {
                 return this.root === otherTriad.root && this.type === otherTriad.type;
             }
 
-            // Checks if two triads have the same pitch classes (enharmonic equivalence)
+            // Comprueba si dos tríadas tienen las mismas PC (enarmónicamente equivalentes)
             hasSamePitchClasses(otherTriad) {
                 const sortedThis = [...this.pitchClasses].sort();
                 const sortedOther = [...otherTriad.pitchClasses].sort();
@@ -592,10 +630,8 @@
             }
         }
 
-        // Define all 12 unique root names to create all 24 triads
+        // Definir todos los 17 nombres de raíces posibles para crear todas las 24 tríadas
         const allPossibleRootNames = ["C", "C♯", "D♭", "D", "D♯", "E♭", "E", "F", "F♯", "G♭", "G", "G♯", "A♭", "A", "A♯", "B♭", "B"];
-
-        // All possible major and minor triads (24 total) generated from allPossibleRootNames
         const allTriads = [];
         allPossibleRootNames.forEach(root => {
             if (noteToPitchClass[root] !== undefined) {
@@ -604,24 +640,33 @@
             }
         });
 
-        // Helper to get a Triad object by name
+        // Ayudante para obtener un objeto Triad por nombre
         function getTriadByName(name) {
             return allTriads.find(t => t.name === name);
         }
 
-        // --- Neo-Riemannian Operations ---
+        // --- Operaciones Neo-Riemannianas ---
+        
+        // Ayudante para encontrar una tríada por sus PC (para operaciones)
+        function findTriadByPitchClasses(pcs, type) {
+            const sortedPcs = [...pcs].sort();
+            for (const triad of allTriads) {
+                const sortedTriadPcs = [...triad.pitchClasses].sort();
+                if (triad.type === type && sortedPcs.every((pc, i) => pc === sortedTriadPcs[i])) {
+                    return triad;
+                }
+            }
+            return null; // No encontrado
+        }
+
         function opL(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") {
-                // Example: C Major (0, 4, 7) -> E minor (4, 7, 11)
-                // C (0) -> B (11)
-                newPcs = [t, f, normalizePitch(r - 1)]; 
+            if (triad.type === "major") { // DoM (C-E-G) [0,4,7] -> Mim (E-G-B) [4,7,11]
+                newPcs = [normalizePitch(r - 1), t, f]; // Mueve C(0) -> B(11)
                 newType = "minor";
-            } else {
-                // Example: E minor (4, 7, 11) -> C Major (0, 4, 7)
-                // B (11) -> C (0)
-                newPcs = [normalizePitch(f + 1), r, t];
+            } else { // Mim (E-G-B) [4,7,11] -> DoM (C-E-G) [0,4,7]
+                newPcs = [r, t, normalizePitch(f + 1)]; // Mueve B(11) -> C(0)
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
@@ -630,10 +675,10 @@
         function opP(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") {
+            if (triad.type === "major") { // C(0), E(4), G(7) -> C(0), Eb(3), G(7)
                 newPcs = [r, normalizePitch(t - 1), f];
                 newType = "minor";
-            } else {
+            } else { // Cm(0), Eb(3), G(7) -> C(0), E(4), G(7)
                 newPcs = [r, normalizePitch(t + 1), f];
                 newType = "major";
             }
@@ -643,376 +688,249 @@
         function opR(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") {
-                // C Major (0, 4, 7) -> A minor (9, 0, 4)
-                // Common notes C (0) [r] and E (4) [t].
-                // G (7) [f] moves to A (9) [f+2].
-                // New triad root is A (9) [f+2], third is C (0) [r], fifth is E (4) [t]
-                 newPcs = [normalizePitch(f + 2), r, t];
-                 newType = "minor";
-            } else { // minor
-                // A minor (9, 0, 4) -> C Major (0, 4, 7)
-                // Common notes are C (0) [t] and E (4) [f].
-                // A (9) [r] moves to G (7) [r-2].
-                // New triad root is C (0) [t], third is E (4) [f], fifth is G (7) [r-2]
-                newPcs = [t, f, normalizePitch(r - 2)];
+            if (triad.type === "major") { // C(0), E(4), G(7) -> A(9), C(0), E(4) -> La menor
+                newPcs = [normalizePitch(r - 3), r, t];
+                newType = "minor";
+            } else { // Am(9), C(0), E(4) -> C(0), E(4), G(7) -> Do Mayor
+                newPcs = [t, f, normalizePitch(f + 3)];
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
-        
-        // Re-implementing opN based on PDF logic
+
         function opN(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
-            if (triad.type === "major") {
-                // C Major (0, 4, 7) -> F minor (5, 8, 0)
-                // C (0) is common (becomes new 5th)
-                // E (4) -> F (5) [t+1]
-                // G (7) -> Ab (8) [f+1]
-                // New triad: F (5) [t+1], Ab (8) [f+1], C (0) [r]
-                newPcs = [normalizePitch(t + 1), normalizePitch(f + 1), r];
+            if (triad.type === "major") { // C(0), E(4), G(7) -> F(5), Ab(8), C(0) -> Fa menor
+                newPcs = [normalizePitch(r + 5), normalizePitch(t + 4), r];
                 newType = "minor";
-            } else {
-                // F minor (5, 8, 0) -> C Major (0, 4, 7)
-                // C (0) is common (becomes new root)
-                // F (5) -> E (4) [r-1]
-                // Ab (8) -> G (7) [t-1]
-                // New triad: C (0) [f], E (4) [r-1], G (7) [t-1]
-                newPcs = [f, normalizePitch(r - 1), normalizePitch(t - 1)];
+            } else { // Fm(5), Ab(8), C(0) -> C(0), E(4), G(7) -> Do Mayor
+                newPcs = [f, normalizePitch(r - 1), normalizePitch(t - 1)]; // CORRECCIÓN: Lógica anterior [f, normalizePitch(r - 3), normalizePitch(t - 4)] era incorrecta.
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
 
-
-        function opH(triad) {
+        function opH(triad) { // PLP
             let result = opP(triad);
             result = opL(result);
             result = opP(result);
             return result;
         }
 
-        // Re-implementing opS based on PDF logic
-        function opS(triad) {
-            const [r, t, f] = triad.pitchClasses;
-            let newPcs, newType;
-            if (triad.type === "major") {
-                // C Major (0, 4, 7) -> C# minor (1, 4, 8)
-                // E (4) is common (new third)
-                // C (0) -> C# (1) [r+1]
-                // G (7) -> G# (8) [f+1]
-                // New triad: C# (1) [r+1], E (4) [t], G# (8) [f+1]
-                newPcs = [normalizePitch(r + 1), t, normalizePitch(f + 1)];
-                newType = "minor";
-            } else {
-                // C# minor (1, 4, 8) -> C Major (0, 4, 7)
-                // E (4) is common (new third)
-                // C# (1) -> C (0) [r-1]
-                // G# (8) -> G (7) [f-1]
-                // New triad: C (0) [r-1], E (4) [t], G (7) [f-1]
-                newPcs = [normalizePitch(r - 1), t, normalizePitch(f - 1)];
-                newType = "major";
-            }
-            return findTriadByPitchClasses(newPcs, newType);
+        function opS(triad) { // RNR
+            let result = opR(triad);
+            result = opN(result);
+            result = opR(result);
+            return result;
         }
 
+        // --- Definiciones de Ciclos y Regiones ---
 
-        // Corrected Pre-defined Hexatonic Cycles (dynamically generated for accuracy)
+        // Ciclos Hexatónicos (L/P)
         const hexatonicCycles = [
             { name: "Ciclo I (C/E/G♯)", members: [] },
             { name: "Ciclo II (C♯/F/A)", members: [] },
             { name: "Ciclo III (D/F♯/B♭)", members: [] },
             { name: "Ciclo IV (D♯/G/B)", members: [] }
         ];
-        
-        // --- Pre-defined Weitzmann Cycles ---
-        const weitzmannCycles = [
-            { name: "Región I (C-E-G♯)", members: [] },
-            { name: "Región II (C♯-F-A)", members: [] },
-            { name: "Región III (D-F♯-B♭)", members: [] },
-            { name: "Región IV (D♯-G-B)", members: [] }
-        ];
 
         function generateAndPopulateHexatonicCycle(startMajorTriad, cycleIndex) {
             const cycle = [];
             let current = startMajorTriad;
             for (let i = 0; i < 6; i++) {
+                if (!current) return; // Detener si una operación falla
                 cycle.push(current);
-                if (i % 2 === 0) { // Apply L
-                    current = opL(current);
-                } else { // Apply P
-                    current = opP(current);
-                }
+                if (i % 2 === 0) { current = opL(current); } // L
+                else { current = opP(current); } // P
             }
             hexatonicCycles[cycleIndex].members = cycle.filter(Boolean);
         }
+
+        generateAndPopulateHexatonicCycle(getTriadByName("C Mayor"), 0);
+        generateAndPopulateHexatonicCycle(getTriadByName("C♯ Mayor"), 1);
+        generateAndPopulateHexatonicCycle(getTriadByName("D Mayor"), 2);
+        generateAndPopulateHexatonicCycle(getTriadByName("D♯ Mayor"), 3);
+
+        // Regiones de Weitzmann (R/N)
+        const weitzmannCycles = [ // Usamos "Cycles" para consistencia en la función de dibujo
+            { name: "Región I (C/E/G♯)", members: [] },
+            { name: "Región II (C♯/F/A)", members: [] },
+            { name: "Región III (D/F♯/B♭)", members: [] },
+            { name: "Región IV (D♯/G/B)", members: [] }
+        ];
         
         function generateAndPopulateWeitzmannCycle(startMajorTriad, cycleIndex) {
             const cycle = [];
             let current = startMajorTriad;
             for (let i = 0; i < 6; i++) {
-                cycle.push(current);
-                if (i % 2 === 0) { // Apply R
-                    current = opR(current);
-                } else { // Apply N
-                    current = opN(current);
+                if (!current) { // Prevención de errores
+                    console.error("Error generando ciclo Weitzmann en el paso", i, "para el ciclo", cycleIndex);
+                    return; 
                 }
+                cycle.push(current);
+                if (i % 2 === 0) { current = opR(current); } // R
+                else { current = opN(current); } // N
             }
             weitzmannCycles[cycleIndex].members = cycle.filter(Boolean);
         }
 
-        // Populate hexatonic cycles after allTriads and operations are defined
-        // Ensure these starting triads exist in allTriads.
-        generateAndPopulateHexatonicCycle(getTriadByName("C Mayor"), 0);
-        generateAndPopulateHexatonicCycle(getTriadByName("C♯ Mayor"), 1);
-        generateAndPopulateHexatonicCycle(getTriadByName("D Mayor"), 2);
-        generateAndPopulateHexatonicCycle(getTriadByName("D♯ Mayor"), 3);
-        
-        // Populate Weitzmann cycles
         generateAndPopulateWeitzmannCycle(getTriadByName("C Mayor"), 0);
         generateAndPopulateWeitzmannCycle(getTriadByName("C♯ Mayor"), 1);
         generateAndPopulateWeitzmannCycle(getTriadByName("D Mayor"), 2);
         generateAndPopulateWeitzmannCycle(getTriadByName("D♯ Mayor"), 3);
 
 
-        // Pre-defined Weitzmann Regions
+        // Regiones (para la sección de "Relación entre Conjuntos")
         const weitzmannRegions = [
-            { name: "Región de C-E-G♯", members: [
-                getTriadByName("C Mayor"), getTriadByName("C menor"),
-                getTriadByName("E Mayor"), getTriadByName("E menor"),
-                getTriadByName("G♯ Mayor"), getTriadByName("G♯ menor")
-            ].filter(Boolean)},
-            { name: "Región de C♯-F-A", members: [
-                getTriadByName("C♯ Mayor"), getTriadByName("C♯ menor"),
-                getTriadByName("F Mayor"), getTriadByName("F menor"),
-                getTriadByName("A Mayor"), getTriadByName("A menor")
-            ].filter(Boolean)},
-            { name: "Región de D-F♯-B♭", members: [
-                getTriadByName("D Mayor"), getTriadByName("D menor"),
-                getTriadByName("F♯ Mayor"), getTriadByName("F♯ menor"),
-                getTriadByName("B♭ Mayor"), getTriadByName("B♭ menor") 
-            ].filter(Boolean)},
-            { name: "Región de D♯-G-B", members: [
-                getTriadByName("D♯ Mayor"), getTriadByName("D♯ menor"),
-                getTriadByName("G Mayor"), getTriadByName("G menor"),
-                getTriadByName("B Mayor"), getTriadByName("B menor")
-            ].filter(Boolean)}
+            { name: "Región de C-E-G♯", members: weitzmannCycles[0].members },
+            { name: "Región de C♯-F-A", members: weitzmannCycles[1].members },
+            { name: "Región de D-F♯-B♭", members: weitzmannCycles[2].members },
+            { name: "Región de D♯-G-B", members: weitzmannCycles[3].members }
         ];
 
 
-        // Global state
-        let currentTriad;
-        let history = [];
-        let currentCircleChords = []; // Chords for the current circle visualization
-        let currentVisualizationMode = 'hexatonic'; // 'hexatonic' or 'weitzmann'
-
-        // DOM Elements
+        // --- Elementos del DOM ---
         const startChordSelect = document.getElementById("startChord");
         const resetButton = document.getElementById("resetButton");
+        const glossaryButton = document.getElementById("glossaryButton");
+        const closeGlossaryButton = document.getElementById("closeGlossaryButton");
+        const glossaryModal = document.getElementById("glossaryModal");
+        const authorModal = document.getElementById('authorModal');
+        const playChordButton = document.getElementById("playChordButton");
+
         const currentChordName = document.getElementById("currentChordName");
         const currentChordNotes = document.getElementById("currentChordNotes");
         const operationExplanation = document.getElementById("operationExplanation");
         const historyLog = document.getElementById("historyLog");
-        const hexatonicCircleSvg = document.querySelector("#hexatonicCircle svg");
-        const operationButtons = document.querySelectorAll('.grid button'); // All operation buttons
-        const operationsBox = document.getElementById('operationsBox'); // The container for operation buttons
-        const playChordButton = document.getElementById('playChordButton'); // Botón de reproducir
-        const vizToggle = document.getElementById('vizToggle'); // El nuevo interruptor
-        const circleTitle = document.getElementById('circleTitle'); // Título del círculo
-        const circleDescription = document.getElementById('circleDescription'); // Descripción del círculo
+        const operationsBox = document.getElementById('operationsBox');
+        const operationButtons = document.querySelectorAll('#operationsBox button');
 
-        // DOM elements for new Set Relationships section
+        // Pestañas
+        const vizTabs = document.querySelectorAll('.viz-tab-btn');
+        const vizPanes = document.querySelectorAll('.viz-pane');
+
+        // Visualización del Círculo
+        const vizToggle = document.getElementById("vizToggle");
+        const circleTitle = document.getElementById("circleTitle");
+        const circleDescription = document.getElementById("circleDescription");
+        const hexatonicCircleSvg = document.querySelector("#hexatonicCircle svg");
+
+        // Visualización del Tonnetz
+        const tonnetzVisualizerDiv = document.getElementById('tonnetzVisualization');
+        const tonnetzSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        tonnetzSvg.setAttribute("width", "100%");
+        tonnetzSvg.setAttribute("height", "100%");
+        tonnetzVisualizerDiv.appendChild(tonnetzSvg);
+        let coordToNodeMap = new Map(); // Mapa de coordenadas del Tonnetz
+
+        // Relaciones de Conjuntos
+        const setRelationshipsDiv = document.getElementById("setRelationships");
         const currentHexatonicCycleSpan = document.getElementById("currentHexatonicCycle");
         const hexatonicCycleMembersDiv = document.getElementById("hexatonicCycleMembers");
         const currentWeitzmannRegionSpan = document.getElementById("currentWeitzmannRegion");
         const weitzmannRegionMembersDiv = document.getElementById("weitzmannRegionMembers");
         const sharedChordsDiv = document.getElementById("sharedChords");
-        const setRelationshipsDiv = document.getElementById('setRelationships'); // Contenedor para la delegación de eventos
-        const authorModal = document.getElementById('authorModal'); // Modal element
-        const glossaryButton = document.getElementById('glossaryButton');
-        const glossaryModal = document.getElementById('glossaryModal');
-        const closeGlossaryButton = document.getElementById('closeGlossaryButton');
+        
 
-        // Tonnetz explanation elements
-        const tonnetzHeader = document.getElementById('tonnetzHeader');
-        const tonnetzContent = document.getElementById('tonnetzContent');
-
-        // New Tonnetz visualization elements
-        const tonnetzVisualizerDiv = document.getElementById('tonnetzVisualization'); 
-        const tonnetzSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        tonnetzSvg.setAttribute("width", "100%");
-        tonnetzSvg.setAttribute("height", "100%"); // Make it fill parent
-        tonnetzVisualizerDiv.appendChild(tonnetzSvg);
-
-        // Global coordToNodeMap for quick lookup
-        let coordToNodeMap = new Map();
-
-        // Define spacing constants for the Tonnetz grid based on the image
-        const P5_HORIZONTAL_SPACING = 80; // Horizontal distance for a perfect fifth
-        const THIRD_VERTICAL_SPACING = 45; // Vertical distance for a major/minor third
-        const THIRD_HORIZONTAL_OFFSET = P5_HORIZONTAL_SPACING / 2; // Horizontal offset for thirds
-
-        // Define the Tonnetz nodes with their precise coordinates and note names as in the image
-        // Using Unicode flat and sharp symbols for exact match with the image
-        const tonnetzNodesData = [
-            // Row 1: D# A# E# B# Gx
-            { note: "D♯", pc: tonnetzNoteToPc["D♯"], x: 0, y: 0 },
-            { note: "A♯", pc: tonnetzNoteToPc["A♯"], x: 80, y: 0 },
-            { note: "E♯", pc: tonnetzNoteToPc["E♯"], x: 160, y: 0 },
-            { note: "B♯", pc: tonnetzNoteToPc["B♯"], x: 240, y: 0 },
-            { note: "Gx", pc: tonnetzNoteToPc["Gx"], x: 320, y: 0 },
-
-            // Row 2: B F# C# G# D# A#
-            { note: "B", pc: tonnetzNoteToPc["B"], x: -40, y: 45 },
-            { note: "F♯", pc: tonnetzNoteToPc["F♯"], x: 40, y: 45 },
-            { note: "C♯", pc: tonnetzNoteToPc["C♯"], x: 120, y: 45 },
-            { note: "G♯", pc: tonnetzNoteToPc["G♯"], x: 200, y: 45 },
-            { note: "D♯", pc: tonnetzNoteToPc["D♯"], x: 280, y: 45 },
-            { note: "A♯", pc: tonnetzNoteToPc["A♯"], x: 360, y: 45 },
-
-            // Row 3: D A E B F# C#
-            { note: "D", pc: tonnetzNoteToPc["D"], x: 0, y: 90 },
-            { note: "A", pc: tonnetzNoteToPc["A"], x: 80, y: 90 },
-            { note: "E", pc: tonnetzNoteToPc["E"], x: 160, y: 90 },
-            { note: "B", pc: tonnetzNoteToPc["B"], x: 240, y: 90 },
-            { note: "F♯", pc: tonnetzNoteToPc["F♯"], x: 320, y: 90 },
-            { note: "C♯", pc: tonnetzNoteToPc["C♯"], x: 400, y: 90 },
-
-            // Row 4: Bb F C G D A
-            { note: "B♭", pc: tonnetzNoteToPc["B♭"], x: -40, y: 135 },
-            { note: "F", pc: tonnetzNoteToPc["F"], x: 40, y: 135 },
-            { note: "C", pc: tonnetzNoteToPc["C"], x: 120, y: 135 },
-            { note: "G", pc: tonnetzNoteToPc["G"], x: 200, y: 135 },
-            { note: "D", pc: tonnetzNoteToPc["D"], x: 280, y: 135 },
-            { note: "A", pc: tonnetzNoteToPc["A"], x: 360, y: 135 },
-
-            // Row 5: Db Ab Eb Bb F C
-            { note: "D♭", pc: tonnetzNoteToPc["D♭"], x: 0, y: 180 },
-            { note: "A♭", pc: tonnetzNoteToPc["A♭"], x: 80, y: 180 },
-            { note: "E♭", pc: tonnetzNoteToPc["E♭"], x: 160, y: 180 },
-            { note: "B♭", pc: tonnetzNoteToPc["B♭"], x: 240, y: 180 },
-            { note: "F", pc: tonnetzNoteToPc["F"], x: 320, y: 180 },
-            { note: "C", pc: tonnetzNoteToPc["C"], x: 400, y: 180 },
-
-            // Row 6: Ax Fb Cb Gb Db Ab
-            { note: "Ax", pc: tonnetzNoteToPc["Ax"], x: -40, y: 225 },
-            { note: "F♭", pc: tonnetzNoteToPc["F♭"], x: 40, y: 225 },
-            { note: "C♭", pc: tonnetzNoteToPc["C♭"], x: 120, y: 225 },
-            { note: "G♭", pc: tonnetzNoteToPc["G♭"], x: 200, y: 225 },
-            { note: "D♭", pc: tonnetzNoteToPc["D♭"], x: 280, y: 225 },
-            { note: "A♭", pc: tonnetzNoteToPc["A♭"], x: 360, y: 225 },
-        ];
-
-
-        // Explanations for operations
-        // *** ESTA ES LA SECCIÓN ACTUALIZADA ***
+        // --- Explicaciones de Operaciones ---
         const explanations = {
-            "L": "La operación **L (Leittonechel)** conecta tríadas que comparten la 3ra menor. <br><br>" +
-                 "<strong>De Mayor a Menor:</strong> Transforma la 3ra mayor en una 4ta justa. La fundamental del acorde mayor desciende medio tono para convertirse en la 5ta del acorde menor (Ej: DoM [C, E, G] → Mim [E, G, B]).<br><br>" +
-                 "<strong>De Menor a Mayor:</strong> Transforma la 3ra mayor en una 4ta justa. La 5ta del acorde menor asciende medio tono para convertirse en la fundamental del acorde mayor (Ej: Mim [E, G, B] → DoM [C, E, G]).",
-            
-            "P": "La operación **P (Parallel)** transforma una tríada en su paralela (mayor/menor) con la misma fundamental. Conserva la tónica y la 5ta justa, y desplaza la 3ra (mediante) un semitono.<br><br>" +
-                 "<strong>De Mayor a Menor:</strong> La 3ra mayor desciende un semitono (Ej: DoM [C, E, G] → Dom [C, E♭, G]).<br><br>" +
-                 "<strong>De Menor a Mayor:</strong> La 3ra menor asciende un semitono (Ej: Dom [C, E♭, G] → DoM [C, E, G]).",
-
-            "R": "La operación **R (Relative)** conecta una tríada con su relativa (mayor/menor). Conserva dos notas en común (ej. C y E en DoM/Lam). La nota restante se desplaza un tono completo.<br><br>" +
-                 "<strong>De Mayor a Menor:</strong> La 5ta del acorde mayor asciende un tono (Ej: DoM [C, E, G] → Lam [A, C, E]).<br><br>" +
-                 "<strong>De Menor a Mayor:</strong> La tónica del acorde menor desciende un tono (Ej: Lam [A, C, E] → DoM [C, E, G]).",
-
-            "N": "La operación **N (Nebenverwandt)** conecta dos tríadas que comparten una nota. Las otras dos voces se mueven un semitono cada una (en total, un tono).<br><br>" +
-                 "<strong>De Mayor a Menor:</strong> Se invierte alrededor de la fundamental. Las notas 3ra y 5ta ascienden un semitono (Ej: DoM [C, E, G] → Fam [F, A♭, C]).<br><br>" +
-                 "<strong>De Menor a Mayor:</strong> Se invierte alrededor de la 5ta. Las notas tónica y 3ra descienden un semitono (Ej: Fam [F, A♭, C] → DoM [C, E, G]).",
-
-            "H": "La operación **H (Polo Hexatónico)** es una operación compuesta (PLP o LPL). Conecta los dos acordes más lejanos dentro de un ciclo hexatónico, los cuales no comparten <strong>ninguna</strong> nota en común.<br><br>" +
-                 "Todas las voces se desplazan un semitono (Ej: DoM [C, E, G] → Sol♯m [G♯, B, D♯] o La♭m [A♭, C♭, E♭]).",
-
-            "S": "La operación **S (Slide / Deslizamiento)** es una operación compuesta (RNR o NRN) que conecta dos acordes de diferente modo que comparten la 3ra.<br><br>" +
-                 "<strong>De Mayor a Menor:</strong> Conserva la 3ra. La tónica y la 5ta se desplazan un semitono hacia arriba (Ej: DoM [C, E, G] → Do♯m [C♯, E, G♯]).<br><br>" +
-                 "<strong>De Menor a Mayor:</strong> Conserva la 3ra. La tónica y la 5ta se desplazan un semitono hacia abajo (Ej: Do♯m [C♯, E, G♯] → DoM [C, E, G])."
+            "L": "<strong>L (Leittonechel / Intercambio de Tono Principal)</strong>: Transforma una tríada mayor en menor (y viceversa).<br>• <strong>Mayor → menor</strong>: Conserva la 3ª menor (Mi-Sol en DoM) y mueve la fundamental 1 semitono hacia abajo (Do → Si). Ej: <strong>DoM (C-E-G) → Mim (B-E-G)</strong>.<br>• <strong>menor → Mayor</strong>: Conserva la 3ª menor (Mi-Sol en Mim) y mueve la quinta 1 semitono hacia arriba (Si → Do). Ej: <strong>Mim (E-G-B) → DoM (E-G-C)</strong>.",
+            "P": "<strong>P (Parallel / Paralelo)</strong>: Transforma una tríada en su paralela (mismo nombre, modo opuesto). Conserva la tónica y la quinta, y mueve la tercera 1 semitono.<br>• <strong>Mayor → menor</strong>: Baja la tercera (Mi → Mi♭). Ej: <strong>DoM (C-E-G) → Dom (C-E♭-G)</strong>.<br>• <strong>menor → Mayor</strong>: Sube la tercera (Mi♭ → Mi). Ej: <strong>Dom (C-E♭-G) → DoM (C-E-G)</strong>.",
+            "R": "<strong>R (Relative / Relativo)</strong>: Transforma una tríada en su relativa (comparten dos notas y la armadura).<br>• <strong>Mayor → menor</strong>: Conserva la 3ª mayor (Do-Mi en DoM) y mueve la quinta 1 tono hacia arriba (Sol → La). Ej: <strong>DoM (C-E-G) → Lam (C-E-A)</strong>.<br>• <strong>menor → Mayor</strong>: Conserva la 3ª mayor (Do-Mi en Lam) y mueve la fundamental 1 tono hacia abajo (La → Sol). Ej: <strong>Lam (A-C-E) → DoM (G-C-E)</strong>.",
+            "N": "<strong>N (Nebenverwandt / Próximo Relacionado)</strong>: Operación que invierte el acorde. Mueve dos voces.<br>• <strong>Mayor → menor</strong>: Ej: <strong>DoM (C-E-G) → Fam (F-A♭-C)</strong>.<br>• <strong>menor → Mayor</strong>: Ej: <strong>Fam (F-A♭-C) → DoM (C-E-G)</strong>.",
+            "H": "<strong>H (Hexatonic Pole / Polo Hexatónico)</strong>: Operación compuesta (<strong>PLP</strong> o <strong>LPL</strong>). Conecta dos tríadas opuestas dentro del mismo ciclo hexatónico (no comparten ninguna nota). Ej: <strong>DoM (C-E-G) → Sol♯m (G♯-B-D♯)</strong>.",
+            "S": "<strong>S (Slide / Deslizamiento)</strong>: Operación compuesta (<strong>RNR</strong> o <strong>NRN</strong>). Conecta dos tríadas de modo opuesto que comparten la tercera. Ej: <strong>DoM (C-E-G) → Do♯m (C♯-E-G♯)</strong>."
         };
-        // *** FIN DE LA SECCIÓN ACTUALIZADA ***
 
-        // Function to display operation explanation
         function displayOperationExplanation(opCode) {
             operationExplanation.innerHTML = explanations[opCode] || "Selecciona una operación para ver su descripción.";
         }
-
-        // Function to show the author modal
+        
+        // --- Lógica de Modales ---
         function showAuthorModal() {
             if (!hasModalBeenShown) {
                 authorModal.classList.add('show');
                 setTimeout(() => {
                     authorModal.classList.remove('show');
-                }, 4000); // Hide after 4 seconds
-                hasModalBeenShown = true; // Set flag to true after showing
+                }, 4000); // Ocultar después de 4 segundos
+                hasModalBeenShown = true;
             }
         }
+        
+        glossaryButton.addEventListener('click', () => glossaryModal.classList.add('show'));
+        closeGlossaryButton.addEventListener('click', () => glossaryModal.classList.remove('show'));
 
-        // Helper to draw a line in SVG
+        // --- Lógica de Pestañas de Visualización ---
+        vizTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Desactivar todas las pestañas y paneles
+                vizTabs.forEach(t => t.classList.remove('active'));
+                vizPanes.forEach(p => p.classList.remove('active'));
+
+                // Activar la pestaña y panel seleccionados
+                tab.classList.add('active');
+                const vizName = tab.dataset.viz;
+                document.getElementById(`vizPane${vizName.charAt(0).toUpperCase() + vizName.slice(1)}`).classList.add('active');
+            });
+        });
+
+        // --- Visualización del Tonnetz (Datos y Dibujo) ---
+        
+        // Nodos del Tonnetz con coordenadas
+        const tonnetzNodesData = [
+            { note: "D♯", pc: tonnetzNoteToPc["D♯"], x: 0, y: 0 }, { note: "A♯", pc: tonnetzNoteToPc["A♯"], x: 80, y: 0 }, { note: "E♯", pc: tonnetzNoteToPc["E♯"], x: 160, y: 0 }, { note: "B♯", pc: tonnetzNoteToPc["B♯"], x: 240, y: 0 }, { note: "Gx", pc: tonnetzNoteToPc["Gx"], x: 320, y: 0 },
+            { note: "B", pc: tonnetzNoteToPc["B"], x: -40, y: 45 }, { note: "F♯", pc: tonnetzNoteToPc["F♯"], x: 40, y: 45 }, { note: "C♯", pc: tonnetzNoteToPc["C♯"], x: 120, y: 45 }, { note: "G♯", pc: tonnetzNoteToPc["G♯"], x: 200, y: 45 }, { note: "D♯", pc: tonnetzNoteToPc["D♯"], x: 280, y: 45 }, { note: "A♯", pc: tonnetzNoteToPc["A♯"], x: 360, y: 45 },
+            { note: "D", pc: tonnetzNoteToPc["D"], x: 0, y: 90 }, { note: "A", pc: tonnetzNoteToPc["A"], x: 80, y: 90 }, { note: "E", pc: tonnetzNoteToPc["E"], x: 160, y: 90 }, { note: "B", pc: tonnetzNoteToPc["B"], x: 240, y: 90 }, { note: "F♯", pc: tonnetzNoteToPc["F♯"], x: 320, y: 90 }, { note: "C♯", pc: tonnetzNoteToPc["C♯"], x: 400, y: 90 },
+            { note: "B♭", pc: tonnetzNoteToPc["B♭"], x: -40, y: 135 }, { note: "F", pc: tonnetzNoteToPc["F"], x: 40, y: 135 }, { note: "C", pc: tonnetzNoteToPc["C"], x: 120, y: 135 }, { note: "G", pc: tonnetzNoteToPc["G"], x: 200, y: 135 }, { note: "D", pc: tonnetzNoteToPc["D"], x: 280, y: 135 }, { note: "A", pc: tonnetzNoteToPc["A"], x: 360, y: 135 },
+            { note: "D♭", pc: tonnetzNoteToPc["D♭"], x: 0, y: 180 }, { note: "A♭", pc: tonnetzNoteToPc["A♭"], x: 80, y: 180 }, { note: "E♭", pc: tonnetzNoteToPc["E♭"], x: 160, y: 180 }, { note: "B♭", pc: tonnetzNoteToPc["B♭"], x: 240, y: 180 }, { note: "F", pc: tonnetzNoteToPc["F"], x: 320, y: 180 }, { note: "C", pc: tonnetzNoteToPc["C"], x: 400, y: 180 },
+            { note: "Ax", pc: tonnetzNoteToPc["Ax"], x: -40, y: 225 }, { note: "F♭", pc: tonnetzNoteToPc["F♭"], x: 40, y: 225 }, { note: "C♭", pc: tonnetzNoteToPc["C♭"], x: 120, y: 225 }, { note: "G♭", pc: tonnetzNoteToPc["G♭"], x: 200, y: 225 }, { note: "D♭", pc: tonnetzNoteToPc["D♭"], x: 280, y: 225 }, { note: "A♭", pc: tonnetzNoteToPc["A♭"], x: 360, y: 225 },
+        ];
+        
+        // Ayudante para dibujar una línea en SVG
         function drawLine(svg, p1, p2, color, strokeWidth = "1") {
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", p1.x);
-            line.setAttribute("y1", p1.y);
-            line.setAttribute("x2", p2.x);
-            line.setAttribute("y2", p2.y);
-            line.setAttribute("stroke", color);
-            line.setAttribute("stroke-width", strokeWidth);
+            line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+            line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+            line.setAttribute("stroke", color); line.setAttribute("stroke-width", strokeWidth);
             svg.appendChild(line);
         }
 
         function drawFullTonnetz() {
-            tonnetzSvg.innerHTML = ''; // Clear existing content
+            tonnetzSvg.innerHTML = '';
+            coordToNodeMap = new Map();
+            tonnetzNodesData.forEach(node => coordToNodeMap.set(`${node.x},${node.y}`, node));
 
-            // Create a map for quick lookup by coordinates
-            coordToNodeMap = new Map(); // Re-initialize global map
+            const P5_HORIZONTAL_SPACING = 80;
+            const THIRD_VERTICAL_SPACING = 45;
+            const THIRD_HORIZONTAL_OFFSET = P5_HORIZONTAL_SPACING / 2;
+
+            // Dibujar conexiones
             tonnetzNodesData.forEach(node => {
-                coordToNodeMap.set(`${node.x},${node.y}`, node);
-            });
-
-            // Draw connections first (lines)
-            tonnetzNodesData.forEach(node => {
-                // Check for P5 right neighbor (horizontal)
-                const p5RightCoord = `${node.x + P5_HORIZONTAL_SPACING},${node.y}`;
-                const p5RightNode = coordToNodeMap.get(p5RightCoord);
-                if (p5RightNode) {
-                    drawLine(tonnetzSvg, node, p5RightNode, "#cbd5e1");
+                if (coordToNodeMap.has(`${node.x + P5_HORIZONTAL_SPACING},${node.y}`)) {
+                    drawLine(tonnetzSvg, node, coordToNodeMap.get(`${node.x + P5_HORIZONTAL_SPACING},${node.y}`), "#cbd5e1");
                 }
-
-                // Check for M3 up-right neighbor (diagonal)
-                const m3UpRightCoord = `${node.x + THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`;
-                const m3UpRightNode = coordToNodeMap.get(m3UpRightCoord);
-                if (m3UpRightNode) {
-                    drawLine(tonnetzSvg, node, m3UpRightNode, "#cbd5e1");
+                if (coordToNodeMap.has(`${node.x + THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`)) {
+                    drawLine(tonnetzSvg, node, coordToNodeMap.get(`${node.x + THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`), "#cbd5e1");
                 }
-
-                // Check for m3 up-left neighbor (diagonal)
-                const m3UpLeftCoord = `${node.x - THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`;
-                const m3UpLeftNode = coordToNodeMap.get(m3UpLeftCoord);
-                if (m3UpLeftNode) {
-                    drawLine(tonnetzSvg, node, m3UpLeftNode, "#cbd5e1");
+                if (coordToNodeMap.has(`${node.x - THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`)) {
+                    drawLine(tonnetzSvg, node, coordToNodeMap.get(`${node.x - THIRD_HORIZONTAL_OFFSET},${node.y - THIRD_VERTICAL_SPACING}`), "#cbd5e1");
                 }
             });
 
-            // Draw nodes (circles and text) on top of lines
+            // Dibujar nodos
             tonnetzNodesData.forEach(pos => {
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circle.setAttribute("cx", pos.x);
-                circle.setAttribute("cy", pos.y);
-                circle.setAttribute("r", 15);
-                circle.setAttribute("fill", "#e2e8f0");
-                circle.setAttribute("stroke", "#94a3b8");
-                circle.setAttribute("stroke-width", "1");
-                circle.classList.add("tonnetz-node-circle"); // Renamed class
-                circle.dataset.note = pos.note; // Store the exact note name for highlighting
+                circle.setAttribute("cx", pos.x); circle.setAttribute("cy", pos.y);
+                circle.setAttribute("r", 15); circle.setAttribute("fill", "#e2e8f0");
+                circle.setAttribute("stroke", "#94a3b8"); circle.setAttribute("stroke-width", "1");
+                circle.classList.add("tonnetz-node-circle");
+                circle.dataset.note = pos.note;
 
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute("x", pos.x);
-                text.setAttribute("y", pos.y + 5);
-                text.setAttribute("text-anchor", "middle");
-                text.setAttribute("font-size", "10");
-                text.setAttribute("fill", "#475569");
-                text.textContent = pos.note; // Use the exact note name from tonnetzNodesData
+                text.setAttribute("x", pos.x); text.setAttribute("y", pos.y + 5);
+                text.setAttribute("text-anchor", "middle"); text.setAttribute("font-size", "10");
+                text.setAttribute("fill", "#475569"); text.textContent = pos.note;
                 text.classList.add("tonnetz-node-text");
                 text.dataset.note = pos.note;
 
@@ -1020,192 +938,279 @@
                 tonnetzSvg.appendChild(text);
             });
 
-            // Update viewBox to fit the generated content
+            // Actualizar viewBox
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             tonnetzNodesData.forEach(node => {
-                minX = Math.min(minX, node.x - 15); // Node radius
-                minY = Math.min(minY, node.y - 15);
-                maxX = Math.max(maxX, node.x + 15);
-                maxY = Math.max(maxY, node.y + 15);
+                minX = Math.min(minX, node.x - 15); minY = Math.min(minY, node.y - 15);
+                maxX = Math.max(maxX, node.x + 15); maxY = Math.max(maxY, node.y + 15);
             });
-            const padding = 20; // Extra padding for the viewBox
+            const padding = 20;
             const finalWidth = maxX - minX + 2 * padding;
             const finalHeight = maxY - minY + 2 * padding;
             tonnetzSvg.setAttribute("viewBox", `${minX - padding} ${minY - padding} ${finalWidth} ${finalHeight}`);
         }
 
-
-        // Update highlightTonnetzTriad to use the new tonnetzGrid
-        function highlightTonnetzTriad(triad) {
-            // Remove existing highlights
-            tonnetzSvg.querySelectorAll('.tonnetz-node-circle.active').forEach(node => node.classList.remove('active'));
-            tonnetzSvg.querySelectorAll('.tonnetz-node-text.active').forEach(node => node.classList.remove('active'));
-            tonnetzSvg.querySelectorAll('.tonnetz-triad-fill').forEach(fill => fill.remove()); // Remove dynamic fill
-
-            const triadPcs = triad.pitchClasses; // These are 0-11 pitch classes
-
-            // Highlight nodes that match the triad's pitch classes (reverted to previous behavior)
-            triadPcs.forEach(pc => {
-                // Find all notes in tonnetzNodesData that have this pitch class
-                const matchingTonnetzNodes = tonnetzNodesData.filter(node => node.pc === pc);
-
-                matchingTonnetzNodes.forEach(tonnetzNode => {
-                    tonnetzSvg.querySelectorAll(`.tonnetz-node-circle[data-note="${tonnetzNode.note}"]`).forEach(node => node.classList.add('active'));
-                    tonnetzSvg.querySelectorAll(`.tonnetz-node-text[data-note="${tonnetzNode.note}"]`).forEach(node => node.classList.add('active'));
+        // Resaltar la tríada en el Tonnetz
+        function highlightTonnetzTriad(activeTriad, prevTriad = null) {
+            // Limpiar resaltados anteriores
+            tonnetzSvg.querySelectorAll('.active').forEach(node => node.classList.remove('active'));
+            tonnetzSvg.querySelectorAll('.previous-active').forEach(node => node.classList.remove('previous-active'));
+            tonnetzSvg.querySelectorAll('.tonnetz-triad-fill').forEach(fill => fill.remove());
+            
+            // Función interna para resaltar un acorde
+            const highlight = (triad, cssClass) => {
+                if (!triad) return;
+                const triadPcs = triad.pitchClasses;
+                triadPcs.forEach(pc => {
+                    const matchingTonnetzNodes = tonnetzNodesData.filter(node => node.pc === pc);
+                    matchingTonnetzNodes.forEach(tonnetzNode => {
+                        tonnetzSvg.querySelectorAll(`.tonnetz-node-circle[data-note="${tonnetzNode.note}"]`).forEach(node => node.classList.add(cssClass));
+                        tonnetzSvg.querySelectorAll(`.tonnetz-node-text[data-note="${tonnetzNode.note}"]`).forEach(node => node.classList.add(cssClass));
+                    });
                 });
+                
+                // Dibujar el triángulo
+                const [rootPc, thirdPc, fifthPc] = triad.pitchClasses;
+                const possibleRootNodes = tonnetzNodesData.filter(node => node.pc === rootPc);
+                
+                for (const pRootNode of possibleRootNodes) {
+                    let pThirdNode = null, pFifthNode = null;
+                    const P5_HORIZONTAL_SPACING = 80;
+                    const THIRD_VERTICAL_SPACING = 45;
+                    const THIRD_HORIZONTAL_OFFSET = P5_HORIZONTAL_SPACING / 2;
+                    
+                    if (triad.type === "major") {
+                        pThirdNode = coordToNodeMap.get(`${pRootNode.x + THIRD_HORIZONTAL_OFFSET},${pRootNode.y - THIRD_VERTICAL_SPACING}`);
+                        pFifthNode = coordToNodeMap.get(`${pRootNode.x + P5_HORIZONTAL_SPACING},${pRootNode.y}`);
+                    } else { // minor
+                        pThirdNode = coordToNodeMap.get(`${pRootNode.x - THIRD_HORIZONTAL_OFFSET},${pRootNode.y - THIRD_VERTICAL_SPACING}`);
+                        pFifthNode = coordToNodeMap.get(`${pRootNode.x + P5_HORIZONTAL_SPACING},${pRootNode.y}`);
+                    }
+
+                    if (pThirdNode && pFifthNode && pThirdNode.pc === thirdPc && pFifthNode.pc === fifthPc) {
+                        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                        polygon.setAttribute("points", `${pRootNode.x},${pRootNode.y} ${pThirdNode.x},${pThirdNode.y} ${pFifthNode.x},${pFifthNode.y}`);
+                        polygon.classList.add("tonnetz-triad-fill", cssClass);
+                        tonnetzSvg.prepend(polygon);
+                        break;
+                    }
+                }
+            };
+            
+            // Resaltar el acorde anterior (fantasma)
+            highlight(prevTriad, 'previous-active');
+            // Resaltar el acorde actual (activo)
+            highlight(activeTriad, 'active');
+        }
+
+
+        // --- Visualización del Cube Dance (Datos y Dibujo) ---
+        
+        // Coordenadas de los nodos del Cube Dance
+        const cubeDanceNodes = {
+            // Aumentados (círculos)
+            "aug-cegS": { x: 50, y: 5 }, "aug-cfaS": { x: 95, y: 50 }, "aug-dfaS": { x: 50, y: 95 }, "aug-ebgb": { x: 5, y: 50 },
+            // Mayores/Menores (cuadrados)
+            "c-plus": { x: 38, y: 15 }, "e-plus": { x: 38, y: 25 }, "ab-plus": { x: 48, y: 25 }, "gS-minus": { x: 48, y: 35 }, "c-minus": { x: 38, y: 35 }, "e-minus": { x: 28, y: 25 },
+            "f-plus": { x: 62, y: 15 }, "a-plus": { x: 62, y: 25 }, "cS-plus": { x: 72, y: 25 }, "c-minus": { x: 72, y: 35 }, "f-minus": { x: 62, y: 35 }, "a-minus": { x: 52, y: 25 },
+            "bb-plus": { x: 62, y: 85 }, "d-plus": { x: 62, y: 75 }, "fS-plus": { x: 72, y: 75 }, "f-minus": { x: 72, y: 65 }, "bb-minus": { x: 62, y: 65 }, "d-minus": { x: 52, y: 75 },
+            "eb-plus": { x: 38, y: 85 }, "g-plus": { x: 38, y: 75 }, "b-plus": { x: 48, y: 75 }, "b-minus": { x: 48, y: 65 }, "eb-minus": { x: 38, y: 65 }, "g-minus": { x: 28, y: 75 }
+        };
+
+        // Conexiones del Cube Dance (L/P - sólidas, R/N - punteadas)
+        const cubeDanceEdges = [
+            // Ciclos L/P (Sólidos)
+            { from: "c-plus", to: "e-minus", type: "solid" }, { from: "e-minus", to: "e-plus", type: "solid" }, { from: "e-plus", to: "gS-minus", type: "solid" }, { from: "gS-minus", to: "ab-plus", type: "solid" }, { from: "ab-plus", to: "c-minus", type: "solid" }, { from: "c-minus", to: "c-plus", type: "solid" },
+            { from: "f-plus", to: "a-minus", type: "solid" }, { from: "a-minus", to: "a-plus", type: "solid" }, { from: "a-plus", to: "c-minus", type: "solid" }, { from: "c-minus", to: "cS-plus", type: "solid" }, { from: "cS-plus", to: "f-minus", "type": "solid" }, { from: "f-minus", to: "f-plus", type: "solid" },
+            { from: "bb-plus", to: "d-minus", type: "solid" }, { from: "d-minus", to: "d-plus", type: "solid" }, { from: "d-plus", to: "f-minus", type: "solid" }, { from: "f-minus", to: "fS-plus", type: "solid" }, { from: "fS-plus", to: "bb-minus", type: "solid" }, { from: "bb-minus", to: "bb-plus", type: "solid" },
+            { from: "eb-plus", to: "g-minus", type: "solid" }, { from: "g-minus", to: "g-plus", type: "solid" }, { from: "g-plus", to: "b-minus", type: "solid" }, { from: "b-minus", to: "b-plus", type: "solid" }, { from: "b-plus", to: "eb-minus", type: "solid" }, { from: "eb-minus", to: "eb-plus", type: "solid" },
+            // Regiones R/N (Punteadas) - desde Aumentados
+            { from: "aug-cegS", to: "c-plus", type: "dotted" }, { from: "aug-cegS", to: "e-plus", type: "dotted" }, { from: "aug-cegS", to: "ab-plus", type: "dotted" }, { from: "aug-cegS", to: "a-minus", type: "dotted" }, { from: "aug-cegS", to: "e-minus", type: "dotted" }, { from: "aug-cegS", to: "gS-minus", type: "dotted" },
+            { from: "aug-cfaS", to: "f-plus", type: "dotted" }, { from: "aug-cfaS", to: "a-plus", type: "dotted" }, { from: "aug-cfaS", to: "cS-plus", type: "dotted" }, { from: "aug-cfaS", to: "d-minus", type: "dotted" }, { from: "aug-cfaS", to: "f-minus", type: "dotted" }, { from: "aug-cfaS", to: "c-minus", type: "dotted" }, // c-minus(C#m) es 72, 35
+            { from: "aug-dfaS", to: "bb-plus", type: "dotted" }, { from: "aug-dfaS", to: "d-plus", type: "dotted" }, { from: "aug-dfaS", to: "fS-plus", type: "dotted" }, { from: "aug-dfaS", to: "g-minus", type: "dotted" }, { from: "aug-dfaS", to: "b-minus", type: "dotted" }, { from: "aug-dfaS", to: "eb-minus", type: "dotted" },
+            { from: "aug-ebgb", to: "eb-plus", type: "dotted" }, { from: "aug-ebgb", to: "g-plus", type: "dotted" }, { from: "aug-ebgb", to: "b-plus", type: "dotted" }, { from: "aug-ebgb", to: "c-minus", type: "dotted" }, { from: "aug-ebgb", to: "e-minus", type: "dotted" }, { from: "aug-ebgb", to: "gS-minus", type: "dotted" }
+        ];
+
+        // Mapeo de Nombres de Tríada a ID del Cube Dance
+        const triadToCubeDanceId = {
+            'C Mayor': 'c-plus', 'E Mayor': 'e-plus', 'G♯ Mayor': 'ab-plus', 'A♭ Mayor': 'ab-plus',
+            'E menor': 'e-minus', 'G♯ menor': 'gS-minus', 'A♭ menor': 'gS-minus', 'C menor': 'c-minus',
+            'F Mayor': 'f-plus', 'A Mayor': 'a-plus', 'C♯ Mayor': 'cS-plus', 'D♭ Mayor': 'cS-plus',
+            'A menor': 'a-minus', 'C♯ menor': 'c-minus', 'D♭ menor': 'c-minus', 'F menor': 'f-minus', // C#m/Dbm es c-minus ID 72,35
+            'B♭ Mayor': 'bb-plus', 'A♯ Mayor': 'bb-plus', 'D Mayor': 'd-plus', 'F♯ Mayor': 'fS-plus', 'G♭ Mayor': 'fS-plus',
+            'D menor': 'd-minus', 'F♯ menor': 'f-minus', 'G♭ menor': 'f-minus', 'B♭ menor': 'bb-minus', 'A♯ menor': 'bb-minus',
+            'E♭ Mayor': 'eb-plus', 'D♯ Mayor': 'eb-plus', 'G Mayor': 'g-plus', 'B Mayor': 'b-plus',
+            'G menor': 'g-minus', 'B menor': 'b-minus', 'E♭ menor': 'eb-minus', 'D♯ menor': 'eb-minus'
+        };
+
+        function drawCubeDance() {
+            cubeDanceSvg.innerHTML = `<defs>
+                <marker id="arrowhead-cube" markerWidth="5" markerHeight="3.5" refX="0" refY="1.75" orient="auto" fill="#3b82f6">
+                    <polygon points="0 0, 5 1.75, 0 3.5" />
+                </marker>
+            </defs>`; // Limpiar y re-añadir defs
+
+            // Dibujar líneas
+            cubeDanceEdges.forEach(edge => {
+                const p1 = cubeDanceNodes[edge.from];
+                const p2 = cubeDanceNodes[edge.to];
+                if (!p1 || !p2) return;
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+                line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+                line.classList.add("cube-dance-line");
+                if (edge.type === "dotted") {
+                    line.classList.add("dotted");
+                }
+                cubeDanceSvg.appendChild(line);
+            });
+            
+            // Dibujar nodos aumentados (círculos)
+            Object.keys(cubeDanceNodes).filter(k => k.startsWith('aug-')).forEach(id => {
+                const pos = cubeDanceNodes[id];
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", pos.x); circle.setAttribute("cy", pos.y);
+                circle.setAttribute("r", 3); circle.setAttribute("fill", "#334155");
+                cubeDanceSvg.appendChild(circle);
             });
 
-            // Draw and highlight the triad triangle
-            const rootPc = triad.pitchClasses[0];
-            const thirdPc = triad.pitchClasses[1];
-            const fifthPc = triad.pitchClasses[2];
+            // Dibujar nodos M/m (rectángulos) y texto
+            Object.keys(cubeDanceNodes).filter(k => !k.startsWith('aug-')).forEach(id => {
+                const pos = cubeDanceNodes[id];
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("x", pos.x - 3); // CORRECCIÓN: Reducido de 4 a 3
+                rect.setAttribute("y", pos.y - 3); // CORRECCIÓN: Reducido de 4 a 3
+                rect.setAttribute("width", 6);  // CORRECCIÓN: Reducido de 8 a 6
+                rect.setAttribute("height", 6); // CORRECCIÓN: Reducido de 8 a 6
+                rect.setAttribute("fill", "#e2e8f0"); rect.setAttribute("stroke", "#94a3b8");
+                rect.classList.add("cube-dance-node");
+                rect.id = `node-${id}`; // ID único para resaltado
 
-            let foundTriadNodes = [];
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                const [note, qual] = id.split('-');
+                const label = `${note.charAt(0).toUpperCase()}${note.slice(1).replace('S', '♯')}${qual === 'plus' ? '+' : '-'}`;
+                text.textContent = label;
+                text.setAttribute("x", pos.x); 
+                text.setAttribute("y", pos.y + 9); // CORRECCIÓN: Reducido de 11 a 9
+                text.setAttribute("text-anchor", "middle");
+                text.classList.add("cube-dance-text");
+                text.id = `text-${id}`;
 
-            // Iterate through all nodes that match the root's pitch class to find the correct triangle
-            const possibleRootNodes = tonnetzNodesData.filter(node => node.pc === rootPc);
+                cubeDanceSvg.appendChild(rect);
+                cubeDanceSvg.appendChild(text);
+            });
+        }
 
-            for (const pRootNode of possibleRootNodes) {
-                let pThirdNode = null;
-                let pFifthNode = null;
+        // Resaltar nodo en Cube Dance
+        function highlightCubeDanceNode(activeTriad, prevTriad = null) {
+            // Limpiar resaltados
+            cubeDanceSvg.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+            cubeDanceSvg.querySelectorAll('.previous-active').forEach(el => el.classList.remove('previous-active'));
+            cubeDanceSvg.querySelectorAll('.transformation-path').forEach(el => el.remove());
 
-                if (triad.type === "major") {
-                    // Expected Major Third position (up-right)
-                    const m3UpRightCoord = `${pRootNode.x + THIRD_HORIZONTAL_OFFSET},${pRootNode.y - THIRD_VERTICAL_SPACING}`;
-                    pThirdNode = coordToNodeMap.get(m3UpRightCoord);
-                    // Expected Perfect Fifth position (right)
-                    const p5RightCoord = `${pRootNode.x + P5_HORIZONTAL_SPACING},${pRootNode.y}`;
-                    pFifthNode = coordToNodeMap.get(p5RightCoord);
-                } else { // minor
-                    // Expected Minor Third position (up-left)
-                    const m3UpLeftCoord = `${pRootNode.x - THIRD_HORIZONTAL_OFFSET},${pRootNode.y - THIRD_VERTICAL_SPACING}`;
-                    pThirdNode = coordToNodeMap.get(m3UpLeftCoord);
-                    // Expected Perfect Fifth position (right)
-                    const p5RightCoord = `${pRootNode.x + P5_HORIZONTAL_SPACING},${pRootNode.y}`;
-                    pFifthNode = coordToNodeMap.get(p5RightCoord);
-                }
-
-                // Check if the found nodes exist and have the correct pitch classes
-                if (pThirdNode && pFifthNode &&
-                    pThirdNode.pc === thirdPc && pFifthNode.pc === fifthPc) {
-                    foundTriadNodes = [pRootNode, pThirdNode, pFifthNode];
-                    break; // Found the correct set of nodes for the triangle
+            // Resaltar anterior (fantasma)
+            if (prevTriad) {
+                const prevId = triadToCubeDanceId[prevTriad.name];
+                if (prevId) {
+                    document.getElementById(`node-${prevId}`)?.classList.add('previous-active');
+                    document.getElementById(`text-${prevId}`)?.classList.add('previous-active');
                 }
             }
 
-            if (foundTriadNodes.length === 3) {
-                const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                // Sort coords by x then y to ensure consistent drawing order for polygon
-                foundTriadNodes.sort((a, b) => {
-                    if (a.x !== b.x) return a.x - b.x;
-                    return a.y - b.y;
-                });
-                polygon.setAttribute("points", `${foundTriadNodes[0].x},${foundTriadNodes[0].y} ${foundTriadNodes[1].x},${foundTriadNodes[1].y} ${foundTriadNodes[2].x},${foundTriadNodes[2].y}`);
-                polygon.setAttribute("fill", triad.type === 'major' ? "rgba(255, 0, 0, 0.4)" : "rgba(0, 0, 255, 0.4)"); // Red for major, blue for minor, slightly more opaque
-                polygon.setAttribute("stroke", triad.type === 'major' ? "red" : "blue");
-                polygon.setAttribute("stroke-width", "3");
-                polygon.classList.add("tonnetz-triad-fill");
-                tonnetzSvg.prepend(polygon); // Add to the beginning so it's behind notes/lines
+            // Resaltar activo
+            const activeId = triadToCubeDanceId[activeTriad.name];
+            if (activeId) {
+                document.getElementById(`node-${activeId}`)?.classList.add('active');
+                document.getElementById(`text-${activeId}`)?.classList.add('active');
+            }
+
+            // Dibujar flecha de transformación
+            if (prevTriad && activeTriad) {
+                const prevId = triadToCubeDanceId[prevTriad.name];
+                const activeId = triadToCubeDanceId[activeTriad.name];
+                
+                if (!prevId || !activeId) return; // Salir si no se encuentra un ID
+
+                const prevPos = cubeDanceNodes[prevId];
+                const activePos = cubeDanceNodes[activeId];
+
+                if (prevPos && activePos && (prevPos.x !== activePos.x || prevPos.y !== activePos.y)) {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${prevPos.x} ${prevPos.y} L ${activePos.x} ${activePos.y}`);
+                    path.classList.add("transformation-path");
+                    cubeDanceSvg.appendChild(path);
+                }
             }
         }
 
 
-        // Populate initial chord options
+        // --- Lógica de la Aplicación ---
+        
+        // Poblar selector de acordes
         function populateStartChordSelect() {
-            // Define a canonical order for roots in the dropdown
-            const orderedRoots = [
-                "C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"
-            ];
+            const orderedRoots = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+            const addedNames = new Set();
             
-            // Create a temporary list of triads to populate the dropdown, ensuring no duplicates
-            const dropdownTriads = [];
-            const addedNames = new Set(); // To track names already added
-
-            // Iterate through the ordered roots to ensure consistent dropdown order
             orderedRoots.forEach(rootName => {
-                // Find major and minor triads for this root
-                const majorTriad = allTriads.find(t => t.root === rootName && t.type === "major");
-                const minorTriad = allTriads.find(t => t.root === rootName && t.type === "minor");
-
-                if (majorTriad && !addedNames.has(majorTriad.name)) {
-                    dropdownTriads.push(majorTriad);
-                    addedNames.add(majorTriad.name);
-                }
-                if (minorTriad && !addedNames.has(minorTriad.name)) {
-                    dropdownTriads.push(minorTriad);
-                    addedNames.add(minorTriad.name);
-                }
-            });
-
-            // Sort the final list for the dropdown
-            const sortedDropdownTriads = [...dropdownTriads].sort((a, b) => {
-                const indexA = orderedRoots.indexOf(a.root);
-                const indexB = orderedRoots.indexOf(b.root);
-
-                if (indexA !== indexB) {
-                    return indexA - indexB;
-                }
-                return a.type.localeCompare(b.type); // Major before minor
-            });
-
-            sortedDropdownTriads.forEach(triad => {
-                const option = document.createElement("option");
-                option.value = triad.name;
-                option.textContent = triad.name;
-                startChordSelect.appendChild(option);
+                ["major", "minor"].forEach(type => {
+                    const triad = allTriads.find(t => t.root === rootName && t.type === type);
+                    if (triad && !addedNames.has(triad.name)) {
+                        const option = document.createElement("option");
+                        option.value = triad.name;
+                        option.textContent = triad.name;
+                        startChordSelect.appendChild(option);
+                        addedNames.add(triad.name);
+                    }
+                });
             });
             startChordSelect.value = "C Mayor";
         }
 
-        // Initialize or reset the application state
+        // Inicializar o reiniciar la app
         function initializeApp() {
             try {
                 const selectedTriadName = startChordSelect.value;
                 currentTriad = allTriads.find(t => t.name === selectedTriadName);
+                previousTriad = null;
                 if (!currentTriad) {
-                    console.error("Error: Initial triad not found for name:", selectedTriadName);
-                    // Fallback to a default if the selected one is not found
                     currentTriad = getTriadByName("C Mayor");
-                    if (!currentTriad) {
-                        console.error("Critical Error: C Mayor not found. Cannot initialize.");
-                        document.body.innerHTML = "<p style='color: red; text-align: center; margin-top: 50px;'>Error crítico al cargar la aplicación. Por favor, recarga.</p>";
-                        return;
-                    }
                 }
                 history = [];
 
-                // NUEVO: Inicializar el lastPlayedVoicing
+                // Inicializar el lastPlayedVoicing
                 const rootNotes = currentTriad.getNotes();
                 const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
                 lastPlayedVoicing = toneNotes; // Inicializa en la 4ª octava
 
                 updateUI();
-                updateCircleVisualization(currentTriad); // Llamada a la nueva función
-                displayOperationExplanation(''); // Clear explanation on reset
-                removeActiveOperationHighlight(); // Clear any highlighted operation button
-                removeOperationsBoxHighlight(); // Clear operations box highlight
-                
-                // Only show modal if it hasn't been shown before (first page load)
+                displayOperationExplanation('');
+                removeActiveOperationHighlight();
+                removeOperationsBoxHighlight();
                 showAuthorModal(); 
 
             } catch (error) {
-                console.error("Error during application initialization:", error);
-                document.body.innerHTML = "<p style='color: red; text-align: center; margin-top: 50px;'>Ha ocurrido un error al cargar la aplicación. Por favor, inténtalo de nuevo.</p>";
+                console.error("Error al inicializar la app:", error);
             }
         }
 
-        // Update the UI with current triad information
+        // Actualizar toda la UI
         function updateUI() {
+            if (!currentTriad) return;
+
             currentChordName.textContent = currentTriad.name;
             const notes = currentTriad.getNotes();
             currentChordNotes.innerHTML = `Raíz: <span class="font-bold">${notes[0]}</span>, Tercera: <span class="font-bold">${notes[1]}</span>, Quinta: <span class="font-bold">${notes[2]}</span>`;
+            
             updateHistoryLog();
-            highlightCircleNode(currentTriad); // Renombrada
             updateSetRelationshipsDisplay();
-            highlightTonnetzTriad(currentTriad); // Call to update the new Tonnetz visualization
+            
+            // Actualizar las 3 visualizaciones
+            updateCircleVisualization(currentTriad, previousTriad);
+            highlightTonnetzTriad(currentTriad, previousTriad);
         }
 
-        // Add an entry to the history log
+        // Añadir entrada al historial
         function addHistoryEntry(operationName, oldTriad, newTriad) {
             const entry = {
                 operation: operationName,
@@ -1217,47 +1222,22 @@
             historyLog.scrollTop = historyLog.scrollHeight;
         }
 
-        // Render the history log
+        // Renderizar el historial
         function updateHistoryLog() {
             historyLog.innerHTML = "";
             if (history.length === 0) {
                 historyLog.innerHTML = "<p class='text-gray-500'>No hay transformaciones aún.</p>";
                 return;
             }
-            history.forEach(entry => {
+            [...history].reverse().forEach(entry => { // Invertido para mostrar el más reciente arriba
                 const div = document.createElement("div");
                 div.className = "history-item";
                 div.textContent = `${entry.timestamp}: ${entry.from} --(${entry.operation})--> ${entry.to}`;
-                historyLog.appendChild(div);
+                historyLog.prepend(div);
             });
         }
 
-        // Helper to find a triad by its pitch classes (for operations that might generate new note names)
-        function findTriadByPitchClasses(pcs, type) {
-            const sortedPcs = [...pcs].sort();
-            for (const triad of allTriads) {
-                const sortedTriadPcs = [...triad.pitchClasses].sort();
-                if (triad.type === type && sortedPcs.every((pc, i) => pc === sortedTriadPcs[i])) {
-                    return triad;
-                }
-            }
-            // Fallback: Si no se encuentra una coincidencia exacta de nombre, buscar enarmónicamente.
-            for (const root of canonicalSpelling) {
-                const testTriad = new Triad(root, type);
-                const sortedTestPcs = [...testTriad.pitchClasses].sort();
-                if (sortedTestPcs.every((pc, i) => pc === sortedPcs[i])) {
-                    // Encontramos una coincidencia enarmónica, la añadimos a nuestra lista si no está
-                    if (!allTriads.find(t => t.name === testTriad.name)) {
-                        allTriads.push(testTriad);
-                    }
-                    return testTriad;
-                }
-            }
-            console.warn("Could not find matching triad for pcs:", pcs, "type:", type);
-            return null;
-        }
-
-        // --- Set Relationship Functions ---
+        // --- Funciones de Relaciones de Conjuntos ---
         function getHexatonicCycleForTriad(triad) {
             for (const cycle of hexatonicCycles) {
                 if (cycle.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)) {
@@ -1266,38 +1246,32 @@
             }
             return null;
         }
-        
-        function getWeitzmannCycleForTriad(triad) {
-            // Usamos las regiones predefinidas para encontrar a cuál pertenece
-            const region = getWeitzmannRegionForTriad(triad);
-            if (!region) return null;
-            // Hacemos coincidir por nombre (p.ej. "Región de C-E-G♯" -> "Región I (C-E-G♯)")
-            const regionNotes = region.name.split(' ')[2]; // "C-E-G♯"
-            return weitzmannCycles.find(cycle => cycle.name.includes(regionNotes));
-        }
 
         function getWeitzmannRegionForTriad(triad) {
-            for (const region of weitzmannRegions) {
-                if (region.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)) {
-                    return region;
-                }
+            // Compara usando el nombre del ciclo, que ahora coincide
+            const hexCycle = getHexatonicCycleForTriad(triad);
+            if (!hexCycle) return null;
+            
+            // Asume que los índices coinciden (Ciclo I -> Región I)
+            const cycleIndex = hexatonicCycles.findIndex(c => c.name === hexCycle.name);
+            if (cycleIndex !== -1 && weitzmannRegions[cycleIndex]) {
+                return weitzmannRegions[cycleIndex];
             }
             return null;
         }
 
         function updateSetRelationshipsDisplay() {
             const hexCycle = getHexatonicCycleForTriad(currentTriad);
-            const weitzRegion = getWeitzmannRegionForTriad(currentTriad); 
+            const weitzRegion = getWeitzmannRegionForTriad(currentTriad);
 
-            // Helper function to create the span
-            const createChordSpan = (triad, baseClasses) => {
-                // Añadimos clases de cursor y transformación, y el atributo data-chord-name
-                return `<span class="${baseClasses} px-2 py-1 rounded-md cursor-pointer transform transition-transform hover:scale-105" data-chord-name="${triad.name}">${triad.name}</span>`;
+            const createChordSpan = (triad, color) => {
+                if (!triad) return ""; // Añadir chequeo por si la tríada es nula
+                return `<span class="bg-${color}-100 text-${color}-800 px-2 py-1 rounded-md cursor-pointer hover:bg-${color}-200" data-chord-name="${triad.name}">${triad.name}</span>`;
             };
 
             if (hexCycle) {
                 currentHexatonicCycleSpan.textContent = hexCycle.name;
-                hexatonicCycleMembersDiv.innerHTML = hexCycle.members.map(t => createChordSpan(t, 'bg-blue-100 text-blue-800')).join('');
+                hexatonicCycleMembersDiv.innerHTML = hexCycle.members.map(t => createChordSpan(t, 'blue')).join('');
             } else {
                 currentHexatonicCycleSpan.textContent = "No encontrado";
                 hexatonicCycleMembersDiv.innerHTML = "";
@@ -1305,7 +1279,7 @@
 
             if (weitzRegion) {
                 currentWeitzmannRegionSpan.textContent = weitzRegion.name;
-                weitzmannRegionMembersDiv.innerHTML = weitzRegion.members.map(t => createChordSpan(t, 'bg-green-100 text-green-800')).join('');
+                weitzmannRegionMembersDiv.innerHTML = weitzRegion.members.map(t => createChordSpan(t, 'green')).join('');
             } else {
                 currentWeitzmannRegionSpan.textContent = "No encontrado";
                 weitzmannRegionMembersDiv.innerHTML = "";
@@ -1315,58 +1289,53 @@
                 const shared = hexCycle.members.filter(hexMember =>
                     weitzRegion.members.some(weitzMember => weitzMember.hasSamePitchClasses(hexMember) && weitzMember.type === hexMember.type)
                 );
-                sharedChordsDiv.innerHTML = shared.map(t => createChordSpan(t, 'bg-purple-100 text-purple-800')).join('');
+                sharedChordsDiv.innerHTML = shared.map(t => createChordSpan(t, 'purple')).join('');
             } else {
                 sharedChordsDiv.innerHTML = "<p class='text-gray-500'>No hay conjuntos para comparar.</p>";
             }
         }
 
 
-        // --- Circle Visualization (Refactored) ---
+        // --- Visualización del Círculo ---
+        
+        function updateCircleVisualization(activeTriad, prevTriad = null) {
+            const isRNMode = vizToggle.checked;
+            
+            // Actualizar título y descripción
+            circleTitle.textContent = `Visualización (Ciclo ${isRNMode ? 'R/N' : 'L/P'})`;
+            circleDescription.textContent = isRNMode 
+                ? "Región de Weitzmann. Las operaciones L, P y H pueden llevarte a un ciclo diferente."
+                : "Ciclo Hexatónico. Las operaciones R, N y S pueden llevarte a un ciclo diferente.";
+            
+            // Obtener el ciclo correcto
+            const cycleList = isRNMode ? weitzmannCycles : hexatonicCycles;
+            const op1 = isRNMode ? 'R' : 'L';
+            const op2 = isRNMode ? 'N' : 'P';
+            
+            const foundCycle = cycleList.find(cycle => 
+                cycle.members.some(member => member.hasSamePitchClasses(activeTriad) && member.type === activeTriad.type)
+            );
 
-        // Función principal que decide qué círculo dibujar
-        function updateCircleVisualization(activeTriad) {
-            let foundCycle;
-            if (currentVisualizationMode === 'hexatonic') {
-                circleTitle.textContent = "Visualización (Ciclo L/P)";
-                circleDescription.textContent = "Ciclo Hexatónico (L/P). Las operaciones R, N y S pueden llevarte a un ciclo diferente.";
-                foundCycle = getHexatonicCycleForTriad(activeTriad);
-                drawCircle(activeTriad, foundCycle, 'L', 'P');
-            } else { // 'weitzmann'
-                circleTitle.textContent = "Visualización (Ciclo R/N)";
-                circleDescription.textContent = "Región de Weitzmann (R/N). Las operaciones L, P y H pueden llevarte a un ciclo diferente.";
-                foundCycle = getWeitzmannCycleForTriad(activeTriad);
-                drawCircle(activeTriad, foundCycle, 'R', 'N');
-            }
+            drawCircle(foundCycle, activeTriad, prevTriad, op1, op2);
         }
 
-        // Función genérica para dibujar cualquier círculo
-        function drawCircle(activeTriad, foundCycle, op1Name, op2Name) {
+        function drawCircle(cycle, activeTriad, prevTriad = null, op1, op2) {
             hexatonicCircleSvg.innerHTML = `<defs>
-                                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                                                    <polygon points="0 0, 10 3.5, 0 7" />
-                                                </marker>
-                                            </defs>`;
-
-            if (!foundCycle) {
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" />
+                </marker>
+            </defs>`;
+            
+            if (!cycle || cycle.members.length === 0) {
                 hexatonicCircleSvg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="#64748b" class="text-xs">El acorde actual no está en este tipo de ciclo.</text>`;
-                currentCircleChords = [];
                 return;
             }
 
-            currentCircleChords = foundCycle.members;
+            const cycleChords = cycle.members;
+            const centerX = 150, centerY = 150, radius = 120, nodeWidth = 60, nodeHeight = 30;
 
-            const centerX = 150;
-            const centerY = 150;
-            const radius = 120;
-            const nodeWidth = 60;
-            const nodeHeight = 30;
-
-            const op1Func = (triad) => (op1Name === 'L' ? opL(triad) : opR(triad));
-            const op2Func = (triad) => (op2Name === 'P' ? opP(triad) : opN(triad));
-
-            currentCircleChords.forEach((triad, index) => {
-                const angle = (index * (360 / currentCircleChords.length) - 90) * Math.PI / 180;
+            cycleChords.forEach((triad, index) => {
+                const angle = (index * (360 / cycleChords.length) - 90) * Math.PI / 180;
                 const x = centerX + radius * Math.cos(angle);
                 const y = centerY + radius * Math.sin(angle);
 
@@ -1375,278 +1344,178 @@
                 node.setAttribute("y", y - nodeHeight / 2);
                 node.setAttribute("width", nodeWidth);
                 node.setAttribute("height", nodeHeight);
-                node.classList.add("chord-node");
-                if (triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
-                    node.classList.add("active");
+                
+                const div = document.createElement("div");
+                div.className = "chord-node w-full h-full flex items-center justify-center";
+                div.textContent = triad.name;
+                
+                // Resaltar activo y anterior
+                if (activeTriad && triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
+                    div.classList.add("active");
+                } else if (prevTriad && triad.hasSamePitchClasses(prevTriad) && triad.type === prevTriad.type) {
+                    div.classList.add("previous-active");
                 }
-                node.innerHTML = `<div class="w-full h-full flex items-center justify-center">${triad.name}</div>`;
+                
+                node.appendChild(div);
                 hexatonicCircleSvg.appendChild(node);
 
+                // Lógica de clic para los nodos del círculo
                 node.addEventListener('click', () => {
-                    currentTriad = getTriadByName(triad.name);
-                    history = [];
-                    updateUI();
-                    updateCircleVisualization(currentTriad); // Llamada a la función principal
-                    displayOperationExplanation('');
-                    removeActiveOperationHighlight();
-                    removeOperationsBoxHighlight();
+                    const clickedTriad = getTriadByName(triad.name);
+                    if (clickedTriad.name === currentTriad.name) {
+                        // Si se hace clic en el mismo acorde, solo reproducir
+                        const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                        playVoicing(fromMidi);
+                    } else {
+                        // Es un nuevo acorde
+                        const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                        const newMidiVoicing = getClosestVoicing(fromMidi, clickedTriad);
+                        playVoicing(newMidiVoicing);
+                        
+                        previousTriad = currentTriad; // Guardar el anterior
+                        currentTriad = clickedTriad;
+                        
+                        addHistoryEntry("Click", previousTriad, currentTriad);
+                        updateUI();
+                        displayOperationExplanation('');
+                        removeActiveOperationHighlight();
+                        removeOperationsBoxHighlight();
+                    }
                 });
 
-                const nextIndex = (index + 1) % currentCircleChords.length;
-                const nextTriad = currentCircleChords[nextIndex];
-
-                const nextAngle = (nextIndex * (360 / currentCircleChords.length) - 90) * Math.PI / 180;
+                // Dibujar flechas (simplificado)
+                const nextIndex = (index + 1) % cycleChords.length;
+                const nextAngle = (nextIndex * (360 / cycleChords.length) - 90) * Math.PI / 180;
                 const nextX = centerX + radius * Math.cos(nextAngle);
                 const nextY = centerY + radius * Math.sin(nextAngle);
-
-                let isArrowActive = false;
-                if (triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
-                    let expectedNext;
-                    if (index % 2 === 0) { // Aplicar op1
-                        expectedNext = op1Func(triad);
-                    } else { // Aplicar op2
-                        expectedNext = op2Func(triad);
-                    }
-
-                    if (expectedNext && expectedNext.hasSamePitchClasses(nextTriad) && expectedNext.type === nextTriad.type) {
-                        isArrowActive = true;
-                    }
-                }
-
-                drawArrow(hexatonicCircleSvg, x, y, nextX, nextY, nodeWidth / 2, isArrowActive);
+                drawArrow(hexatonicCircleSvg, x, y, nextX, nextY, nodeWidth / 2);
             });
         }
 
-        function drawArrow(svg, x1, y1, x2, y2, offset, isActive = false) {
+        function drawArrow(svg, x1, y1, x2, y2, offset) {
             const angle = Math.atan2(y2 - y1, x2 - x1);
             const startX = x1 + offset * Math.cos(angle);
             const startY = y1 + offset * Math.sin(angle);
-            const endX = x2 - offset * Math.sin(angle);
+            const endX = x2 - offset * Math.cos(angle);
             const endY = y2 - offset * Math.sin(angle);
 
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", `M ${startX} ${startY} L ${endX} ${endY}`);
-            path.setAttribute("class", `arrow ${isActive ? 'arrow-active' : ''}`);
+            path.setAttribute("class", `arrow`);
             svg.appendChild(path);
         }
 
-        function highlightCircleNode(triadToHighlight) { // Renombrada
-            document.querySelectorAll('.chord-node').forEach(node => {
-                node.classList.remove('active');
-            });
-            const index = currentCircleChords.findIndex(t => t.hasSamePitchClasses(triadToHighlight) && t.type === triadToHighlight.type);
-            if (index !== -1) {
-                const nodeElement = hexatonicCircleSvg.children[index + 1]; // +1 para saltar <defs>
-                if (nodeElement) {
-                    nodeElement.classList.add('active');
-                }
-            }
-        }
-
-        // Function to highlight the active operation button
+        // --- Resaltado de Botones ---
         function highlightActiveOperation(opCode) {
             removeActiveOperationHighlight();
             const button = document.querySelector(`[data-op="${opCode}"]`);
-            if (button) {
-                button.classList.add('active-op-btn');
-            }
+            if (button) button.classList.add('active-op-btn');
             highlightOperationsBox();
         }
 
-        // Function to remove all active operation button highlights
         function removeActiveOperationHighlight() {
-            operationButtons.forEach(button => {
-                button.classList.remove('active-op-btn');
-            });
+            operationButtons.forEach(button => button.classList.remove('active-op-btn'));
         }
 
-        // Function to highlight the operations box
         function highlightOperationsBox() {
             operationsBox.classList.add('operations-box-active');
         }
 
-        // Function to remove operations box highlight
         function removeOperationsBoxHighlight() {
             operationsBox.classList.remove('operations-box-active');
         }
 
-
-        // Event Listeners
+        // --- Event Listeners Principales ---
+        
         resetButton.addEventListener("click", initializeApp);
-
+        
         playChordButton.addEventListener('click', () => {
-            // Reproduce el último voicing guardado
+            startAudioContext(); // Asegurarse de que el audio esté iniciado
             const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
             playVoicing(midiNotes);
         });
 
-        document.getElementById("opL").addEventListener("click", (event) => {
-            const oldTriad = currentTriad;
-            currentTriad = opL(currentTriad);
+        // Event listener genérico para todos los botones de operación
+        operationButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const opCode = event.target.dataset.op;
+                if (!opCode) return;
+                
+                startAudioContext(); // Asegurarse de que el audio esté iniciado
+                const oldTriad = currentTriad;
+                let newTriad;
 
-            // NUEVO: Calcular y reproducir voicing
-            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
-            playVoicing(newMidiVoicing);
+                switch (opCode) {
+                    case 'L': newTriad = opL(oldTriad); break;
+                    case 'P': newTriad = opP(oldTriad); break;
+                    case 'R': newTriad = opR(oldTriad); break;
+                    case 'N': newTriad = opN(oldTriad); break;
+                    case 'H': newTriad = opH(oldTriad); break;
+                    case 'S': newTriad = opS(oldTriad); break;
+                }
 
-            addHistoryEntry("L", oldTriad, currentTriad);
-            updateUI();
-            displayOperationExplanation("L");
-            updateCircleVisualization(currentTriad);
-            highlightActiveOperation(event.target.dataset.op);
-        });
+                if (newTriad) {
+                    // Calcular y reproducir voicing
+                    const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                    const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
+                    playVoicing(newMidiVoicing);
 
-        document.getElementById("opP").addEventListener("click", (event) => {
-            const oldTriad = currentTriad;
-            currentTriad = opP(currentTriad);
-
-            // NUEVO: Calcular y reproducir voicing
-            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
-            playVoicing(newMidiVoicing);
-
-            addHistoryEntry("P", oldTriad, currentTriad);
-            updateUI();
-            displayOperationExplanation("P");
-            updateCircleVisualization(currentTriad);
-            highlightActiveOperation(event.target.dataset.op);
-        });
-
-        document.getElementById("opR").addEventListener("click", (event) => {
-            const oldTriad = currentTriad;
-            currentTriad = opR(currentTriad);
-
-            // NUEVO: Calcular y reproducir voicing
-            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
-            playVoicing(newMidiVoicing);
-
-            addHistoryEntry("R", oldTriad, currentTriad);
-            updateUI();
-            displayOperationExplanation("R");
-            updateCircleVisualization(currentTriad);
-            highlightActiveOperation(event.target.dataset.op);
-        });
-
-        document.getElementById("opN").addEventListener("click", (event) => {
-            const oldTriad = currentTriad;
-            currentTriad = opN(currentTriad);
-
-            // NUEVO: Calcular y reproducir voicing
-            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
-            playVoicing(newMidiVoicing);
-
-            addHistoryEntry("N", oldTriad, currentTriad);
-            updateUI();
-            displayOperationExplanation("N");
-            updateCircleVisualization(currentTriad);
-            highlightActiveOperation(event.target.dataset.op);
-        });
-
-        document.getElementById("opH").addEventListener("click", (event) => {
-            const oldTriad = currentTriad;
-            currentTriad = opH(currentTriad);
-
-            // NUEVO: Calcular y reproducir voicing
-            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
-            playVoicing(newMidiVoicing);
-
-            addHistoryEntry("H", oldTriad, currentTriad);
-            updateUI();
-            displayOperationExplanation("H");
-            updateCircleVisualization(currentTriad);
-            highlightActiveOperation(event.target.dataset.op);
-        });
-
-        document.getElementById("opS").addEventListener("click", (event) => {
-            const oldTriad = currentTriad;
-            currentTriad = opS(currentTriad);
-
-            // NUEVO: Calcular y reproducir voicing
-            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
-            playVoicing(newMidiVoicing);
-
-            addHistoryEntry("S", oldTriad, currentTriad);
-            updateUI();
-            displayOperationExplanation("S");
-            updateCircleVisualization(currentTriad);
-            highlightActiveOperation(event.target.dataset.op);
+                    previousTriad = oldTriad; // Guardar el anterior
+                    currentTriad = newTriad;
+                    
+                    addHistoryEntry(opCode, oldTriad, currentTriad);
+                    updateUI();
+                    displayOperationExplanation(opCode);
+                    highlightActiveOperation(opCode);
+                } else {
+                    console.error("Operación", opCode, "resultó en 'null' para el acorde", oldTriad.name);
+                    // Opcional: mostrar un error al usuario
+                }
+            });
         });
         
         // --- Listener para el Toggle Switch ---
-        vizToggle.addEventListener('change', (event) => {
-            currentVisualizationMode = event.target.checked ? 'weitzmann' : 'hexatonic';
-            updateCircleVisualization(currentTriad);
+        vizToggle.addEventListener('change', () => {
+            currentVisualizationMode = vizToggle.checked ? 'rn' : 'lp';
+            updateCircleVisualization(currentTriad, previousTriad);
         });
-
-        // --- Listeners para el Glosario ---
-        glossaryButton.addEventListener('click', () => {
-            glossaryModal.classList.add('show');
-        });
-
-        closeGlossaryButton.addEventListener('click', () => {
-            glossaryModal.classList.remove('show');
-        });
-
-        // Clic fuera del modal para cerrarlo
-        glossaryModal.addEventListener('click', (event) => {
-            if (event.target === glossaryModal) {
-                glossaryModal.classList.remove('show');
-            }
-        });
-
-        // Clic fuera del modal para cerrarlo
-        glossaryModal.addEventListener('click', (event) => {
-            if (event.target === glossaryModal) {
-                glossaryModal.classList.remove('show');
-            }
-        });
-
+        
         // --- Listener para los acordes en "Relación entre Conjuntos" ---
         setRelationshipsDiv.addEventListener('click', (event) => {
-            // Usamos .closest() para asegurarnos de capturar el span aunque se haga clic en su texto interno
             const clickedSpan = event.target.closest('[data-chord-name]');
-            if (!clickedSpan) return; // No se hizo clic en un acorde
+            if (!clickedSpan) return;
 
             const chordName = clickedSpan.dataset.chordName;
             const triadToPlay = getTriadByName(chordName);
 
-            if (triadToPlay && triadToPlay.name !== currentTriad.name) { // No hacer nada si se hace clic en el mismo acorde
+            if (triadToPlay && triadToPlay.name !== currentTriad.name) {
                 startAudioContext(); 
                 
-                // 1. Calcular y reproducir nuevo voicing
                 const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                 const newMidiVoicing = getClosestVoicing(fromMidi, triadToPlay);
-                playVoicing(newMidiVoicing); // Esto reproduce Y actualiza lastPlayedVoicing
+                playVoicing(newMidiVoicing);
                 
-                // 2. Actualizar el estado global para reflejar el cambio
-                const oldTriad = currentTriad;
+                previousTriad = currentTriad; // Guardar el anterior
                 currentTriad = triadToPlay;
                 
-                // 3. Actualizar toda la UI
-                addHistoryEntry("Click", oldTriad, currentTriad); // Añadir al historial
-                updateUI(); // Actualizar nombre de acorde, notas, historial, etc.
-                updateCircleVisualization(currentTriad); // Actualizar el círculo
-                displayOperationExplanation(''); // Limpiar explicación
-                removeActiveOperationHighlight(); // Limpiar botón de operación
-                removeOperationsBoxHighlight(); // Limpiar caja de operación
+                addHistoryEntry("Click", previousTriad, currentTriad);
+                updateUI();
+                displayOperationExplanation('');
+                removeActiveOperationHighlight();
+                removeOperationsBoxHighlight();
             
             } else if (triadToPlay && triadToPlay.name === currentTriad.name) {
-                // Si se hace clic en el acorde ya activo, simplemente reproducirlo de nuevo
                 startAudioContext();
                 const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                 playVoicing(fromMidi);
             }
         });
 
-        // Initial setup on page load
+        // --- Carga Inicial ---
         window.onload = () => {
             populateStartChordSelect();
             initializeApp();
-            drawFullTonnetz(); // Draw the new dynamic Tonnetz visualization
+            drawFullTonnetz();
         };
     </script>
 </body>
