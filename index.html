@@ -202,19 +202,25 @@
         .tonnetz-node-text {
             transition: fill 0.2s ease-in-out;
         }
-        .tonnetz-node-text.active {
-            fill: white;
-            font-weight: bold;
+        
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            @apply relative inline-flex items-center cursor-pointer;
         }
-        .tonnetz-triad-outline {
-            transition: stroke 0.2s ease-in-out;
+        .toggle-switch-input {
+            @apply sr-only;
         }
-        .tonnetz-triad-outline.active {
-            stroke: #3b82f6;
-            stroke-width: 3;
+        .toggle-switch-label {
+            @apply relative inline-block w-14 h-8 bg-gray-300 rounded-full transition-colors duration-200 ease-in-out;
         }
-        .tonnetz-triad-fill {
-            transition: fill 0.2s ease-in-out;
+        .toggle-switch-label:after {
+            @apply content-[''] absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out;
+        }
+        .toggle-switch-input:checked + .toggle-switch-label {
+            @apply bg-blue-600;
+        }
+        .toggle-switch-input:checked + .toggle-switch-label:after {
+            @apply transform translate-x-6;
         }
     </style>
 </head>
@@ -295,7 +301,20 @@
             <div class="md:w-1/2 flex flex-col md:flex-row gap-6"> 
                 <!-- Hexatonic Cycle Visualization -->
                 <div class="flex-1 p-4 flex flex-col items-center justify-center bg-white rounded-lg shadow-inner border border-blue-100 h-[400px]">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Visualización (Ciclo Hexatónico):</h3>
+                    
+                    <!-- Título y Toggle Switch -->
+                    <div class="flex items-center justify-between w-full mb-3">
+                        <h3 id="circleTitle" class="text-lg font-semibold text-gray-800">Visualización (Ciclo L/P)</h3>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm font-medium text-gray-700">L/P</span>
+                            <label for="vizToggle" class="toggle-switch">
+                                <input type="checkbox" id="vizToggle" class="toggle-switch-input">
+                                <span class="toggle-switch-label"></span>
+                            </label>
+                            <span class="text-sm font-medium text-gray-700">R/N</span>
+                        </div>
+                    </div>
+
                     <div id="hexatonicCircle" class="circle-container w-full h-full">
                         <svg width="100%" height="100%" viewBox="0 0 300 300">
                             <defs>
@@ -306,8 +325,8 @@
                             <!-- Nodes will be added dynamically -->
                         </svg>
                     </div>
-                    <p class="text-sm text-gray-600 mt-2 text-center">
-                        Esta visualización muestra un ciclo hexatónico. El acorde activo se resaltará.
+                    <p id="circleDescription" class="text-sm text-gray-600 mt-2 text-center">
+                        Esta visualización muestra un ciclo hexatónico (L/P).
                         Las operaciones R, N y S pueden llevarte a un ciclo diferente.
                     </p>
                 </div>
@@ -372,6 +391,7 @@
         // --- Audio Context ---
         let isToneStarted = false;
         const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        let lastPlayedVoicing = []; // NUEVO: Guarda el último voicing reproducido (como array de notas, ej: ["C4", "E4", "G4"])
 
         async function startAudioContext() {
             if (isToneStarted) return;
@@ -383,6 +403,93 @@
                 console.error("Could not start audio context", e);
             }
         }
+
+        // --- Funciones de Audio y Voice Leading ---
+
+        /**
+         * Reproduce un array de notas MIDI y lo guarda como el último voicing.
+         */
+        function playVoicing(midiNotes) {
+            startAudioContext();
+            // Convierte MIDI a nombres de nota para Tone.js (ej: 60 -> "C4")
+            const toneNotes = midiNotes.map(midi => Tone.Frequency(midi, "midi").toNote());
+            
+            lastPlayedVoicing = toneNotes; // Guarda el nuevo voicing
+            synth.triggerAttackRelease(toneNotes, "1s");
+        }
+
+        /**
+         * Calcula el voicing más cercano para 'toTriad' partiendo de 'fromMidiNotes'.
+         * Mantiene las notas comunes y mueve las restantes la distancia mínima.
+         */
+        function getClosestVoicing(fromMidiNotes, toTriad) {
+            const fromPcs = fromMidiNotes.map(m => m % 12);
+            const toPcs = toTriad.pitchClasses;
+            
+            const newVoicingMidi = [];
+            const remainingToPcs = [...toPcs]; // PCs de destino que aún no han sido asignados
+            const unmovedMidiNotes = []; // Notas MIDI de 'from' que se quedan
+            const movedFromMidiNotes = []; // Notas MIDI de 'from' que deben moverse
+
+            // 1. Encontrar y mantener notas comunes
+            fromMidiNotes.forEach(midi => {
+                const pc = midi % 12;
+                const indexInTo = remainingToPcs.indexOf(pc);
+                if (indexInTo !== -1) {
+                    newVoicingMidi.push(midi); // Mantener la nota MIDI exacta
+                    unmovedMidiNotes.push(midi);
+                    remainingToPcs.splice(indexInTo, 1); // Este PC ya está asignado
+                } else {
+                    movedFromMidiNotes.push(midi); // Esta nota deberá moverse
+                }
+            });
+
+            // 2. Asignar las notas que se mueven ('movedFromMidiNotes') a los PCs restantes ('remainingToPcs')
+            movedFromMidiNotes.forEach(fromMidi => {
+                let closestDist = Infinity;
+                let bestNewMidi = 0;
+                let bestPcIndex = -1;
+
+                // Encontrar el PC de destino más cercano para esta nota
+                remainingToPcs.forEach((toPc, index) => {
+                    const baseOctave = Math.floor(fromMidi / 12);
+                    const midiOpt1 = baseOctave * 12 + toPc; // Misma octava
+                    const midiOpt2 = (baseOctave - 1) * 12 + toPc; // Octava abajo
+                    const midiOpt3 = (baseOctave + 1) * 12 + toPc; // Octava arriba
+
+                    const dist1 = Math.abs(midiOpt1 - fromMidi);
+                    const dist2 = Math.abs(midiOpt2 - fromMidi);
+                    const dist3 = Math.abs(midiOpt3 - fromMidi);
+
+                    let currentClosestMidi;
+                    let currentMinDist;
+
+                    if (dist1 <= dist2 && dist1 <= dist3) {
+                        currentMinDist = dist1; currentClosestMidi = midiOpt1;
+                    } else if (dist2 < dist1 && dist2 < dist3) {
+                        currentMinDist = dist2; currentClosestMidi = midiOpt2;
+                    } else {
+                        currentMinDist = dist3; currentClosestMidi = midiOpt3;
+                    }
+
+                    // Si esta es la mejor coincidencia encontrada HASTA AHORA para esta nota 'fromMidi'
+                    if (currentMinDist < closestDist) {
+                        closestDist = currentMinDist;
+                        bestNewMidi = currentClosestMidi;
+                        bestPcIndex = index;
+                    }
+                });
+
+                // Asignar la mejor nota MIDI encontrada y eliminar el PC de la lista de destinos
+                if (bestPcIndex !== -1) {
+                    newVoicingMidi.push(bestNewMidi);
+                    remainingToPcs.splice(bestPcIndex, 1);
+                }
+            });
+
+            return newVoicingMidi;
+        }
+
 
         // Mapping from pitch class number to note name (using sharps as primary)
         const pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]; // Using Unicode sharps
@@ -537,32 +644,19 @@
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
             if (triad.type === "major") {
-                // Example: C Major (0, 4, 7) -> A minor (9, 0, 4)
-                // G (7) -> A (9)
-                newPcs = [normalizePitch(r - 3), r, t];
-                newType = "minor";
-            } else {
-                // Example: A minor (9, 0, 4) -> C Major (0, 4, 7)
-                // A (9) -> G (7)
-                newPcs = [normalizePitch(r + 3), f, normalizePitch(t + 3)]; // t+3 is (0+3)=3, wait...
-                // Let's re-check R minor-to-major logic.
+                // C Major (0, 4, 7) -> A minor (9, 0, 4)
+                // Common notes C (0) [r] and E (4) [t].
+                // G (7) [f] moves to A (9) [f+2].
+                // New triad root is A (9) [f+2], third is C (0) [r], fifth is E (4) [t]
+                 newPcs = [normalizePitch(f + 2), r, t];
+                 newType = "minor";
+            } else { // minor
                 // A minor (9, 0, 4) -> C Major (0, 4, 7)
-                // Common notes are C (0) and E (4).
-                // A (9) moves to G (7). This is r -> r-2.
-                // A (9) is root, C (0) is third, E (4) is fifth.
+                // Common notes are C (0) [t] and E (4) [f].
+                // A (9) [r] moves to G (7) [r-2].
                 // New triad root is C (0) [t], third is E (4) [f], fifth is G (7) [r-2]
                 newPcs = [t, f, normalizePitch(r - 2)];
                 newType = "major";
-            }
-            // Let's fix opR for major->minor based on this.
-            // C Major (0, 4, 7) -> A minor (9, 0, 4)
-            // Common notes C (0) and E (4).
-            // G (7) moves to A (9). This is f -> f+2
-            // C(0) is root, E(4) is third, G(7) is fifth.
-            // New triad root is A (9) [f+2], third is C (0) [r], fifth is E (4) [t]
-            if (triad.type === "major") {
-                 newPcs = [normalizePitch(f + 2), r, t];
-                 newType = "minor";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
@@ -631,6 +725,14 @@
             { name: "Ciclo III (D/F♯/B♭)", members: [] },
             { name: "Ciclo IV (D♯/G/B)", members: [] }
         ];
+        
+        // --- Pre-defined Weitzmann Cycles ---
+        const weitzmannCycles = [
+            { name: "Región I (C-E-G♯)", members: [] },
+            { name: "Región II (C♯-F-A)", members: [] },
+            { name: "Región III (D-F♯-B♭)", members: [] },
+            { name: "Región IV (D♯-G-B)", members: [] }
+        ];
 
         function generateAndPopulateHexatonicCycle(startMajorTriad, cycleIndex) {
             const cycle = [];
@@ -645,6 +747,20 @@
             }
             hexatonicCycles[cycleIndex].members = cycle.filter(Boolean);
         }
+        
+        function generateAndPopulateWeitzmannCycle(startMajorTriad, cycleIndex) {
+            const cycle = [];
+            let current = startMajorTriad;
+            for (let i = 0; i < 6; i++) {
+                cycle.push(current);
+                if (i % 2 === 0) { // Apply R
+                    current = opR(current);
+                } else { // Apply N
+                    current = opN(current);
+                }
+            }
+            weitzmannCycles[cycleIndex].members = cycle.filter(Boolean);
+        }
 
         // Populate hexatonic cycles after allTriads and operations are defined
         // Ensure these starting triads exist in allTriads.
@@ -652,6 +768,12 @@
         generateAndPopulateHexatonicCycle(getTriadByName("C♯ Mayor"), 1);
         generateAndPopulateHexatonicCycle(getTriadByName("D Mayor"), 2);
         generateAndPopulateHexatonicCycle(getTriadByName("D♯ Mayor"), 3);
+        
+        // Populate Weitzmann cycles
+        generateAndPopulateWeitzmannCycle(getTriadByName("C Mayor"), 0);
+        generateAndPopulateWeitzmannCycle(getTriadByName("C♯ Mayor"), 1);
+        generateAndPopulateWeitzmannCycle(getTriadByName("D Mayor"), 2);
+        generateAndPopulateWeitzmannCycle(getTriadByName("D♯ Mayor"), 3);
 
 
         // Pre-defined Weitzmann Regions
@@ -682,7 +804,8 @@
         // Global state
         let currentTriad;
         let history = [];
-        let hexatonicCycleChords = []; // Chords for the current hexatonic cycle visualization
+        let currentCircleChords = []; // Chords for the current circle visualization
+        let currentVisualizationMode = 'hexatonic'; // 'hexatonic' or 'weitzmann'
 
         // DOM Elements
         const startChordSelect = document.getElementById("startChord");
@@ -695,6 +818,9 @@
         const operationButtons = document.querySelectorAll('.grid button'); // All operation buttons
         const operationsBox = document.getElementById('operationsBox'); // The container for operation buttons
         const playChordButton = document.getElementById('playChordButton'); // Botón de reproducir
+        const vizToggle = document.getElementById('vizToggle'); // El nuevo interruptor
+        const circleTitle = document.getElementById('circleTitle'); // Título del círculo
+        const circleDescription = document.getElementById('circleDescription'); // Descripción del círculo
 
         // DOM elements for new Set Relationships section
         const currentHexatonicCycleSpan = document.getElementById("currentHexatonicCycle");
@@ -702,6 +828,7 @@
         const currentWeitzmannRegionSpan = document.getElementById("currentWeitzmannRegion");
         const weitzmannRegionMembersDiv = document.getElementById("weitzmannRegionMembers");
         const sharedChordsDiv = document.getElementById("sharedChords");
+        const setRelationshipsDiv = document.getElementById('setRelationships'); // Contenedor para la delegación de eventos
         const authorModal = document.getElementById('authorModal'); // Modal element
         const glossaryButton = document.getElementById('glossaryButton');
         const glossaryModal = document.getElementById('glossaryModal');
@@ -1046,8 +1173,14 @@
                     }
                 }
                 history = [];
+
+                // NUEVO: Inicializar el lastPlayedVoicing
+                const rootNotes = currentTriad.getNotes();
+                const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
+                lastPlayedVoicing = toneNotes; // Inicializa en la 4ª octava
+
                 updateUI();
-                updateHexatonicCircleVisualization(currentTriad);
+                updateCircleVisualization(currentTriad); // Llamada a la nueva función
                 displayOperationExplanation(''); // Clear explanation on reset
                 removeActiveOperationHighlight(); // Clear any highlighted operation button
                 removeOperationsBoxHighlight(); // Clear operations box highlight
@@ -1067,7 +1200,7 @@
             const notes = currentTriad.getNotes();
             currentChordNotes.innerHTML = `Raíz: <span class="font-bold">${notes[0]}</span>, Tercera: <span class="font-bold">${notes[1]}</span>, Quinta: <span class="font-bold">${notes[2]}</span>`;
             updateHistoryLog();
-            highlightHexatonicNode(currentTriad);
+            highlightCircleNode(currentTriad); // Renombrada
             updateSetRelationshipsDisplay();
             highlightTonnetzTriad(currentTriad); // Call to update the new Tonnetz visualization
         }
@@ -1133,6 +1266,15 @@
             }
             return null;
         }
+        
+        function getWeitzmannCycleForTriad(triad) {
+            // Usamos las regiones predefinidas para encontrar a cuál pertenece
+            const region = getWeitzmannRegionForTriad(triad);
+            if (!region) return null;
+            // Hacemos coincidir por nombre (p.ej. "Región de C-E-G♯" -> "Región I (C-E-G♯)")
+            const regionNotes = region.name.split(' ')[2]; // "C-E-G♯"
+            return weitzmannCycles.find(cycle => cycle.name.includes(regionNotes));
+        }
 
         function getWeitzmannRegionForTriad(triad) {
             for (const region of weitzmannRegions) {
@@ -1145,11 +1287,17 @@
 
         function updateSetRelationshipsDisplay() {
             const hexCycle = getHexatonicCycleForTriad(currentTriad);
-            const weitzRegion = getWeitzmannRegionForTriad(currentTriad); // Corrected typo here
+            const weitzRegion = getWeitzmannRegionForTriad(currentTriad); 
+
+            // Helper function to create the span
+            const createChordSpan = (triad, baseClasses) => {
+                // Añadimos clases de cursor y transformación, y el atributo data-chord-name
+                return `<span class="${baseClasses} px-2 py-1 rounded-md cursor-pointer transform transition-transform hover:scale-105" data-chord-name="${triad.name}">${triad.name}</span>`;
+            };
 
             if (hexCycle) {
                 currentHexatonicCycleSpan.textContent = hexCycle.name;
-                hexatonicCycleMembersDiv.innerHTML = hexCycle.members.map(t => `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-md">${t.name}</span>`).join('');
+                hexatonicCycleMembersDiv.innerHTML = hexCycle.members.map(t => createChordSpan(t, 'bg-blue-100 text-blue-800')).join('');
             } else {
                 currentHexatonicCycleSpan.textContent = "No encontrado";
                 hexatonicCycleMembersDiv.innerHTML = "";
@@ -1157,7 +1305,7 @@
 
             if (weitzRegion) {
                 currentWeitzmannRegionSpan.textContent = weitzRegion.name;
-                weitzmannRegionMembersDiv.innerHTML = weitzRegion.members.map(t => `<span class="bg-green-100 text-green-800 px-2 py-1 rounded-md">${t.name}</span>`).join('');
+                weitzmannRegionMembersDiv.innerHTML = weitzRegion.members.map(t => createChordSpan(t, 'bg-green-100 text-green-800')).join('');
             } else {
                 currentWeitzmannRegionSpan.textContent = "No encontrado";
                 weitzmannRegionMembersDiv.innerHTML = "";
@@ -1167,30 +1315,46 @@
                 const shared = hexCycle.members.filter(hexMember =>
                     weitzRegion.members.some(weitzMember => weitzMember.hasSamePitchClasses(hexMember) && weitzMember.type === hexMember.type)
                 );
-                sharedChordsDiv.innerHTML = shared.map(t => `<span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-md">${t.name}</span>`).join('');
+                sharedChordsDiv.innerHTML = shared.map(t => createChordSpan(t, 'bg-purple-100 text-purple-800')).join('');
             } else {
                 sharedChordsDiv.innerHTML = "<p class='text-gray-500'>No hay conjuntos para comparar.</p>";
             }
         }
 
 
-        // --- Hexatonic Cycle Visualization ---
-        function updateHexatonicCircleVisualization(activeTriad) {
+        // --- Circle Visualization (Refactored) ---
+
+        // Función principal que decide qué círculo dibujar
+        function updateCircleVisualization(activeTriad) {
+            let foundCycle;
+            if (currentVisualizationMode === 'hexatonic') {
+                circleTitle.textContent = "Visualización (Ciclo L/P)";
+                circleDescription.textContent = "Ciclo Hexatónico (L/P). Las operaciones R, N y S pueden llevarte a un ciclo diferente.";
+                foundCycle = getHexatonicCycleForTriad(activeTriad);
+                drawCircle(activeTriad, foundCycle, 'L', 'P');
+            } else { // 'weitzmann'
+                circleTitle.textContent = "Visualización (Ciclo R/N)";
+                circleDescription.textContent = "Región de Weitzmann (R/N). Las operaciones L, P y H pueden llevarte a un ciclo diferente.";
+                foundCycle = getWeitzmannCycleForTriad(activeTriad);
+                drawCircle(activeTriad, foundCycle, 'R', 'N');
+            }
+        }
+
+        // Función genérica para dibujar cualquier círculo
+        function drawCircle(activeTriad, foundCycle, op1Name, op2Name) {
             hexatonicCircleSvg.innerHTML = `<defs>
                                                 <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
                                                     <polygon points="0 0, 10 3.5, 0 7" />
                                                 </marker>
                                             </defs>`;
 
-            const foundCycle = getHexatonicCycleForTriad(activeTriad);
-
             if (!foundCycle) {
-                hexatonicCircleSvg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="#64748b" class="text-xs">El acorde actual no está en el ciclo hexatónico visualizado.</text>`;
-                hexatonicCycleChords = [];
+                hexatonicCircleSvg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="#64748b" class="text-xs">El acorde actual no está en este tipo de ciclo.</text>`;
+                currentCircleChords = [];
                 return;
             }
 
-            hexatonicCycleChords = foundCycle.members;
+            currentCircleChords = foundCycle.members;
 
             const centerX = 150;
             const centerY = 150;
@@ -1198,8 +1362,11 @@
             const nodeWidth = 60;
             const nodeHeight = 30;
 
-            hexatonicCycleChords.forEach((triad, index) => {
-                const angle = (index * (360 / hexatonicCycleChords.length) - 90) * Math.PI / 180;
+            const op1Func = (triad) => (op1Name === 'L' ? opL(triad) : opR(triad));
+            const op2Func = (triad) => (op2Name === 'P' ? opP(triad) : opN(triad));
+
+            currentCircleChords.forEach((triad, index) => {
+                const angle = (index * (360 / currentCircleChords.length) - 90) * Math.PI / 180;
                 const x = centerX + radius * Math.cos(angle);
                 const y = centerY + radius * Math.sin(angle);
 
@@ -1219,27 +1386,29 @@
                     currentTriad = getTriadByName(triad.name);
                     history = [];
                     updateUI();
-                    updateHexatonicCircleVisualization(currentTriad);
+                    updateCircleVisualization(currentTriad); // Llamada a la función principal
                     displayOperationExplanation('');
                     removeActiveOperationHighlight();
                     removeOperationsBoxHighlight();
                 });
 
-                const nextIndex = (index + 1) % hexatonicCycleChords.length;
-                const nextTriad = hexatonicCycleChords[nextIndex];
+                const nextIndex = (index + 1) % currentCircleChords.length;
+                const nextTriad = currentCircleChords[nextIndex];
 
-                const nextAngle = (nextIndex * (360 / hexatonicCycleChords.length) - 90) * Math.PI / 180;
+                const nextAngle = (nextIndex * (360 / currentCircleChords.length) - 90) * Math.PI / 180;
                 const nextX = centerX + radius * Math.cos(nextAngle);
                 const nextY = centerY + radius * Math.sin(nextAngle);
 
                 let isArrowActive = false;
                 if (triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
-                    const expectedNextByL = opL(triad);
-                    const expectedNextByP = opP(triad);
+                    let expectedNext;
+                    if (index % 2 === 0) { // Aplicar op1
+                        expectedNext = op1Func(triad);
+                    } else { // Aplicar op2
+                        expectedNext = op2Func(triad);
+                    }
 
-                    if (expectedNextByL && expectedNextByL.hasSamePitchClasses(nextTriad) && expectedNextByL.type === nextTriad.type) {
-                        isArrowActive = true;
-                    } else if (expectedNextByP && expectedNextByP.hasSamePitchClasses(nextTriad) && expectedNextByP.type === nextTriad.type) {
+                    if (expectedNext && expectedNext.hasSamePitchClasses(nextTriad) && expectedNext.type === nextTriad.type) {
                         isArrowActive = true;
                     }
                 }
@@ -1261,13 +1430,13 @@
             svg.appendChild(path);
         }
 
-        function highlightHexatonicNode(triadToHighlight) {
+        function highlightCircleNode(triadToHighlight) { // Renombrada
             document.querySelectorAll('.chord-node').forEach(node => {
                 node.classList.remove('active');
             });
-            const index = hexatonicCycleChords.findIndex(t => t.hasSamePitchClasses(triadToHighlight) && t.type === triadToHighlight.type);
+            const index = currentCircleChords.findIndex(t => t.hasSamePitchClasses(triadToHighlight) && t.type === triadToHighlight.type);
             if (index !== -1) {
-                const nodeElement = hexatonicCircleSvg.children[index + 1];
+                const nodeElement = hexatonicCircleSvg.children[index + 1]; // +1 para saltar <defs>
                 if (nodeElement) {
                     nodeElement.classList.add('active');
                 }
@@ -1306,77 +1475,111 @@
         resetButton.addEventListener("click", initializeApp);
 
         playChordButton.addEventListener('click', () => {
-            startAudioContext(); // Ensure audio is started
-            const notes = currentTriad.getNotes();
-            // Mapeamos ♯ a # y ♭ a b para Tone.js
-            const toneNotes = notes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
-            synth.triggerAttackRelease(toneNotes, "1s");
+            // Reproduce el último voicing guardado
+            const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            playVoicing(midiNotes);
         });
 
         document.getElementById("opL").addEventListener("click", (event) => {
-            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opL(currentTriad);
+
+            // NUEVO: Calcular y reproducir voicing
+            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
+            playVoicing(newMidiVoicing);
+
             addHistoryEntry("L", oldTriad, currentTriad);
             updateUI();
             displayOperationExplanation("L");
-            updateHexatonicCircleVisualization(currentTriad);
+            updateCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
         });
 
         document.getElementById("opP").addEventListener("click", (event) => {
-            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opP(currentTriad);
+
+            // NUEVO: Calcular y reproducir voicing
+            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
+            playVoicing(newMidiVoicing);
+
             addHistoryEntry("P", oldTriad, currentTriad);
             updateUI();
             displayOperationExplanation("P");
-            updateHexatonicCircleVisualization(currentTriad);
+            updateCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
         });
 
         document.getElementById("opR").addEventListener("click", (event) => {
-            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opR(currentTriad);
+
+            // NUEVO: Calcular y reproducir voicing
+            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
+            playVoicing(newMidiVoicing);
+
             addHistoryEntry("R", oldTriad, currentTriad);
             updateUI();
             displayOperationExplanation("R");
-            updateHexatonicCircleVisualization(currentTriad);
+            updateCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
         });
 
         document.getElementById("opN").addEventListener("click", (event) => {
-            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opN(currentTriad);
+
+            // NUEVO: Calcular y reproducir voicing
+            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
+            playVoicing(newMidiVoicing);
+
             addHistoryEntry("N", oldTriad, currentTriad);
             updateUI();
             displayOperationExplanation("N");
-            updateHexatonicCircleVisualization(currentTriad);
+            updateCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
         });
 
         document.getElementById("opH").addEventListener("click", (event) => {
-            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opH(currentTriad);
+
+            // NUEVO: Calcular y reproducir voicing
+            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
+            playVoicing(newMidiVoicing);
+
             addHistoryEntry("H", oldTriad, currentTriad);
             updateUI();
             displayOperationExplanation("H");
-            updateHexatonicCircleVisualization(currentTriad);
+            updateCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
         });
 
         document.getElementById("opS").addEventListener("click", (event) => {
-            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opS(currentTriad);
+
+            // NUEVO: Calcular y reproducir voicing
+            const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            const newMidiVoicing = getClosestVoicing(fromMidi, currentTriad);
+            playVoicing(newMidiVoicing);
+
             addHistoryEntry("S", oldTriad, currentTriad);
             updateUI();
             displayOperationExplanation("S");
-            updateHexatonicCircleVisualization(currentTriad);
+            updateCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
+        });
+        
+        // --- Listener para el Toggle Switch ---
+        vizToggle.addEventListener('change', (event) => {
+            currentVisualizationMode = event.target.checked ? 'weitzmann' : 'hexatonic';
+            updateCircleVisualization(currentTriad);
         });
 
         // --- Listeners para el Glosario ---
@@ -1392,6 +1595,50 @@
         glossaryModal.addEventListener('click', (event) => {
             if (event.target === glossaryModal) {
                 glossaryModal.classList.remove('show');
+            }
+        });
+
+        // Clic fuera del modal para cerrarlo
+        glossaryModal.addEventListener('click', (event) => {
+            if (event.target === glossaryModal) {
+                glossaryModal.classList.remove('show');
+            }
+        });
+
+        // --- Listener para los acordes en "Relación entre Conjuntos" ---
+        setRelationshipsDiv.addEventListener('click', (event) => {
+            // Usamos .closest() para asegurarnos de capturar el span aunque se haga clic en su texto interno
+            const clickedSpan = event.target.closest('[data-chord-name]');
+            if (!clickedSpan) return; // No se hizo clic en un acorde
+
+            const chordName = clickedSpan.dataset.chordName;
+            const triadToPlay = getTriadByName(chordName);
+
+            if (triadToPlay && triadToPlay.name !== currentTriad.name) { // No hacer nada si se hace clic en el mismo acorde
+                startAudioContext(); 
+                
+                // 1. Calcular y reproducir nuevo voicing
+                const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                const newMidiVoicing = getClosestVoicing(fromMidi, triadToPlay);
+                playVoicing(newMidiVoicing); // Esto reproduce Y actualiza lastPlayedVoicing
+                
+                // 2. Actualizar el estado global para reflejar el cambio
+                const oldTriad = currentTriad;
+                currentTriad = triadToPlay;
+                
+                // 3. Actualizar toda la UI
+                addHistoryEntry("Click", oldTriad, currentTriad); // Añadir al historial
+                updateUI(); // Actualizar nombre de acorde, notas, historial, etc.
+                updateCircleVisualization(currentTriad); // Actualizar el círculo
+                displayOperationExplanation(''); // Limpiar explicación
+                removeActiveOperationHighlight(); // Limpiar botón de operación
+                removeOperationsBoxHighlight(); // Limpiar caja de operación
+            
+            } else if (triadToPlay && triadToPlay.name === currentTriad.name) {
+                // Si se hace clic en el acorde ya activo, simplemente reproducirlo de nuevo
+                startAudioContext();
+                const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                playVoicing(fromMidi);
             }
         });
 
