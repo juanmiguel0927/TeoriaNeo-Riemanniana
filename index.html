@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explorador de Teoría Neo-Riemanniana</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -50,7 +51,8 @@
             @apply bg-gray-50 p-2 rounded-md mb-2 text-sm border border-gray-100;
         }
         .explanation-box {
-            @apply bg-green-50 p-4 rounded-lg text-sm my-4 border border-green-100;
+            @apply bg-green-50 p-4 rounded-lg my-4 border border-green-100;
+            min-height: 120px; /* Damos un alto mínimo para que no salte tanto la UI */
         }
         /* Custom styles for the circular visualization */
         .circle-container {
@@ -231,12 +233,24 @@
                     <select id="startChord" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
                         <!-- Options will be populated by JS -->
                     </select>
-                    <button id="resetButton" class="btn btn-primary w-full mt-3">Reiniciar</button>
+                    <div class="flex gap-3">
+                        <button id="resetButton" class="btn btn-primary w-1/2 mt-3">Reiniciar</button>
+                        <button id="glossaryButton" class="btn btn-secondary w-1/2 mt-3">Glosario</button>
+                    </div>
                 </div>
 
                 <div class="chord-display">
-                    <h2 class="text-xl font-bold mb-2 text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
-                    <p class="text-lg text-gray-700">Notas: <span id="currentChordNotes">C, E, G</span></p>
+                    <div class="flex justify-center items-center gap-4">
+                        <div class="text-center"> <!-- Mantenemos el texto centrado -->
+                            <h2 class="text-xl font-bold mb-2 text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
+                            <p class="text-lg text-gray-700">Notas: <span id="currentChordNotes">C, E, G</span></p>
+                        </div>
+                        <button id="playChordButton" class="btn btn-secondary p-3 rounded-full shadow-lg transform hover:scale-110 active:scale-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="operationsBox" class="mb-4 p-4 bg-blue-50 rounded-lg shadow-inner border border-blue-100"> <!-- Colored box for operations -->
@@ -253,7 +267,7 @@
 
                 <div class="explanation-box">
                     <h3 class="text-lg font-semibold mb-2 text-green-800">Explicación de la Operación:</h3>
-                    <p id="operationExplanation" class="text-gray-800">Selecciona una operación para ver su descripción.</p>
+                    <p id="operationExplanation" class="text-gray-800 text-sm">Selecciona una operación para ver su descripción.</p>
                 </div>
 
                 <div class="p-4 bg-gray-50 rounded-lg shadow-inner">
@@ -329,9 +343,46 @@
         </div>
     </div>
 
+    <!-- Modal para Glosario -->
+    <div id="glossaryModal" class="modal-overlay">
+        <div class="modal-content text-left w-full max-w-lg">
+            <h2 class="text-2xl font-bold text-center mb-6 text-blue-700">Glosario de Términos</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-semibold text-lg text-gray-800">Involución</h3>
+                    <p class="text-gray-700">Una operación que es su propio inverso. Al aplicarla dos veces consecutivas, se vuelve al punto de partida.</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg text-gray-800">Conducción Idealizada</h3>
+                    <p class="text-gray-700">Aquella conducción en la que los acordes se disponen de manera tal que cada voz se desplace la menor distancia posible, manteniendo fijas las notas en común.</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg text-gray-800">Operación Compuesta</h3>
+                    <p class="text-gray-700">Dos o tres operaciones simples condensadas en una sola (ej. H es PLP, S es RNR).</p>
+                </div>
+            </div>
+            <button id="closeGlossaryButton" class="btn btn-primary mt-8 w-full">Cerrar</button>
+        </div>
+    </div>
+
     <script>
         // Flag to ensure the modal only shows once per page load
         let hasModalBeenShown = false;
+
+        // --- Audio Context ---
+        let isToneStarted = false;
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+
+        async function startAudioContext() {
+            if (isToneStarted) return;
+            try {
+                await Tone.start();
+                isToneStarted = true;
+                console.log("Audio context started.");
+            } catch (e) {
+                console.error("Could not start audio context", e);
+            }
+        }
 
         // Mapping from pitch class number to note name (using sharps as primary)
         const pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]; // Using Unicode sharps
@@ -456,9 +507,13 @@
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
             if (triad.type === "major") {
-                newPcs = [t, f, normalizePitch(r + 11)];
+                // Example: C Major (0, 4, 7) -> E minor (4, 7, 11)
+                // C (0) -> B (11)
+                newPcs = [t, f, normalizePitch(r - 1)]; 
                 newType = "minor";
             } else {
+                // Example: E minor (4, 7, 11) -> C Major (0, 4, 7)
+                // B (11) -> C (0)
                 newPcs = [normalizePitch(f + 1), r, t];
                 newType = "major";
             }
@@ -482,27 +537,60 @@
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
             if (triad.type === "major") {
-                newPcs = [normalizePitch(r + 9), r, t];
+                // Example: C Major (0, 4, 7) -> A minor (9, 0, 4)
+                // G (7) -> A (9)
+                newPcs = [normalizePitch(r - 3), r, t];
                 newType = "minor";
             } else {
-                newPcs = [normalizePitch(r + 3), f, normalizePitch(t + 7)];
+                // Example: A minor (9, 0, 4) -> C Major (0, 4, 7)
+                // A (9) -> G (7)
+                newPcs = [normalizePitch(r + 3), f, normalizePitch(t + 3)]; // t+3 is (0+3)=3, wait...
+                // Let's re-check R minor-to-major logic.
+                // A minor (9, 0, 4) -> C Major (0, 4, 7)
+                // Common notes are C (0) and E (4).
+                // A (9) moves to G (7). This is r -> r-2.
+                // A (9) is root, C (0) is third, E (4) is fifth.
+                // New triad root is C (0) [t], third is E (4) [f], fifth is G (7) [r-2]
+                newPcs = [t, f, normalizePitch(r - 2)];
+                newType = "major";
+            }
+            // Let's fix opR for major->minor based on this.
+            // C Major (0, 4, 7) -> A minor (9, 0, 4)
+            // Common notes C (0) and E (4).
+            // G (7) moves to A (9). This is f -> f+2
+            // C(0) is root, E(4) is third, G(7) is fifth.
+            // New triad root is A (9) [f+2], third is C (0) [r], fifth is E (4) [t]
+            if (triad.type === "major") {
+                 newPcs = [normalizePitch(f + 2), r, t];
+                 newType = "minor";
+            }
+            return findTriadByPitchClasses(newPcs, newType);
+        }
+        
+        // Re-implementing opN based on PDF logic
+        function opN(triad) {
+            const [r, t, f] = triad.pitchClasses;
+            let newPcs, newType;
+            if (triad.type === "major") {
+                // C Major (0, 4, 7) -> F minor (5, 8, 0)
+                // C (0) is common (becomes new 5th)
+                // E (4) -> F (5) [t+1]
+                // G (7) -> Ab (8) [f+1]
+                // New triad: F (5) [t+1], Ab (8) [f+1], C (0) [r]
+                newPcs = [normalizePitch(t + 1), normalizePitch(f + 1), r];
+                newType = "minor";
+            } else {
+                // F minor (5, 8, 0) -> C Major (0, 4, 7)
+                // C (0) is common (becomes new root)
+                // F (5) -> E (4) [r-1]
+                // Ab (8) -> G (7) [t-1]
+                // New triad: C (0) [f], E (4) [r-1], G (7) [t-1]
+                newPcs = [f, normalizePitch(r - 1), normalizePitch(t - 1)];
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
         }
 
-        function opN(triad) {
-            const [r, t, f] = triad.pitchClasses;
-            let newPcs, newType;
-            if (triad.type === "major") {
-                newPcs = [normalizePitch(r + 5), normalizePitch(t + 4), r];
-                newType = "minor";
-            } else {
-                newPcs = [f, normalizePitch(r + 2), normalizePitch(t + 8)];
-                newType = "major";
-            }
-            return findTriadByPitchClasses(newPcs, newType);
-        }
 
         function opH(triad) {
             let result = opP(triad);
@@ -511,13 +599,24 @@
             return result;
         }
 
+        // Re-implementing opS based on PDF logic
         function opS(triad) {
             const [r, t, f] = triad.pitchClasses;
             let newPcs, newType;
             if (triad.type === "major") {
+                // C Major (0, 4, 7) -> C# minor (1, 4, 8)
+                // E (4) is common (new third)
+                // C (0) -> C# (1) [r+1]
+                // G (7) -> G# (8) [f+1]
+                // New triad: C# (1) [r+1], E (4) [t], G# (8) [f+1]
                 newPcs = [normalizePitch(r + 1), t, normalizePitch(f + 1)];
                 newType = "minor";
             } else {
+                // C# minor (1, 4, 8) -> C Major (0, 4, 7)
+                // E (4) is common (new third)
+                // C# (1) -> C (0) [r-1]
+                // G# (8) -> G (7) [f-1]
+                // New triad: C (0) [r-1], E (4) [t], G (7) [f-1]
                 newPcs = [normalizePitch(r - 1), t, normalizePitch(f - 1)];
                 newType = "major";
             }
@@ -595,6 +694,7 @@
         const hexatonicCircleSvg = document.querySelector("#hexatonicCircle svg");
         const operationButtons = document.querySelectorAll('.grid button'); // All operation buttons
         const operationsBox = document.getElementById('operationsBox'); // The container for operation buttons
+        const playChordButton = document.getElementById('playChordButton'); // Botón de reproducir
 
         // DOM elements for new Set Relationships section
         const currentHexatonicCycleSpan = document.getElementById("currentHexatonicCycle");
@@ -603,6 +703,9 @@
         const weitzmannRegionMembersDiv = document.getElementById("weitzmannRegionMembers");
         const sharedChordsDiv = document.getElementById("sharedChords");
         const authorModal = document.getElementById('authorModal'); // Modal element
+        const glossaryButton = document.getElementById('glossaryButton');
+        const glossaryModal = document.getElementById('glossaryModal');
+        const closeGlossaryButton = document.getElementById('closeGlossaryButton');
 
         // Tonnetz explanation elements
         const tonnetzHeader = document.getElementById('tonnetzHeader');
@@ -676,14 +779,32 @@
 
 
         // Explanations for operations
+        // *** ESTA ES LA SECCIÓN ACTUALIZADA ***
         const explanations = {
-            "L": "La operación **L (Leittonechel / Intercambio de Tono Principal)** transforma una tríada mayor en una menor (y viceversa) moviendo una voz por semitono. Por ejemplo, C Mayor (C-E-G) → L E menor (E-G-B).",
-            "P": "La operación **P (Parallel / Paralelo)** transforma una tríada mayor en su paralela menor (y viceversa) manteniendo la tónica y la quinta, y moviendo la tercera un semitono. Por ejemplo, C Mayor (C-E-G) → P C menor (C-E♭-G).",
-            "R": "La operación **R (Relative / Relativo)** transforma una tríada mayor en su relativa menor (o viceversa) moviendo la tónica o la quinta un tono. Por ejemplo, C Mayor (C-E-G) → R A menor (A-C-E).",
-            "N": "La operación **N (Next Related / Próximo Relacionado)** transforma una tríada mayor en una menor (y viceversa) moviendo dos voces por semitono. Por ejemplo, C Mayor (C-E-G) → N F menor (F-A♭-C).",
-            "H": "La operación **H (Hexatonic Pole / Polo Hexatónico)** es una operación compuesta (PLP o LPL) que conecta dos tríadas dentro del mismo ciclo hexatónico que no comparten ninguna nota. Por ejemplo, C Mayor → H A♭ menor (A♭-C♭-E♭).",
-            "S": "La operación **S (Slide / Deslizamiento)** transforma una tríada mayor en una menor (y viceversa) moviendo la tónica y la quinta un semitono en la misma dirección. Por ejemplo, C Mayor (C-E-G) → S C♯ menor (C♯-E-G♯)."
+            "L": "La operación **L (Leittonechel)** conecta tríadas que comparten la 3ra menor. <br><br>" +
+                 "<strong>De Mayor a Menor:</strong> Transforma la 3ra mayor en una 4ta justa. La fundamental del acorde mayor desciende medio tono para convertirse en la 5ta del acorde menor (Ej: DoM [C, E, G] → Mim [E, G, B]).<br><br>" +
+                 "<strong>De Menor a Mayor:</strong> Transforma la 3ra mayor en una 4ta justa. La 5ta del acorde menor asciende medio tono para convertirse en la fundamental del acorde mayor (Ej: Mim [E, G, B] → DoM [C, E, G]).",
+            
+            "P": "La operación **P (Parallel)** transforma una tríada en su paralela (mayor/menor) con la misma fundamental. Conserva la tónica y la 5ta justa, y desplaza la 3ra (mediante) un semitono.<br><br>" +
+                 "<strong>De Mayor a Menor:</strong> La 3ra mayor desciende un semitono (Ej: DoM [C, E, G] → Dom [C, E♭, G]).<br><br>" +
+                 "<strong>De Menor a Mayor:</strong> La 3ra menor asciende un semitono (Ej: Dom [C, E♭, G] → DoM [C, E, G]).",
+
+            "R": "La operación **R (Relative)** conecta una tríada con su relativa (mayor/menor). Conserva dos notas en común (ej. C y E en DoM/Lam). La nota restante se desplaza un tono completo.<br><br>" +
+                 "<strong>De Mayor a Menor:</strong> La 5ta del acorde mayor asciende un tono (Ej: DoM [C, E, G] → Lam [A, C, E]).<br><br>" +
+                 "<strong>De Menor a Mayor:</strong> La tónica del acorde menor desciende un tono (Ej: Lam [A, C, E] → DoM [C, E, G]).",
+
+            "N": "La operación **N (Nebenverwandt)** conecta dos tríadas que comparten una nota. Las otras dos voces se mueven un semitono cada una (en total, un tono).<br><br>" +
+                 "<strong>De Mayor a Menor:</strong> Se invierte alrededor de la fundamental. Las notas 3ra y 5ta ascienden un semitono (Ej: DoM [C, E, G] → Fam [F, A♭, C]).<br><br>" +
+                 "<strong>De Menor a Mayor:</strong> Se invierte alrededor de la 5ta. Las notas tónica y 3ra descienden un semitono (Ej: Fam [F, A♭, C] → DoM [C, E, G]).",
+
+            "H": "La operación **H (Polo Hexatónico)** es una operación compuesta (PLP o LPL). Conecta los dos acordes más lejanos dentro de un ciclo hexatónico, los cuales no comparten <strong>ninguna</strong> nota en común.<br><br>" +
+                 "Todas las voces se desplazan un semitono (Ej: DoM [C, E, G] → Sol♯m [G♯, B, D♯] o La♭m [A♭, C♭, E♭]).",
+
+            "S": "La operación **S (Slide / Deslizamiento)** es una operación compuesta (RNR o NRN) que conecta dos acordes de diferente modo que comparten la 3ra.<br><br>" +
+                 "<strong>De Mayor a Menor:</strong> Conserva la 3ra. La tónica y la 5ta se desplazan un semitono hacia arriba (Ej: DoM [C, E, G] → Do♯m [C♯, E, G♯]).<br><br>" +
+                 "<strong>De Menor a Mayor:</strong> Conserva la 3ra. La tónica y la 5ta se desplazan un semitono hacia abajo (Ej: Do♯m [C♯, E, G♯] → DoM [C, E, G])."
         };
+        // *** FIN DE LA SECCIÓN ACTUALIZADA ***
 
         // Function to display operation explanation
         function displayOperationExplanation(opCode) {
@@ -987,6 +1108,19 @@
                     return triad;
                 }
             }
+            // Fallback: Si no se encuentra una coincidencia exacta de nombre, buscar enarmónicamente.
+            for (const root of canonicalSpelling) {
+                const testTriad = new Triad(root, type);
+                const sortedTestPcs = [...testTriad.pitchClasses].sort();
+                if (sortedTestPcs.every((pc, i) => pc === sortedPcs[i])) {
+                    // Encontramos una coincidencia enarmónica, la añadimos a nuestra lista si no está
+                    if (!allTriads.find(t => t.name === testTriad.name)) {
+                        allTriads.push(testTriad);
+                    }
+                    return testTriad;
+                }
+            }
+            console.warn("Could not find matching triad for pcs:", pcs, "type:", type);
             return null;
         }
 
@@ -1118,7 +1252,7 @@
             const angle = Math.atan2(y2 - y1, x2 - x1);
             const startX = x1 + offset * Math.cos(angle);
             const startY = y1 + offset * Math.sin(angle);
-            const endX = x2 - offset * Math.cos(angle);
+            const endX = x2 - offset * Math.sin(angle);
             const endY = y2 - offset * Math.sin(angle);
 
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -1171,7 +1305,16 @@
         // Event Listeners
         resetButton.addEventListener("click", initializeApp);
 
+        playChordButton.addEventListener('click', () => {
+            startAudioContext(); // Ensure audio is started
+            const notes = currentTriad.getNotes();
+            // Mapeamos ♯ a # y ♭ a b para Tone.js
+            const toneNotes = notes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
+            synth.triggerAttackRelease(toneNotes, "1s");
+        });
+
         document.getElementById("opL").addEventListener("click", (event) => {
+            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opL(currentTriad);
             addHistoryEntry("L", oldTriad, currentTriad);
@@ -1182,6 +1325,7 @@
         });
 
         document.getElementById("opP").addEventListener("click", (event) => {
+            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opP(currentTriad);
             addHistoryEntry("P", oldTriad, currentTriad);
@@ -1192,6 +1336,7 @@
         });
 
         document.getElementById("opR").addEventListener("click", (event) => {
+            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opR(currentTriad);
             addHistoryEntry("R", oldTriad, currentTriad);
@@ -1202,6 +1347,7 @@
         });
 
         document.getElementById("opN").addEventListener("click", (event) => {
+            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opN(currentTriad);
             addHistoryEntry("N", oldTriad, currentTriad);
@@ -1212,6 +1358,7 @@
         });
 
         document.getElementById("opH").addEventListener("click", (event) => {
+            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opH(currentTriad);
             addHistoryEntry("H", oldTriad, currentTriad);
@@ -1222,6 +1369,7 @@
         });
 
         document.getElementById("opS").addEventListener("click", (event) => {
+            startAudioContext(); // Iniciar audio en la interacción
             const oldTriad = currentTriad;
             currentTriad = opS(currentTriad);
             addHistoryEntry("S", oldTriad, currentTriad);
@@ -1229,6 +1377,22 @@
             displayOperationExplanation("S");
             updateHexatonicCircleVisualization(currentTriad);
             highlightActiveOperation(event.target.dataset.op);
+        });
+
+        // --- Listeners para el Glosario ---
+        glossaryButton.addEventListener('click', () => {
+            glossaryModal.classList.add('show');
+        });
+
+        closeGlossaryButton.addEventListener('click', () => {
+            glossaryModal.classList.remove('show');
+        });
+
+        // Clic fuera del modal para cerrarlo
+        glossaryModal.addEventListener('click', (event) => {
+            if (event.target === glossaryModal) {
+                glossaryModal.classList.remove('show');
+            }
         });
 
         // Initial setup on page load
@@ -1240,5 +1404,3 @@
     </script>
 </body>
 </html>
-
-
