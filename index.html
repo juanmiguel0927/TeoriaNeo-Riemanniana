@@ -256,6 +256,16 @@
             opacity: 0.3;
         }
 
+        /* Nuevos estilos para resaltar botones de operación */
+        .btn-op-highlight-lp {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Resplandor azul (L/P) */
+            border-color: #3b82f6;
+        }
+        .btn-op-highlight-rn {
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.5); /* Resplandor verde (R/N) */
+            border-color: #16a34a;
+        }
+
     </style>
 </head>
 <body class="p-4">
@@ -805,6 +815,13 @@
         const historyLog = document.getElementById("historyLog");
         const operationsBox = document.getElementById('operationsBox');
         const operationButtons = document.querySelectorAll('#operationsBox button');
+        // Guardar referencias a botones específicos
+        const opBtnL = document.getElementById('opL');
+        const opBtnP = document.getElementById('opP');
+        const opBtnR = document.getElementById('opR');
+        const opBtnN = document.getElementById('opN');
+        const opBtnH = document.getElementById('opH');
+        const opBtnS = document.getElementById('opS');
 
         // Pestañas
         const vizTabs = document.querySelectorAll('.viz-tab-btn');
@@ -1177,6 +1194,8 @@
                     currentTriad = getTriadByName("C Mayor");
                 }
                 history = [];
+                currentVisualizationMode = 'lp'; // Asegurarse de que el modo inicial es 'lp'
+                vizToggle.checked = false; // Asegurarse de que el toggle esté en la posición 'lp'
 
                 // Inicializar el lastPlayedVoicing
                 const rootNotes = currentTriad.getNotes();
@@ -1187,6 +1206,7 @@
                 displayOperationExplanation('');
                 removeActiveOperationHighlight();
                 removeOperationsBoxHighlight();
+                updateOperationButtonHighlights(); // <-- LLAMAR AL INICIAR
                 showAuthorModal(); 
 
             } catch (error) {
@@ -1316,6 +1336,7 @@
                 cycle.members.some(member => member.hasSamePitchClasses(activeTriad) && member.type === activeTriad.type)
             );
 
+            updateOperationButtonHighlights(); // <-- LLAMAR AL ACTUALIZAR CÍRCULO
             drawCircle(foundCycle, activeTriad, prevTriad, op1, op2);
         }
 
@@ -1406,6 +1427,30 @@
         }
 
         // --- Resaltado de Botones ---
+
+        // NUEVA FUNCIÓN para resaltar botones por ciclo
+        function updateOperationButtonHighlights() {
+            const isRNMode = vizToggle.checked;
+            
+            // Limpiar todos los resaltados de ciclo
+            operationButtons.forEach(btn => {
+                btn.classList.remove('btn-op-highlight-lp');
+                btn.classList.remove('btn-op-highlight-rn');
+            });
+
+            if (isRNMode) {
+                // Resaltar R, N, S (Ciclo R/N)
+                opBtnR.classList.add('btn-op-highlight-rn');
+                opBtnN.classList.add('btn-op-highlight-rn');
+                opBtnS.classList.add('btn-op-highlight-rn');
+            } else {
+                // Resaltar L, P, H (Ciclo L/P)
+                opBtnL.classList.add('btn-op-highlight-lp');
+                opBtnP.classList.add('btn-op-highlight-lp');
+                opBtnH.classList.add('btn-op-highlight-lp');
+            }
+        }
+
         function highlightActiveOperation(opCode) {
             removeActiveOperationHighlight();
             const button = document.querySelector(`[data-op="${opCode}"]`);
@@ -1478,6 +1523,7 @@
         vizToggle.addEventListener('change', () => {
             currentVisualizationMode = vizToggle.checked ? 'rn' : 'lp';
             updateCircleVisualization(currentTriad, previousTriad);
+            // updateOperationButtonHighlights(); // <-- MOVIDO a updateCircleVisualization
         });
         
         // --- Listener para los acordes en "Relación entre Conjuntos" ---
