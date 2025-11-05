@@ -256,6 +256,33 @@
             opacity: 0.3;
         }
 
+        /* Flecha de transformación en Tonnetz */
+        .tonnetz-transformation-path {
+            stroke: #3b82f6;
+            stroke-width: 3;
+            fill: none;
+            marker-end: url(#arrowhead-tonnetz); /* ID de marcador específico de Tonnetz */
+            opacity: 0;
+            animation: drawTonnetzPath 1s ease-out forwards;
+        }
+        @keyframes drawTonnetzPath {
+            0% {
+                stroke-dasharray: 500;
+                stroke-dashoffset: 500;
+                opacity: 1;
+            }
+            70% {
+                stroke-dasharray: 500;
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
+            100% {
+                stroke-dasharray: 500;
+                stroke-dashoffset: 0;
+                opacity: 0;
+            }
+        }
+
         /* Nuevos estilos para resaltar botones de operación */
         .btn-op-highlight-lp {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Resplandor azul (L/P) */
@@ -914,7 +941,13 @@
         }
 
         function drawFullTonnetz() {
-            tonnetzSvg.innerHTML = '';
+            tonnetzSvg.innerHTML = `
+                <defs>
+                    <marker id="arrowhead-tonnetz" markerWidth="5" markerHeight="3.5" refX="0" refY="1.75" orient="auto" fill="#3b82f6">
+                        <polygon points="0 0, 5 1.75, 0 3.5" />
+                    </marker>
+                </defs>
+            `; // Limpiar y añadir DEFS para la flecha
             coordToNodeMap = new Map();
             tonnetzNodesData.forEach(node => coordToNodeMap.set(`${node.x},${node.y}`, node));
 
@@ -973,10 +1006,12 @@
             tonnetzSvg.querySelectorAll('.active').forEach(node => node.classList.remove('active'));
             tonnetzSvg.querySelectorAll('.previous-active').forEach(node => node.classList.remove('previous-active'));
             tonnetzSvg.querySelectorAll('.tonnetz-triad-fill').forEach(fill => fill.remove());
+            tonnetzSvg.querySelectorAll('.tonnetz-transformation-path').forEach(path => path.remove()); // Limpiar flecha
             
             // Función interna para resaltar un acorde
+            // AHORA DEVUELVE EL CENTRO DEL TRIÁNGULO
             const highlight = (triad, cssClass) => {
-                if (!triad) return;
+                if (!triad) return null; // Devuelve null si no hay tríada
                 const triadPcs = triad.pitchClasses;
                 triadPcs.forEach(pc => {
                     const matchingTonnetzNodes = tonnetzNodesData.filter(node => node.pc === pc);
@@ -1009,15 +1044,28 @@
                         polygon.setAttribute("points", `${pRootNode.x},${pRootNode.y} ${pThirdNode.x},${pThirdNode.y} ${pFifthNode.x},${pFifthNode.y}`);
                         polygon.classList.add("tonnetz-triad-fill", cssClass);
                         tonnetzSvg.prepend(polygon);
-                        break;
+                        
+                        // Calcular y devolver el centro del triángulo
+                        const centerX = (pRootNode.x + pThirdNode.x + pFifthNode.x) / 3;
+                        const centerY = (pRootNode.y + pThirdNode.y + pFifthNode.y) / 3;
+                        return { x: centerX, y: centerY };
                     }
                 }
+                return null; // No se encontró el triángulo
             };
             
-            // Resaltar el acorde anterior (fantasma)
-            highlight(prevTriad, 'previous-active');
-            // Resaltar el acorde actual (activo)
-            highlight(activeTriad, 'active');
+            // Resaltar el acorde anterior (fantasma) y obtener su centro
+            const prevCenter = highlight(prevTriad, 'previous-active');
+            // Resaltar el acorde actual (activo) y obtener su centro
+            const activeCenter = highlight(activeTriad, 'active');
+
+            // Dibujar la flecha de transformación si tenemos ambos centros
+            if (prevCenter && activeCenter && (prevCenter.x !== activeCenter.x || prevCenter.y !== activeCenter.y)) {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${prevCenter.x} ${prevCenter.y} L ${activeCenter.x} ${activeCenter.y}`);
+                path.classList.add("tonnetz-transformation-path");
+                tonnetzSvg.appendChild(path);
+            }
         }
 
 
