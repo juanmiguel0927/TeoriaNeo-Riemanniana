@@ -30,6 +30,11 @@
         .btn-secondary {
             @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 shadow-md transform hover:scale-105;
         }
+        /* Estilo para botones deshabilitados */
+        .btn:disabled {
+            @apply bg-gray-300 text-gray-500 cursor-not-allowed transform-none shadow-none hover:bg-gray-300;
+        }
+
         /* Estilo para el botón de operación activo */
         .btn-secondary.active-op-btn {
             @apply bg-yellow-400 text-gray-900 border-2 border-yellow-600 shadow-xl transform scale-105;
@@ -293,6 +298,17 @@
             border-color: #16a34a;
         }
 
+        /* Estilos para el nuevo módulo de análisis */
+        .analysis-explanation-box {
+            @apply bg-yellow-50 p-4 rounded-lg text-sm my-4 border border-yellow-200 text-gray-800;
+        }
+        /* NUEVO: Estilos para la imagen de la partitura */
+        .analysis-score-image {
+            @apply w-full rounded-lg border-2 border-gray-300 shadow-md mb-4;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="p-4">
@@ -306,7 +322,7 @@
         <div class="flex flex-col md:flex-row gap-6">
             <!-- Columna Izquierda: Controles -->
             <div class="md:w-1/2 flex flex-col">
-                <div class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
+                <div id="startChordContainer" class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
                     <label for="startChord" class="block text-gray-700 text-sm font-bold mb-2">Selecciona un acorde inicial:</label>
                     <select id="startChord" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
                         <!-- Opciones pobladas por JS -->
@@ -316,6 +332,34 @@
                         <button id="glossaryButton" class="btn btn-secondary w-1/2">Glosario</button>
                     </div>
                 </div>
+
+                <!-- NUEVO: Módulo de Análisis Guiado -->
+                <div class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
+                    <label for="analysisSelect" class="block text-gray-700 text-sm font-bold mb-2">Análisis Guiado (del PDF):</label>
+                    <select id="analysisSelect" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                        <option value="">Selecciona un análisis...</option>
+                        <option value="liszt">Liszt - Consolación IV</option>
+                        <option value="schubert">Schubert - D.946 Nº2</option>
+                    </select>
+                </div>
+                
+                <!-- NUEVO: Controles de Análisis -->
+                <div id="analysisControls" class="hidden mb-4 p-4 bg-yellow-50 rounded-lg shadow-inner border border-yellow-200">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800">Análisis en Curso: <span id="analysisTitle"></span></h3>
+                    
+                    <!-- NUEVO: Imagen de la Partitura -->
+                    <img id="analysisScoreImage" src="" alt="Partitura del análisis" class="analysis-score-image hidden">
+                    
+                    <div id="analysisExplanation" class="analysis-explanation-box">
+                        Selecciona un análisis para comenzar.
+                    </div>
+                    <div class="flex justify-between gap-3 mt-3">
+                        <button id="prevStepBtn" class="btn btn-secondary w-1/3">Anterior</button>
+                        <button id="nextStepBtn" class="btn btn-secondary w-1/3">Siguiente</button>
+                        <button id="exitAnalysisBtn" class="btn btn-primary w-1/3">Salir</button>
+                    </div>
+                </div>
+                <!-- FIN de Módulo de Análisis -->
 
                 <div class="chord-display">
                     <div class="flex justify-center items-center gap-2">
@@ -468,6 +512,10 @@
         let hexatonicCycleChords = []; // Acordes para la visualización del ciclo L/P
         let weitzmannCycleChords = []; // Acordes para la visualización del ciclo R/N
         let currentVisualizationMode = 'lp'; // 'lp' o 'rn'
+        // NUEVO: Estado de Análisis
+        let isInAnalysisMode = false;
+        let currentAnalysis = null;
+        let currentAnalysisStep = 0;
 
         // --- Audio Context ---
         let isToneStarted = false;
@@ -546,30 +594,56 @@
                     let currentMinDist;
 
                     if (dist1 <= dist2 && dist1 <= dist3) {
-                        currentMinDist = dist1; currentClosestMidi = midiOpt1;
-                    } else if (dist2 < dist1 && dist2 < dist3) {
-                        currentMinDist = dist2; currentClosestMidi = midiOpt2;
+                        currentClosestMidi = midiOpt1;
+                        currentMinDist = dist1;
+                    } else if (dist2 <= dist1 && dist2 <= dist3) {
+                        currentClosestMidi = midiOpt2;
+                        currentMinDist = dist2;
                     } else {
-                        currentMinDist = dist3; currentClosestMidi = midiOpt3;
+                        currentClosestMidi = midiOpt3;
+                        currentMinDist = dist3;
                     }
-
-                    // Si esta es la mejor coincidencia encontrada HASTA AHORA para esta nota 'fromMidi'
+                    
                     if (currentMinDist < closestDist) {
                         closestDist = currentMinDist;
                         bestNewMidi = currentClosestMidi;
                         bestPcIndex = index;
                     }
                 });
-
-                // Asignar la mejor nota MIDI encontrada y eliminar el PC de la lista de destinos
-                if (bestPcIndex !== -1) {
-                    newVoicingMidi.push(bestNewMidi);
-                    remainingToPcs.splice(bestPcIndex, 1);
-                }
+                
+                newVoicingMidi.push(bestNewMidi);
+                remainingToPcs.splice(bestPcIndex, 1); // Este PC de destino ya se usó
             });
 
             return newVoicingMidi;
         }
+
+        // --- Datos del Análisis Guiado ---
+        const analysisData = {
+            'liszt': {
+                name: "Liszt - Consolación IV",
+                imageUrl: "https://github.com/juanmiguel0927/TeoriaNeo-Riemanniana/raw/237988f08d9cfcc051ba15127077478eb15c7828/Liszt.png",
+                steps: [
+                    { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio del pasaje en Si♭ menor." },
+                    { chord: 'D♭ Mayor', op: 'R', text: "Compás 21. Modelo (Paso 1): Se aplica la operación R (Relativo). B♭m → D♭M." },
+                    { chord: 'D♭ menor', op: 'P', text: "Compás 21. Modelo (Paso 2): Se aplica la operación P (Paralelo). La cadena R-P está completa. D♭M → D♭m." },
+                    { chord: 'E Mayor', op: 'R', text: "Compás 22. Progresión 1 (Paso 1): Se repite el patrón. Se aplica R. D♭m → EM." },
+                    { chord: 'E menor', op: 'P', text: "Compás 22. Progresión 1 (Paso 2): Se aplica P. Se completa la cadena R-P. EM → Em." },
+                    { chord: 'G menor', op: null, text: "Compás 23. Progresión 2 (Condensada): Se aplica una operación compuesta R-P (Em → GM → Gm) en un solo paso. Em → Gm." }
+                ]
+            },
+            'schubert': {
+                name: "Schubert - D.946 Nº2",
+                imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/237988f08d9cfcc051ba15127077478eb15c7828/Schubert.png",
+                steps: [
+                    { chord: 'D menor', op: null, text: "Compás 46. Inicio del pasaje en Re menor." },
+                    { chord: 'A Mayor', op: 'N', text: "Compás 48. Se aplica la operación N (Nebenverwandt). Dm → AM." },
+                    { chord: 'F menor', op: 'H', text: "Compás 49. Se aplica H (Polo Hexatónico, PLP). No comparten notas. AM → Fm." },
+                    { chord: 'C Mayor', op: 'N', text: "Compás 51. Se aplica la operación N (Nebenverwandt). Fm → CM." },
+                    { chord: 'A♭ menor', op: 'H', text: "Compás 52. Se aplica H (Polo Hexatónico). CM → A♭m." }
+                ]
+            }
+        };
 
 
         // --- Definiciones de Acordes y Notas ---
@@ -835,6 +909,20 @@
         const glossaryModal = document.getElementById("glossaryModal");
         const authorModal = document.getElementById('authorModal');
         const playChordButton = document.getElementById("playChordButton");
+        // Controles de exploración libre
+        const startChordContainer = document.getElementById("startChordContainer");
+        // ... (operationsBox ya está definida)
+
+        // NUEVO: Controles de Análisis
+        const analysisSelect = document.getElementById("analysisSelect");
+        const analysisControls = document.getElementById("analysisControls");
+        const analysisTitle = document.getElementById("analysisTitle");
+        const analysisScoreImage = document.getElementById("analysisScoreImage"); // <-- NUEVO
+        const analysisExplanation = document.getElementById("analysisExplanation");
+        const prevStepBtn = document.getElementById("prevStepBtn");
+        const nextStepBtn = document.getElementById("nextStepBtn");
+        const exitAnalysisBtn = document.getElementById("exitAnalysisBtn");
+
 
         const currentChordName = document.getElementById("currentChordName");
         const currentChordNotes = document.getElementById("currentChordNotes");
@@ -1069,147 +1157,6 @@
         }
 
 
-        // --- Visualización del Cube Dance (Datos y Dibujo) ---
-        
-        // Coordenadas de los nodos del Cube Dance
-        const cubeDanceNodes = {
-            // Aumentados (círculos)
-            "aug-cegS": { x: 50, y: 5 }, "aug-cfaS": { x: 95, y: 50 }, "aug-dfaS": { x: 50, y: 95 }, "aug-ebgb": { x: 5, y: 50 },
-            // Mayores/Menores (cuadrados)
-            "c-plus": { x: 38, y: 15 }, "e-plus": { x: 38, y: 25 }, "ab-plus": { x: 48, y: 25 }, "gS-minus": { x: 48, y: 35 }, "c-minus": { x: 38, y: 35 }, "e-minus": { x: 28, y: 25 },
-            "f-plus": { x: 62, y: 15 }, "a-plus": { x: 62, y: 25 }, "cS-plus": { x: 72, y: 25 }, "c-minus": { x: 72, y: 35 }, "f-minus": { x: 62, y: 35 }, "a-minus": { x: 52, y: 25 },
-            "bb-plus": { x: 62, y: 85 }, "d-plus": { x: 62, y: 75 }, "fS-plus": { x: 72, y: 75 }, "f-minus": { x: 72, y: 65 }, "bb-minus": { x: 62, y: 65 }, "d-minus": { x: 52, y: 75 },
-            "eb-plus": { x: 38, y: 85 }, "g-plus": { x: 38, y: 75 }, "b-plus": { x: 48, y: 75 }, "b-minus": { x: 48, y: 65 }, "eb-minus": { x: 38, y: 65 }, "g-minus": { x: 28, y: 75 }
-        };
-
-        // Conexiones del Cube Dance (L/P - sólidas, R/N - punteadas)
-        const cubeDanceEdges = [
-            // Ciclos L/P (Sólidos)
-            { from: "c-plus", to: "e-minus", type: "solid" }, { from: "e-minus", to: "e-plus", type: "solid" }, { from: "e-plus", to: "gS-minus", type: "solid" }, { from: "gS-minus", to: "ab-plus", type: "solid" }, { from: "ab-plus", to: "c-minus", type: "solid" }, { from: "c-minus", to: "c-plus", type: "solid" },
-            { from: "f-plus", to: "a-minus", type: "solid" }, { from: "a-minus", to: "a-plus", type: "solid" }, { from: "a-plus", to: "c-minus", type: "solid" }, { from: "c-minus", to: "cS-plus", type: "solid" }, { from: "cS-plus", to: "f-minus", "type": "solid" }, { from: "f-minus", to: "f-plus", type: "solid" },
-            { from: "bb-plus", to: "d-minus", type: "solid" }, { from: "d-minus", to: "d-plus", type: "solid" }, { from: "d-plus", to: "f-minus", type: "solid" }, { from: "f-minus", to: "fS-plus", type: "solid" }, { from: "fS-plus", to: "bb-minus", type: "solid" }, { from: "bb-minus", to: "bb-plus", type: "solid" },
-            { from: "eb-plus", to: "g-minus", type: "solid" }, { from: "g-minus", to: "g-plus", type: "solid" }, { from: "g-plus", to: "b-minus", type: "solid" }, { from: "b-minus", to: "b-plus", type: "solid" }, { from: "b-plus", to: "eb-minus", type: "solid" }, { from: "eb-minus", to: "eb-plus", type: "solid" },
-            // Regiones R/N (Punteadas) - desde Aumentados
-            { from: "aug-cegS", to: "c-plus", type: "dotted" }, { from: "aug-cegS", to: "e-plus", type: "dotted" }, { from: "aug-cegS", to: "ab-plus", type: "dotted" }, { from: "aug-cegS", to: "a-minus", type: "dotted" }, { from: "aug-cegS", to: "e-minus", type: "dotted" }, { from: "aug-cegS", to: "gS-minus", type: "dotted" },
-            { from: "aug-cfaS", to: "f-plus", type: "dotted" }, { from: "aug-cfaS", to: "a-plus", type: "dotted" }, { from: "aug-cfaS", to: "cS-plus", type: "dotted" }, { from: "aug-cfaS", to: "d-minus", type: "dotted" }, { from: "aug-cfaS", to: "f-minus", type: "dotted" }, { from: "aug-cfaS", to: "c-minus", type: "dotted" }, // c-minus(C#m) es 72, 35
-            { from: "aug-dfaS", to: "bb-plus", type: "dotted" }, { from: "aug-dfaS", to: "d-plus", type: "dotted" }, { from: "aug-dfaS", to: "fS-plus", type: "dotted" }, { from: "aug-dfaS", to: "g-minus", type: "dotted" }, { from: "aug-dfaS", to: "b-minus", type: "dotted" }, { from: "aug-dfaS", to: "eb-minus", type: "dotted" },
-            { from: "aug-ebgb", to: "eb-plus", type: "dotted" }, { from: "aug-ebgb", to: "g-plus", type: "dotted" }, { from: "aug-ebgb", to: "b-plus", type: "dotted" }, { from: "aug-ebgb", to: "c-minus", type: "dotted" }, { from: "aug-ebgb", to: "e-minus", type: "dotted" }, { from: "aug-ebgb", to: "gS-minus", type: "dotted" }
-        ];
-
-        // Mapeo de Nombres de Tríada a ID del Cube Dance
-        const triadToCubeDanceId = {
-            'C Mayor': 'c-plus', 'E Mayor': 'e-plus', 'G♯ Mayor': 'ab-plus', 'A♭ Mayor': 'ab-plus',
-            'E menor': 'e-minus', 'G♯ menor': 'gS-minus', 'A♭ menor': 'gS-minus', 'C menor': 'c-minus',
-            'F Mayor': 'f-plus', 'A Mayor': 'a-plus', 'C♯ Mayor': 'cS-plus', 'D♭ Mayor': 'cS-plus',
-            'A menor': 'a-minus', 'C♯ menor': 'c-minus', 'D♭ menor': 'c-minus', 'F menor': 'f-minus', // C#m/Dbm es c-minus ID 72,35
-            'B♭ Mayor': 'bb-plus', 'A♯ Mayor': 'bb-plus', 'D Mayor': 'd-plus', 'F♯ Mayor': 'fS-plus', 'G♭ Mayor': 'fS-plus',
-            'D menor': 'd-minus', 'F♯ menor': 'f-minus', 'G♭ menor': 'f-minus', 'B♭ menor': 'bb-minus', 'A♯ menor': 'bb-minus',
-            'E♭ Mayor': 'eb-plus', 'D♯ Mayor': 'eb-plus', 'G Mayor': 'g-plus', 'B Mayor': 'b-plus',
-            'G menor': 'g-minus', 'B menor': 'b-minus', 'E♭ menor': 'eb-minus', 'D♯ menor': 'eb-minus'
-        };
-
-        function drawCubeDance() {
-            cubeDanceSvg.innerHTML = `<defs>
-                <marker id="arrowhead-cube" markerWidth="5" markerHeight="3.5" refX="0" refY="1.75" orient="auto" fill="#3b82f6">
-                    <polygon points="0 0, 5 1.75, 0 3.5" />
-                </marker>
-            </defs>`; // Limpiar y re-añadir defs
-
-            // Dibujar líneas
-            cubeDanceEdges.forEach(edge => {
-                const p1 = cubeDanceNodes[edge.from];
-                const p2 = cubeDanceNodes[edge.to];
-                if (!p1 || !p2) return;
-                
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
-                line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
-                line.classList.add("cube-dance-line");
-                if (edge.type === "dotted") {
-                    line.classList.add("dotted");
-                }
-                cubeDanceSvg.appendChild(line);
-            });
-            
-            // Dibujar nodos aumentados (círculos)
-            Object.keys(cubeDanceNodes).filter(k => k.startsWith('aug-')).forEach(id => {
-                const pos = cubeDanceNodes[id];
-                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circle.setAttribute("cx", pos.x); circle.setAttribute("cy", pos.y);
-                circle.setAttribute("r", 3); circle.setAttribute("fill", "#334155");
-                cubeDanceSvg.appendChild(circle);
-            });
-
-            // Dibujar nodos M/m (rectángulos) y texto
-            Object.keys(cubeDanceNodes).filter(k => !k.startsWith('aug-')).forEach(id => {
-                const pos = cubeDanceNodes[id];
-                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                rect.setAttribute("x", pos.x - 3); // CORRECCIÓN: Reducido de 4 a 3
-                rect.setAttribute("y", pos.y - 3); // CORRECCIÓN: Reducido de 4 a 3
-                rect.setAttribute("width", 6);  // CORRECCIÓN: Reducido de 8 a 6
-                rect.setAttribute("height", 6); // CORRECCIÓN: Reducido de 8 a 6
-                rect.setAttribute("fill", "#e2e8f0"); rect.setAttribute("stroke", "#94a3b8");
-                rect.classList.add("cube-dance-node");
-                rect.id = `node-${id}`; // ID único para resaltado
-
-                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                const [note, qual] = id.split('-');
-                const label = `${note.charAt(0).toUpperCase()}${note.slice(1).replace('S', '♯')}${qual === 'plus' ? '+' : '-'}`;
-                text.textContent = label;
-                text.setAttribute("x", pos.x); 
-                text.setAttribute("y", pos.y + 9); // CORRECCIÓN: Reducido de 11 a 9
-                text.setAttribute("text-anchor", "middle");
-                text.classList.add("cube-dance-text");
-                text.id = `text-${id}`;
-
-                cubeDanceSvg.appendChild(rect);
-                cubeDanceSvg.appendChild(text);
-            });
-        }
-
-        // Resaltar nodo en Cube Dance
-        function highlightCubeDanceNode(activeTriad, prevTriad = null) {
-            // Limpiar resaltados
-            cubeDanceSvg.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
-            cubeDanceSvg.querySelectorAll('.previous-active').forEach(el => el.classList.remove('previous-active'));
-            cubeDanceSvg.querySelectorAll('.transformation-path').forEach(el => el.remove());
-
-            // Resaltar anterior (fantasma)
-            if (prevTriad) {
-                const prevId = triadToCubeDanceId[prevTriad.name];
-                if (prevId) {
-                    document.getElementById(`node-${prevId}`)?.classList.add('previous-active');
-                    document.getElementById(`text-${prevId}`)?.classList.add('previous-active');
-                }
-            }
-
-            // Resaltar activo
-            const activeId = triadToCubeDanceId[activeTriad.name];
-            if (activeId) {
-                document.getElementById(`node-${activeId}`)?.classList.add('active');
-                document.getElementById(`text-${activeId}`)?.classList.add('active');
-            }
-
-            // Dibujar flecha de transformación
-            if (prevTriad && activeTriad) {
-                const prevId = triadToCubeDanceId[prevTriad.name];
-                const activeId = triadToCubeDanceId[activeTriad.name];
-                
-                if (!prevId || !activeId) return; // Salir si no se encuentra un ID
-
-                const prevPos = cubeDanceNodes[prevId];
-                const activePos = cubeDanceNodes[activeId];
-
-                if (prevPos && activePos && (prevPos.x !== activePos.x || prevPos.y !== activePos.y)) {
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${prevPos.x} ${prevPos.y} L ${activePos.x} ${activePos.y}`);
-                    path.classList.add("transformation-path");
-                    cubeDanceSvg.appendChild(path);
-                }
-            }
-        }
-
-
         // --- Lógica de la Aplicación ---
         
         // Poblar selector de acordes
@@ -1235,6 +1182,8 @@
         // Inicializar o reiniciar la app
         function initializeApp() {
             try {
+                exitAnalysis(); // <-- Asegurarse de que el modo análisis esté desactivado
+                
                 const selectedTriadName = startChordSelect.value;
                 currentTriad = allTriads.find(t => t.name === selectedTriadName);
                 previousTriad = null;
@@ -1273,7 +1222,7 @@
             updateHistoryLog();
             updateSetRelationshipsDisplay();
             
-            // Actualizar las 3 visualizaciones
+            // Actualizar las 2 visualizaciones
             updateCircleVisualization(currentTriad, previousTriad);
             highlightTonnetzTriad(currentTriad, previousTriad);
         }
@@ -1430,6 +1379,8 @@
 
                 // Lógica de clic para los nodos del círculo
                 node.addEventListener('click', () => {
+                    if (isInAnalysisMode) return; // No hacer nada si estamos en modo análisis
+
                     const clickedTriad = getTriadByName(triad.name);
                     if (clickedTriad.name === currentTriad.name) {
                         // Si se hace clic en el mismo acorde, solo reproducir
@@ -1518,6 +1469,123 @@
             operationsBox.classList.remove('operations-box-active');
         }
 
+        // --- NUEVAS FUNCIONES DE ANÁLISIS GUIADO ---
+
+        function startAnalysis(analysisKey) {
+            if (!analysisKey) {
+                exitAnalysis();
+                return;
+            }
+            
+            isInAnalysisMode = true;
+            currentAnalysis = analysisData[analysisKey];
+            currentAnalysisStep = 0;
+            
+            // Ocultar controles de exploración libre
+            startChordContainer.classList.add('hidden');
+            operationsBox.classList.add('hidden');
+            
+            // Mostrar controles de análisis
+            analysisControls.classList.remove('hidden');
+            analysisTitle.textContent = currentAnalysis.name;
+            
+            // NUEVO: Cargar imagen de la partitura
+            if (currentAnalysis.imageUrl) {
+                analysisScoreImage.src = currentAnalysis.imageUrl;
+                analysisScoreImage.classList.remove('hidden');
+            } else {
+                analysisScoreImage.classList.add('hidden');
+            }
+            
+            // Cargar el primer paso
+            loadAnalysisStep(0);
+        }
+
+        function loadAnalysisStep(stepIndex) {
+            if (!currentAnalysis || stepIndex < 0 || stepIndex >= currentAnalysis.steps.length) {
+                return; // Índice fuera de rango
+            }
+            
+            currentAnalysisStep = stepIndex;
+            const step = currentAnalysis.steps[stepIndex];
+            
+            const newTriad = getTriadByName(step.chord);
+            if (!newTriad) {
+                console.error("Acorde no encontrado en el análisis:", step.chord);
+                return;
+            }
+
+            // Determinar el acorde anterior
+            const prevStep = (stepIndex > 0) ? currentAnalysis.steps[stepIndex - 1] : null;
+            const oldTriad = prevStep ? getTriadByName(prevStep.chord) : null;
+            
+            previousTriad = oldTriad;
+            currentTriad = newTriad;
+
+            // Reproducir sonido con conducción de voces
+            startAudioContext();
+            if (oldTriad) {
+                // Si hay un acorde anterior, calcular el voice leading
+                const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
+                playVoicing(newMidiVoicing);
+            } else {
+                // Si es el primer acorde, tocarlo en la octava 4
+                const rootNotes = newTriad.getNotes();
+                const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
+                const midiNotes = toneNotes.map(n => Tone.Frequency(n).toMidi());
+                playVoicing(midiNotes);
+            }
+
+            // Actualizar UI
+            updateUI(); // Actualiza nombre, visualizaciones, etc.
+            analysisExplanation.textContent = step.text; // Mostrar explicación
+            
+            // Resaltar la operación
+            removeActiveOperationHighlight(); // Limpiar resaltado anterior
+            if (step.op) {
+                highlightActiveOperation(step.op);
+            }
+
+            // Actualizar historial
+            if (stepIndex > 0 && oldTriad) {
+                addHistoryEntry(step.op || "Siguiente", oldTriad, newTriad);
+            } else {
+                history = []; // Limpiar historial al inicio del análisis
+                updateHistoryLog();
+            }
+
+            // Habilitar/deshabilitar botones de navegación
+            prevStepBtn.disabled = (stepIndex === 0);
+            nextStepBtn.disabled = (stepIndex === currentAnalysis.steps.length - 1);
+        }
+
+        function exitAnalysis() {
+            isInAnalysisMode = false;
+            currentAnalysis = null;
+            currentAnalysisStep = 0;
+            
+            // Ocultar controles de análisis
+            analysisControls.classList.add('hidden');
+            analysisTitle.textContent = "";
+            analysisExplanation.textContent = "";
+            analysisSelect.value = ""; // Resetear el dropdown
+            
+            // NUEVO: Ocultar imagen de la partitura
+            analysisScoreImage.src = "";
+            analysisScoreImage.classList.add('hidden');
+            
+            // Mostrar controles de exploración libre
+            startChordContainer.classList.remove('hidden');
+            operationsBox.classList.remove('hidden');
+
+            // Resetear el estado de la app (pero no el acorde actual del análisis)
+            removeActiveOperationHighlight();
+            removeOperationsBoxHighlight();
+            history = [];
+            updateHistoryLog();
+        }
+
         // --- Event Listeners Principales ---
         
         resetButton.addEventListener("click", initializeApp);
@@ -1531,6 +1599,8 @@
         // Event listener genérico para todos los botones de operación
         operationButtons.forEach(button => {
             button.addEventListener('click', (event) => {
+                if (isInAnalysisMode) return; // No hacer nada si estamos en modo análisis
+
                 const opCode = event.target.dataset.op;
                 if (!opCode) return;
                 
@@ -1576,6 +1646,8 @@
         
         // --- Listener para los acordes en "Relación entre Conjuntos" ---
         setRelationshipsDiv.addEventListener('click', (event) => {
+            if (isInAnalysisMode) return; // No hacer nada si estamos en modo análisis
+
             const clickedSpan = event.target.closest('[data-chord-name]');
             if (!clickedSpan) return;
 
@@ -1604,6 +1676,24 @@
                 playVoicing(fromMidi);
             }
         });
+
+        // --- NUEVOS Listeners para Análisis Guiado ---
+        analysisSelect.addEventListener('change', (event) => {
+            startAnalysis(event.target.value);
+        });
+        
+        nextStepBtn.addEventListener('click', () => {
+            loadAnalysisStep(currentAnalysisStep + 1);
+        });
+        
+        prevStepBtn.addEventListener('click', () => {
+            loadAnalysisStep(currentAnalysisStep - 1);
+        });
+        
+        exitAnalysisBtn.addEventListener('click', () => {
+            initializeApp(); // Salir y reiniciar la app al estado por defecto
+        });
+
 
         // --- Carga Inicial ---
         window.onload = () => {
