@@ -303,7 +303,7 @@
             @apply bg-yellow-50 p-4 rounded-lg text-sm my-4 border border-yellow-200 text-gray-800;
         }
         
-        /* NUEVO: Estilos para el marcador de la partitura */
+        /* ESTILOS CORREGIDOS para el marcador de la partitura */
         .analysis-score-container {
             @apply relative w-full mb-4; /* Contenedor para el posicionamiento absoluto */
         }
@@ -311,8 +311,8 @@
             @apply w-full rounded-lg border-2 border-gray-300 shadow-md;
         }
         #analysisScoreMarker {
-            @apply absolute border-2 border-red-500 rounded-md transition-all duration-500 ease-in-out;
-            background-color: rgba(239, 68, 68, 0.1); /* Relleno rojo semitransparente */
+            @apply absolute border-4 border-red-500 rounded-md transition-all duration-500 ease-in-out;
+            background-color: rgba(239, 68, 68, 0.3); /* Fondo rojo más visible (30%) */
             pointer-events: none; /* Para que no interfiera con clics */
             opacity: 0; /* Oculto por defecto */
         }
@@ -387,11 +387,20 @@
                 </div>
                 <!-- FIN de Módulo de Análisis -->
 
+                <!-- NUEVO: Módulo de Análisis Libre -->
+                <div id="freeAnalysisContainer" class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
+                    <label for="freeAnalysisInput" class="block text-gray-700 text-sm font-bold mb-2">Análisis Libre</label>
+                    <textarea id="freeAnalysisInput" rows="3" class="shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Escribe una progresión, ej: DoM, Lam, FaM, DoM"></textarea>
+                    <button id="freeAnalysisButton" class="btn btn-primary w-full mt-3">Analizar Progresión</button>
+                    <p id="freeAnalysisError" class="text-red-600 text-sm mt-2"></p>
+                </div>
+                <!-- FIN de Módulo de Análisis Libre -->
+
                 <div class="chord-display">
                     <div class="flex justify-center items-center gap-2">
                         <h2 class="text-xl font-bold text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
                         <button id="playChordButton" class="btn btn-secondary p-2 leading-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
+                            <svg xmlns="http://www.w.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
                                 <path d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.707.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.198 5.303z"/>
                                 <path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89z"/>
                                 <path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.489 3.489 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"/>
@@ -491,10 +500,6 @@
             </div>
         </div>
 
-
-        <p class="text-center text-gray-700 text-sm font-semibold mt-8">
-            Herramienta realizada por Juan Miguel Ríos Redondo
-        </p>
     </div>
 
     <!-- Modal para información del autor -->
@@ -545,7 +550,7 @@
 
         // --- Audio Context ---
         let isToneStarted = false;
-        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        const synth = new Tone.PolySynth().toDestination(); // CORRECCIÓN: No se debe pasar 'Tone.Synth' aquí
         let lastPlayedVoicing = []; // Guarda el último voicing reproducido (ej: ["C4", "E4", "G4"])
 
         async function startAudioContext() {
@@ -741,11 +746,16 @@
                     // Casos especiales
                     if (this.root === "C♯" && this.type === "major" && pc === 5) return "E♯";
                     if (this.root === "F♯" && this.type === "major" && pc === 0) return "B♯";
+                    if (this.root === "G♯" && this.type === "major" && pc === 3) return "D♯"; // G# Mayor -> D#
+                    if (this.root === "D♯" && this.type === "major" && pc === 8) return "G♯"; // D# Mayor -> G#
+                    if (this.root === "A♯" && this.type === "major" && pc === 2) return "D♯"; // A# Mayor -> D#
 
                     const preferFlats = ["D♭", "E♭", "G♭", "A♭", "B♭"].includes(this.root) || 
                                         (this.root === "F") || 
                                         (this.root === "C" && this.type === "minor") || 
-                                        (this.root === "G" && this.type === "minor");
+                                        (this.root === "G" && this.type === "minor") ||
+                                        (this.root === "D" && this.type === "minor") || // Dm -> F, A
+                                        (this.root === "A" && this.type === "minor"); // Am -> C, E
 
                     if (pc === 1 && preferFlats) return "D♭";
                     if (pc === 3 && preferFlats) return "E♭";
@@ -769,6 +779,7 @@
 
             // Comprueba si dos tríadas tienen las mismas PC (enarmónicamente equivalentes)
             hasSamePitchClasses(otherTriad) {
+                if (!otherTriad) return false; // Protección contra nulos
                 const sortedThis = [...this.pitchClasses].sort();
                 const sortedOther = [...otherTriad.pitchClasses].sort();
                 return sortedThis.every((pc, i) => pc === sortedOther[i]);
@@ -787,7 +798,31 @@
 
         // Ayudante para obtener un objeto Triad por nombre
         function getTriadByName(name) {
-            return allTriads.find(t => t.name === name);
+            // Normalizar nombres de entrada (ej. "C Mayor", "C mayor", "c mayor")
+            let normalizedName = name.trim();
+            if (normalizedName.length < 1) return null; // CORRECCIÓN: Cambiado de < 2 a < 1 para aceptar "C", "F", etc.
+
+            // NUEVO: Normalizar sostenidos y bemoles de texto
+            normalizedName = normalizedName.replace(/b/g, '♭').replace(/#/g, '♯');
+
+            // Manejar "m" o "menor"
+            let type = "major";
+            if (normalizedName.toLowerCase().endsWith("m") || normalizedName.toLowerCase().endsWith("menor")) {
+                type = "minor";
+                normalizedName = normalizedName.replace(/menor/i, '').replace(/m/i, '').trim();
+            } else {
+                normalizedName = normalizedName.replace(/Mayor/i, '').replace(/M/i, '').trim();
+            }
+
+            // Capitalizar la raíz (ej. "c" -> "C", "c#" -> "C#", "db" -> "Db")
+            let rootName = normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1);
+            // Manejar bemoles
+            if (rootName.length > 1 && rootName.charAt(1) === 'b') {
+                rootName = rootName.charAt(0) + '♭';
+            }
+            
+            const finalName = `${rootName} ${type === 'major' ? 'Mayor' : 'menor'}`;
+            return allTriads.find(t => t.name === finalName);
         }
 
         // --- Operaciones Neo-Riemannianas ---
@@ -814,13 +849,15 @@
                 newPcs = [r, t, normalizePitch(f + 1)]; // Mueve B(11) -> C(0)
                 newType = "major";
             }
-            // MODIFICACIÓN: Encontrar la *mejor* tríada enarmónica (ej. Mim -> DoM, no B#M)
+            // MODIFICACIÓN: Encontrar la *mejor* tríada enarmónica
             const resultTriad = findTriadByPitchClasses(newPcs, newType);
             if (triad.type === "major") { // DoM -> Mim (Esperamos raíz E)
-                return allTriads.find(t => t.root === canonicalSpelling[t] && t.type === newType) || resultTriad;
+                const expectedRoot = canonicalSpelling[t];
+                return allTriads.find(t => t.root === expectedRoot && t.type === newType) || resultTriad;
             }
             if (triad.type === "minor") { // Mim -> DoM (Esperamos raíz C)
-                return allTriads.find(t => t.root === canonicalSpelling[f] && t.type === newType) || resultTriad;
+                const expectedRoot = canonicalSpelling[normalizePitch(f+1)];
+                return allTriads.find(t => t.root === expectedRoot && t.type === newType) || resultTriad;
             }
             return resultTriad;
         }
@@ -853,10 +890,12 @@
              // La raíz cambia, encontrar la mejor escritura
             const resultTriad = findTriadByPitchClasses(newPcs, newType);
             if (triad.type === "major") { // DoM -> Lam (Esperamos raíz A)
-                return allTriads.find(t => t.root === canonicalSpelling[r-3] && t.type === newType) || resultTriad;
+                const expectedRoot = canonicalSpelling[normalizePitch(r-3)];
+                return allTriads.find(t => t.root === expectedRoot && t.type === newType) || resultTriad;
             }
             if (triad.type === "minor") { // Lam -> DoM (Esperamos raíz C)
-                return allTriads.find(t => t.root === canonicalSpelling[t] && t.type === newType) || resultTriad;
+                const expectedRoot = canonicalSpelling[t];
+                return allTriads.find(t => t.root === expectedRoot && t.type === newType) || resultTriad;
             }
             return resultTriad;
         }
@@ -868,7 +907,7 @@
                 newPcs = [normalizePitch(r + 5), normalizePitch(t + 4), r];
                 newType = "minor";
             } else { // Fm(5), Ab(8), C(0) -> C(0), E(4), G(7) -> Do Mayor
-                newPcs = [f, normalizePitch(r - 1), normalizePitch(t - 1)]; // CORRECCIÓN: Lógica anterior [f, normalizePitch(r - 3), normalizePitch(t - 4)] era incorrecta.
+                newPcs = [f, normalizePitch(r - 1), normalizePitch(t - 1)]; 
                 newType = "major";
             }
             return findTriadByPitchClasses(newPcs, newType);
@@ -889,6 +928,17 @@
             result = opR(result);
             if (!result) { console.error("S falló en R2", triad); return null; }
             return result;
+        }
+
+        // NUEVA FUNCIÓN: Encontrar la mejor operación entre dos tríadas
+        function findBestOperation(triadA, triadB) {
+            if (opP(triadA).hasSamePitchClasses(triadB)) return 'P';
+            if (opL(triadA).hasSamePitchClasses(triadB)) return 'L';
+            if (opR(triadA).hasSamePitchClasses(triadB)) return 'R';
+            if (opN(triadA).hasSamePitchClasses(triadB)) return 'N';
+            if (opS(triadA).hasSamePitchClasses(triadB)) return 'S';
+            if (opH(triadA).hasSamePitchClasses(triadB)) return 'H';
+            return '??'; // No se encontró una operación simple
         }
 
         // --- Definiciones de Ciclos y Regiones ---
@@ -982,6 +1032,11 @@
         const prevStepBtn = document.getElementById("prevStepBtn");
         const nextStepBtn = document.getElementById("nextStepBtn");
         const exitAnalysisBtn = document.getElementById("exitAnalysisBtn");
+        // NUEVO: Elementos de Análisis Libre
+        const freeAnalysisContainer = document.getElementById("freeAnalysisContainer");
+        const freeAnalysisInput = document.getElementById("freeAnalysisInput");
+        const freeAnalysisButton = document.getElementById("freeAnalysisButton");
+        const freeAnalysisError = document.getElementById("freeAnalysisError");
 
 
         const currentChordName = document.getElementById("currentChordName");
@@ -1032,7 +1087,7 @@
             "R": "<strong>R (Relative / Relativo)</strong>: Transforma una tríada en su relativa (comparten dos notas y la armadura).<br>• <strong>Mayor → menor</strong>: Conserva la 3ª mayor (Do-Mi en DoM) y mueve la quinta 1 tono hacia arriba (Sol → La). Ej: <strong>DoM (C-E-G) → Lam (C-E-A)</strong>.<br>• <strong>menor → Mayor</strong>: Conserva la 3ª mayor (Do-Mi en Lam) y mueve la fundamental 1 tono hacia abajo (La → Sol). Ej: <strong>Lam (A-C-E) → DoM (G-C-E)</strong>.",
             "N": "<strong>N (Nebenverwandt / Próximo Relacionado)</strong>: Operación que invierte el acorde. Mueve dos voces.<br>• <strong>Mayor → menor</strong>: Ej: <strong>DoM (C-E-G) → Fam (F-A♭-C)</strong>.<br>• <strong>menor → Mayor</strong>: Ej: <strong>Fam (F-A♭-C) → DoM (C-E-G)</strong>.",
             "H": "<strong>H (Hexatonic Pole / Polo Hexatónico)</strong>: Operación compuesta (<strong>PLP</strong> o <strong>LPL</strong>). Conecta dos tríadas opuestas dentro del mismo ciclo hexatónico (no comparten ninguna nota). Ej: <strong>DoM (C-E-G) → Sol♯m (G♯-B-D♯)</strong>.",
-            "S": "<strong>S (Slide / Deslizamiento)</strong>: Operación compuesta (<strong>RNR</strong> o <strong>NRN</strong>). Conecta dos tríadas de modo opuesto que comparten la tercera. Ej: Ea (C-E-G) → Do♯m (C♯-E-G♯)</strong>."
+            "S": "<strong>S (Slide / Deslizamiento)</strong>: Operación compuesta (<strong>RNR</strong> o <strong>NRN</strong>). Conecta dos tríadas de modo opuesto que comparten la tercera. Ej: <strong>DoM (C-E-G) → Do♯m (C♯-E-G♯)</strong>."
         };
 
         function displayOperationExplanation(opCode) {
@@ -1260,6 +1315,8 @@
                 const rootNotes = currentTriad.getNotes();
                 const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
                 lastPlayedVoicing = toneNotes; // Inicializa en la 4ª octava
+                const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                updateVoicing(midiNotes); // Preparar el voicing sin reproducir
 
                 updateUI();
                 displayOperationExplanation('');
@@ -1304,7 +1361,7 @@
                 timestamp: new Date().toLocaleTimeString()
             };
             history.push(entry);
-            historyLog.scrollTop = historyLog.scrollHeight;
+            historyLog.scrollTop = 0; // Ir al inicio (más reciente arriba)
         }
 
         // Renderizar el historial
@@ -1324,6 +1381,7 @@
 
         // --- Funciones de Relaciones de Conjuntos ---
         function getHexatonicCycleForTriad(triad) {
+            if (!triad) return null;
             for (const cycle of hexatonicCycles) {
                 if (cycle.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)) {
                     return cycle;
@@ -1333,6 +1391,7 @@
         }
 
         function getWeitzmannRegionForTriad(triad) {
+            if (!triad) return null;
             // Compara usando el nombre del ciclo, que ahora coincide
             const hexCycle = getHexatonicCycleForTriad(triad);
             if (!hexCycle) return null;
@@ -1421,18 +1480,12 @@
             const centerX = 150, centerY = 150, radius = 120, nodeWidth = 60, nodeHeight = 30;
 
             // --- NUEVA LÓGICA DE ROTACIÓN ---
-            // 1. Encontrar el índice del acorde activo en el ciclo.
             const activeIndex = cycleChords.findIndex(t => t.hasSamePitchClasses(activeTriad) && t.type === activeTriad.type);
-            
-            // 2. Calcular el ángulo por nodo.
-            const anglePerNode = (360 / cycleChords.length); // Usualmente 60 grados
-
-            // 3. Determinar el "desplazamiento" angular necesario para poner el activeIndex en la parte superior (-90 grados).
+            const anglePerNode = (360 / cycleChords.length);
             const angleOffset = (activeIndex !== -1) ? (activeIndex * anglePerNode) : 0;
             // --- FIN DE LA NUEVA LÓGICA ---
 
             cycleChords.forEach((triad, index) => {
-                // MODIFICADO: Aplicar el desplazamiento al calcular el ángulo.
                 const angle = ((index * anglePerNode) - angleOffset - 90) * Math.PI / 180;
                 
                 const x = centerX + radius * Math.cos(angle);
@@ -1465,10 +1518,12 @@
                     const clickedTriad = getTriadByName(triad.name);
                     if (clickedTriad.name === currentTriad.name) {
                         // Si se hace clic en el mismo acorde, solo reproducir
+                        startAudioContext();
                         const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                         playVoicing(fromMidi);
                     } else {
                         // Es un nuevo acorde
+                        startAudioContext();
                         const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                         const newMidiVoicing = getClosestVoicing(fromMidi, clickedTriad);
                         playVoicing(newMidiVoicing);
@@ -1485,7 +1540,6 @@
                 });
 
                 // Dibujar flechas
-                // MODIFICADO: Recalcular el ángulo para la flecha también
                 const nextIndex = (index + 1) % cycleChords.length;
                 const nextAngle = (((nextIndex * anglePerNode) - angleOffset - 90)) * Math.PI / 180;
                 const nextX = centerX + radius * Math.cos(nextAngle);
@@ -1566,6 +1620,7 @@
             // Ocultar controles de exploración libre
             startChordContainer.classList.add('hidden');
             operationsBox.classList.add('hidden');
+            freeAnalysisContainer.classList.add('hidden'); // <-- Ocultar análisis libre
             
             // Mostrar controles de análisis
             analysisControls.classList.remove('hidden');
@@ -1605,8 +1660,7 @@
             previousTriad = oldTriad;
             currentTriad = newTriad;
 
-            // --- CÓDIGO RESTAURADO ---
-            // Preparar el audio, pero no reproducir
+            // --- CÓDIGO RESTAURADO Y CORREGIDO ---
             startAudioContext();
             if (oldTriad) {
                 // Si hay un acorde anterior, calcular el voice leading
@@ -1620,7 +1674,7 @@
                 const midiNotes = toneNotes.map(n => Tone.Frequency(n).toMidi());
                 updateVoicing(midiNotes);
             }
-            // --- FIN DEL CÓDIGO RESTAURADO ---
+            // --- FIN DEL CÓDIGO ---
 
             // Actualizar UI
             updateUI(); // Actualiza nombre, visualizaciones, etc.
@@ -1675,6 +1729,7 @@
             // Mostrar controles de exploración libre
             startChordContainer.classList.remove('hidden');
             operationsBox.classList.remove('hidden');
+            freeAnalysisContainer.classList.remove('hidden'); // <-- Mostrar análisis libre
 
             // Resetear el estado de la app (pero no el acorde actual del análisis)
             removeActiveOperationHighlight();
@@ -1723,7 +1778,11 @@
                     // MODIFICADO: Audio de operación deshabilitado por solicitud del usuario
                     // const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                     // const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
-                    // playVoicing(newMidiVoicing);
+                    
+                    // Solo actualizar el voicing, no reproducir
+                    const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                    const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
+                    updateVoicing(newMidiVoicing); // <-- Actualiza el voicing para el botón de play
 
                     previousTriad = oldTriad; // Guardar el anterior
                     currentTriad = newTriad;
@@ -1793,7 +1852,66 @@
         });
         
         exitAnalysisBtn.addEventListener('click', () => {
-            initializeApp(); // Salir y reiniciar la app al estado por defecto
+            setStartChord(startChordSelect.value); // Salir y reiniciar al acorde seleccionado
+            // initializeApp(); // Salir y reiniciar la app al estado por defecto "C Mayor"
+        });
+
+        // NUEVO: Listener para Análisis Libre
+        freeAnalysisButton.addEventListener('click', () => {
+            exitAnalysis(); // Asegurarse de que no estamos en modo guiado
+            history = []; // Limpiar historial
+            freeAnalysisError.textContent = ''; // Limpiar errores
+            startAudioContext();
+
+            const text = freeAnalysisInput.value;
+            const chordNames = text.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            const triads = [];
+            for (const name of chordNames) {
+                const triad = getTriadByName(name);
+                if (!triad) {
+                    freeAnalysisError.textContent = `Error: Acorde "${name}" no reconocido.`;
+                    history = []; // Limpiar historial si hay error
+                    updateHistoryLog();
+                    return;
+                }
+                triads.push(triad);
+            }
+
+            if (triads.length < 2) {
+                freeAnalysisError.textContent = "Por favor, introduce al menos dos acordes.";
+                return;
+            }
+
+            // Establecer el primer acorde como el punto de partida
+            previousTriad = null;
+            currentTriad = triads[0];
+            let currentVoicing = currentTriad.getNotes().map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
+            lastPlayedVoicing = currentVoicing;
+            updateVoicing(lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi()));
+            
+            // Iterar y analizar el resto
+            for (let i = 0; i < triads.length - 1; i++) {
+                const chordA = triads[i];
+                const chordB = triads[i+1];
+                
+                const opName = findBestOperation(chordA, chordB);
+                addHistoryEntry(opName, chordA, chordB);
+
+                // Actualizar estado para el siguiente paso/UI
+                previousTriad = chordA;
+                currentTriad = chordB;
+
+                // Actualizar el voicing para la siguiente iteración
+                const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                const newMidiVoicing = getClosestVoicing(fromMidi, chordB);
+                updateVoicing(newMidiVoicing);
+            }
+            
+            // Actualizar la UI al estado final de la progresión
+            updateUI();
+            removeActiveOperationHighlight();
+            removeOperationsBoxHighlight();
         });
 
 
