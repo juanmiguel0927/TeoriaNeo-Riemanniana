@@ -302,10 +302,24 @@
         .analysis-explanation-box {
             @apply bg-yellow-50 p-4 rounded-lg text-sm my-4 border border-yellow-200 text-gray-800;
         }
-        /* NUEVO: Estilos para la imagen de la partitura */
-        .analysis-score-image {
-            @apply w-full rounded-lg border-2 border-gray-300 shadow-md mb-4;
+        
+        /* NUEVO: Estilos para el marcador de la partitura */
+        .analysis-score-container {
+            @apply relative w-full mb-4; /* Contenedor para el posicionamiento absoluto */
         }
+        .analysis-score-image {
+            @apply w-full rounded-lg border-2 border-gray-300 shadow-md;
+        }
+        #analysisScoreMarker {
+            @apply absolute border-2 border-red-500 rounded-md transition-all duration-500 ease-in-out;
+            background-color: rgba(239, 68, 68, 0.1); /* Relleno rojo semitransparente */
+            pointer-events: none; /* Para que no interfiera con clics */
+            opacity: 0; /* Oculto por defecto */
+        }
+        #analysisScoreMarker.show {
+            opacity: 1;
+        }
+
         .hidden {
             display: none;
         }
@@ -347,12 +361,24 @@
                 <div id="analysisControls" class="hidden mb-4 p-4 bg-yellow-50 rounded-lg shadow-inner border border-yellow-200">
                     <h3 class="text-lg font-semibold mb-2 text-gray-800">Análisis en Curso: <span id="analysisTitle"></span></h3>
                     
-                    <!-- NUEVO: Imagen de la Partitura -->
-                    <img id="analysisScoreImage" src="" alt="Partitura del análisis" class="analysis-score-image hidden">
+                    <!-- NUEVO: Contenedor para la imagen y el marcador -->
+                    <div id="analysisScoreContainer" class="analysis-score-container hidden">
+                        <img id="analysisScoreImage" src="" alt="Partitura del análisis" class="analysis-score-image">
+                        <!-- NUEVO: Marcador -->
+                        <div id="analysisScoreMarker"></div>
+                    </div>
                     
                     <div id="analysisExplanation" class="analysis-explanation-box">
                         Selecciona un análisis para comenzar.
                     </div>
+
+                    <!-- NUEVO: Cita del libro -->
+                    <p class="text-xs text-gray-600 mt-3 mb-2 px-1">
+                        Análisis y partituras extraídos de:
+                        <br>
+                        Calabrese, A. (2025). <i>Armonía de los siglos XIX al XXI: Claves para navegar el espacio cromático</i>. Ombú Ediciones Musicales.
+                    </p>
+                    
                     <div class="flex justify-between gap-3 mt-3">
                         <button id="prevStepBtn" class="btn btn-secondary w-1/3">Anterior</button>
                         <button id="nextStepBtn" class="btn btn-secondary w-1/3">Siguiente</button>
@@ -630,23 +656,25 @@
                 name: "Liszt - Consolación IV",
                 imageUrl: "https://github.com/juanmiguel0927/TeoriaNeo-Riemanniana/raw/237988f08d9cfcc051ba15127077478eb15c7828/Liszt.png",
                 steps: [
-                    { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio del pasaje en Si♭ menor." },
-                    { chord: 'D♭ Mayor', op: 'R', text: "Compás 21. Modelo (Paso 1): Se aplica la operación R (Relativo). B♭m → D♭M." },
-                    { chord: 'D♭ menor', op: 'P', text: "Compás 21. Modelo (Paso 2): Se aplica la operación P (Paralelo). La cadena R-P está completa. D♭M → D♭m." },
-                    { chord: 'E Mayor', op: 'R', text: "Compás 22. Progresión 1 (Paso 1): Se repite el patrón. Se aplica R. D♭m → EM." },
-                    { chord: 'E menor', op: 'P', text: "Compás 22. Progresión 1 (Paso 2): Se aplica P. Se completa la cadena R-P. EM → Em." },
-                    { chord: 'G menor', op: null, text: "Compás 23. Progresión 2 (Condensada): Se aplica una operación compuesta R-P (Em → GM → Gm) en un solo paso. Em → Gm." }
+                    // Coordenadas (top, left, width, height) en %
+                    { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio del pasaje en Si♭ menor.", marker: { top: '25%', left: '8%', width: '15%', height: '60%' } },
+                    { chord: 'D♭ Mayor', op: 'R', text: "Compás 21. Modelo (Paso 1): Se aplica la operación R (Relativo). B♭m → D♭M.", marker: { top: '25%', left: '23%', width: '15%', height: '60%' } },
+                    { chord: 'D♭ menor', op: 'P', text: "Compás 21. Modelo (Paso 2): Se aplica la operación P (Paralelo). La cadena R-P está completa. D♭M → D♭m.", marker: { top: '25%', left: '38%', width: '15%', height: '60%' } },
+                    { chord: 'E Mayor', op: 'R', text: "Compás 22. Progresión 1 (Paso 1): Se repite el patrón. Se aplica R. D♭m → EM.", marker: { top: '25%', left: '53%', width: '15%', height: '60%' } },
+                    { chord: 'E menor', op: 'P', text: "Compás 22. Progresión 1 (Paso 2): Se aplica P. Se completa la cadena R-P. EM → Em.", marker: { top: '25%', left: '68%', width: '15%', height: '60%' } },
+                    { chord: 'G menor', op: null, text: "Compás 23. Progresión 2 (Condensada): Se aplica una operación compuesta R-P (Em → GM → Gm) en un solo paso. Em → Gm.", marker: { top: '25%', left: '83%', width: '15%', height: '60%' } }
                 ]
             },
             'schubert': {
                 name: "Schubert - D.946 Nº2",
                 imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/237988f08d9cfcc051ba15127077478eb15c7828/Schubert.png",
                 steps: [
-                    { chord: 'D menor', op: null, text: "Compás 46. Inicio del pasaje en Re menor." },
-                    { chord: 'A Mayor', op: 'N', text: "Compás 48. Se aplica la operación N (Nebenverwandt). Dm → AM." },
-                    { chord: 'F menor', op: 'H', text: "Compás 49. Se aplica H (Polo Hexatónico, PLP). No comparten notas. AM → Fm." },
-                    { chord: 'C Mayor', op: 'N', text: "Compás 51. Se aplica la operación N (Nebenverwandt). Fm → CM." },
-                    { chord: 'A♭ menor', op: 'H', text: "Compás 52. Se aplica H (Polo Hexatónico). CM → A♭m." }
+                    // Coordenadas (top, left, width, height) en %
+                    { chord: 'D menor', op: null, text: "Compás 46. Inicio del pasaje en Re menor.", marker: { top: '10%', left: '2%', width: '23%', height: '80%' } },
+                    { chord: 'A Mayor', op: 'N', text: "Compás 48. Se aplica la operación N (Nebenverwandt). Dm → AM.", marker: { top: '10%', left: '26%', width: '23%', height: '80%' } },
+                    { chord: 'F menor', op: 'H', text: "Compás 49. Se aplica H (Polo Hexatónico, PLP). No comparten notas. AM → Fm.", marker: { top: '10%', left: '50%', width: '24%', height: '80%' } },
+                    { chord: 'C Mayor', op: 'N', text: "Compás 51. Se aplica la operación N (Nebenverwandt). Fm → CM.", marker: { top: '10%', left: '75%', width: '12%', height: '80%' } },
+                    { chord: 'A♭ menor', op: 'H', text: "Compás 52. Se aplica H (Polo Hexatónico). CM → A♭m.", marker: { top: '10%', left: '88%', width: '10%', height: '80%' } }
                 ]
             }
         };
@@ -786,7 +814,15 @@
                 newPcs = [r, t, normalizePitch(f + 1)]; // Mueve B(11) -> C(0)
                 newType = "major";
             }
-            return findTriadByPitchClasses(newPcs, newType);
+            // MODIFICACIÓN: Encontrar la *mejor* tríada enarmónica (ej. Mim -> DoM, no B#M)
+            const resultTriad = findTriadByPitchClasses(newPcs, newType);
+            if (triad.type === "major") { // DoM -> Mim (Esperamos raíz E)
+                return allTriads.find(t => t.root === canonicalSpelling[t] && t.type === newType) || resultTriad;
+            }
+            if (triad.type === "minor") { // Mim -> DoM (Esperamos raíz C)
+                return allTriads.find(t => t.root === canonicalSpelling[f] && t.type === newType) || resultTriad;
+            }
+            return resultTriad;
         }
 
         function opP(triad) {
@@ -799,7 +835,9 @@
                 newPcs = [r, normalizePitch(t + 1), f];
                 newType = "major";
             }
-            return findTriadByPitchClasses(newPcs, newType);
+            // La raíz no cambia, así que podemos buscarla por nombre
+            const newRootName = triad.root;
+            return allTriads.find(t => t.root === newRootName && t.type === newType) || findTriadByPitchClasses(newPcs, newType);
         }
 
         function opR(triad) {
@@ -812,7 +850,15 @@
                 newPcs = [t, f, normalizePitch(f + 3)];
                 newType = "major";
             }
-            return findTriadByPitchClasses(newPcs, newType);
+             // La raíz cambia, encontrar la mejor escritura
+            const resultTriad = findTriadByPitchClasses(newPcs, newType);
+            if (triad.type === "major") { // DoM -> Lam (Esperamos raíz A)
+                return allTriads.find(t => t.root === canonicalSpelling[r-3] && t.type === newType) || resultTriad;
+            }
+            if (triad.type === "minor") { // Lam -> DoM (Esperamos raíz C)
+                return allTriads.find(t => t.root === canonicalSpelling[t] && t.type === newType) || resultTriad;
+            }
+            return resultTriad;
         }
 
         function opN(triad) {
@@ -837,8 +883,11 @@
 
         function opS(triad) { // RNR
             let result = opR(triad);
+            if (!result) { console.error("S falló en R1", triad); return null; }
             result = opN(result);
+            if (!result) { console.error("S falló en N", triad); return null; }
             result = opR(result);
+            if (!result) { console.error("S falló en R2", triad); return null; }
             return result;
         }
 
@@ -856,7 +905,10 @@
             const cycle = [];
             let current = startMajorTriad;
             for (let i = 0; i < 6; i++) {
-                if (!current) return; // Detener si una operación falla
+                if (!current) {
+                    console.error(`Fallo en Ciclo L/P ${cycleIndex}, paso ${i}. Acorde inicial: ${startMajorTriad.name}`);
+                    return;
+                }
                 cycle.push(current);
                 if (i % 2 === 0) { current = opL(current); } // L
                 else { current = opP(current); } // P
@@ -882,7 +934,7 @@
             let current = startMajorTriad;
             for (let i = 0; i < 6; i++) {
                 if (!current) { // Prevención de errores
-                    console.error("Error generando ciclo Weitzmann en el paso", i, "para el ciclo", cycleIndex);
+                    console.error(`Fallo en Ciclo R/N ${cycleIndex}, paso ${i}. Acorde inicial: ${startMajorTriad.name}`);
                     return; 
                 }
                 cycle.push(current);
@@ -923,7 +975,9 @@
         const analysisSelect = document.getElementById("analysisSelect");
         const analysisControls = document.getElementById("analysisControls");
         const analysisTitle = document.getElementById("analysisTitle");
-        const analysisScoreImage = document.getElementById("analysisScoreImage"); // <-- NUEVO
+        const analysisScoreContainer = document.getElementById("analysisScoreContainer"); // <-- NUEVO
+        const analysisScoreImage = document.getElementById("analysisScoreImage");
+        const analysisScoreMarker = document.getElementById("analysisScoreMarker"); // <-- NUEVO
         const analysisExplanation = document.getElementById("analysisExplanation");
         const prevStepBtn = document.getElementById("prevStepBtn");
         const nextStepBtn = document.getElementById("nextStepBtn");
@@ -978,7 +1032,7 @@
             "R": "<strong>R (Relative / Relativo)</strong>: Transforma una tríada en su relativa (comparten dos notas y la armadura).<br>• <strong>Mayor → menor</strong>: Conserva la 3ª mayor (Do-Mi en DoM) y mueve la quinta 1 tono hacia arriba (Sol → La). Ej: <strong>DoM (C-E-G) → Lam (C-E-A)</strong>.<br>• <strong>menor → Mayor</strong>: Conserva la 3ª mayor (Do-Mi en Lam) y mueve la fundamental 1 tono hacia abajo (La → Sol). Ej: <strong>Lam (A-C-E) → DoM (G-C-E)</strong>.",
             "N": "<strong>N (Nebenverwandt / Próximo Relacionado)</strong>: Operación que invierte el acorde. Mueve dos voces.<br>• <strong>Mayor → menor</strong>: Ej: <strong>DoM (C-E-G) → Fam (F-A♭-C)</strong>.<br>• <strong>menor → Mayor</strong>: Ej: <strong>Fam (F-A♭-C) → DoM (C-E-G)</strong>.",
             "H": "<strong>H (Hexatonic Pole / Polo Hexatónico)</strong>: Operación compuesta (<strong>PLP</strong> o <strong>LPL</strong>). Conecta dos tríadas opuestas dentro del mismo ciclo hexatónico (no comparten ninguna nota). Ej: <strong>DoM (C-E-G) → Sol♯m (G♯-B-D♯)</strong>.",
-            "S": "<strong>S (Slide / Deslizamiento)</strong>: Operación compuesta (<strong>RNR</strong> o <strong>NRN</strong>). Conecta dos tríadas de modo opuesto que comparten la tercera. Ej: <strong>DoM (C-E-G) → Do♯m (C♯-E-G♯)</strong>."
+            "S": "<strong>S (Slide / Deslizamiento)</strong>: Operación compuesta (<strong>RNR</strong> o <strong>NRN</strong>). Conecta dos tríadas de modo opuesto que comparten la tercera. Ej: Ea (C-E-G) → Do♯m (C♯-E-G♯)</strong>."
         };
 
         function displayOperationExplanation(opCode) {
@@ -1374,8 +1428,6 @@
             const anglePerNode = (360 / cycleChords.length); // Usualmente 60 grados
 
             // 3. Determinar el "desplazamiento" angular necesario para poner el activeIndex en la parte superior (-90 grados).
-            // El ángulo normal del activeIndex sería (activeIndex * anglePerNode - 90).
-            // Queremos que sea -90. Así que el desplazamiento es (activeIndex * anglePerNode).
             const angleOffset = (activeIndex !== -1) ? (activeIndex * anglePerNode) : 0;
             // --- FIN DE LA NUEVA LÓGICA ---
 
@@ -1522,9 +1574,10 @@
             // NUEVO: Cargar imagen de la partitura
             if (currentAnalysis.imageUrl) {
                 analysisScoreImage.src = currentAnalysis.imageUrl;
-                analysisScoreImage.classList.remove('hidden');
+                analysisScoreContainer.classList.remove('hidden'); // <-- NUEVO
+                analysisScoreMarker.classList.remove('show'); // <-- NUEVO
             } else {
-                analysisScoreImage.classList.add('hidden');
+                analysisScoreContainer.classList.add('hidden'); // <-- NUEVO
             }
             
             // Cargar el primer paso
@@ -1552,28 +1605,37 @@
             previousTriad = oldTriad;
             currentTriad = newTriad;
 
-            // Reproducir sonido con conducción de voces
+            // --- CÓDIGO RESTAURADO ---
+            // Preparar el audio, pero no reproducir
             startAudioContext();
             if (oldTriad) {
                 // Si hay un acorde anterior, calcular el voice leading
                 const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                 const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
-                // MODIFICADO: No reproducir, solo actualizar el voicing
-                // playVoicing(newMidiVoicing); 
                 updateVoicing(newMidiVoicing);
             } else {
                 // Si es el primer acorde, tocarlo en la octava 4
                 const rootNotes = newTriad.getNotes();
                 const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
                 const midiNotes = toneNotes.map(n => Tone.Frequency(n).toMidi());
-                // MODIFICADO: No reproducir, solo actualizar el voicing
-                // playVoicing(midiNotes);
                 updateVoicing(midiNotes);
             }
+            // --- FIN DEL CÓDIGO RESTAURADO ---
 
             // Actualizar UI
             updateUI(); // Actualiza nombre, visualizaciones, etc.
             analysisExplanation.textContent = step.text; // Mostrar explicación
+
+            // NUEVO: Mover el marcador de la partitura
+            if (step.marker) {
+                analysisScoreMarker.style.top = step.marker.top;
+                analysisScoreMarker.style.left = step.marker.left;
+                analysisScoreMarker.style.width = step.marker.width;
+                analysisScoreMarker.style.height = step.marker.height;
+                analysisScoreMarker.classList.add('show');
+            } else {
+                analysisScoreMarker.classList.remove('show');
+            }
             
             // Resaltar la operación
             removeActiveOperationHighlight(); // Limpiar resaltado anterior
@@ -1605,9 +1667,10 @@
             analysisExplanation.textContent = "";
             analysisSelect.value = ""; // Resetear el dropdown
             
-            // NUEVO: Ocultar imagen de la partitura
+            // NUEVO: Ocultar imagen y marcador
             analysisScoreImage.src = "";
-            analysisScoreImage.classList.add('hidden');
+            analysisScoreContainer.classList.add('hidden'); // <-- NUEVO
+            analysisScoreMarker.classList.remove('show'); // <-- NUEVO
             
             // Mostrar controles de exploración libre
             startChordContainer.classList.remove('hidden');
