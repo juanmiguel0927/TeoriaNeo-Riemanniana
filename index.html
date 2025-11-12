@@ -50,8 +50,13 @@
         }
 
         .chord-display {
-            @apply bg-blue-100 p-4 rounded-lg text-center my-4 border border-blue-200;
+            @apply bg-blue-100 p-4 rounded-lg text-center my-4 border border-blue-200 transition-all duration-150;
+            cursor: pointer; /* AÑADIDO: Indica que se puede hacer clic */
         }
+        .chord-display:hover {
+            @apply bg-blue-200; /* AÑADIDO: Efecto hover */
+        }
+
         .history-item {
             @apply bg-gray-50 p-2 rounded-md mb-2 text-sm border border-gray-100;
         }
@@ -400,7 +405,7 @@
                     <div class="flex justify-center items-center gap-2">
                         <h2 class="text-xl font-bold text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
                         <button id="playChordButton" class="btn btn-secondary p-2 leading-none">
-                            <svg xmlns="http://www.w.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
                                 <path d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.707.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.198 5.303z"/>
                                 <path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89z"/>
                                 <path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.489 3.489 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"/>
@@ -749,6 +754,12 @@
                     if (this.root === "G♯" && this.type === "major" && pc === 3) return "D♯"; // G# Mayor -> D#
                     if (this.root === "D♯" && this.type === "major" && pc === 8) return "G♯"; // D# Mayor -> G#
                     if (this.root === "A♯" && this.type === "major" && pc === 2) return "D♯"; // A# Mayor -> D#
+                    // Casos de bemoles
+                    if (this.root === "G♭" && this.type === "major" && pc === 10) return "B♭"; // G♭ Mayor -> B♭
+                    if (this.root === "D♭" && this.type === "major" && pc === 5) return "F"; // D♭ Mayor -> F
+                    if (this.root === "A♭" && this.type === "major" && pc === 0) return "C"; // A♭ Mayor -> C
+                    if (this.root === "E♭" && this.type === "major" && pc === 7) return "G"; // E♭ Mayor -> G
+                    if (this.root === "B♭" && this.type === "major" && pc === 2) return "D"; // B♭ Mayor -> D
 
                     const preferFlats = ["D♭", "E♭", "G♭", "A♭", "B♭"].includes(this.root) || 
                                         (this.root === "F") || 
@@ -819,6 +830,10 @@
             // Manejar bemoles
             if (rootName.length > 1 && rootName.charAt(1) === 'b') {
                 rootName = rootName.charAt(0) + '♭';
+            }
+            // Manejar sostenidos
+             if (rootName.length > 1 && rootName.charAt(1) === '♯') {
+                rootName = rootName.charAt(0) + '♯';
             }
             
             const finalName = `${rootName} ${type === 'major' ? 'Mayor' : 'menor'}`;
@@ -1045,6 +1060,7 @@
         const historyLog = document.getElementById("historyLog");
         const operationsBox = document.getElementById('operationsBox');
         const operationButtons = document.querySelectorAll('#operationsBox button');
+        const mainChordDisplay = document.querySelector('.chord-display'); // AÑADIDO
         // Guardar referencias a botones específicos
         const opBtnL = document.getElementById('opL');
         const opBtnP = document.getElementById('opP');
@@ -1410,7 +1426,18 @@
 
             const createChordSpan = (triad, color) => {
                 if (!triad) return ""; // Añadir chequeo por si la tríada es nula
-                return `<span class="bg-${color}-100 text-${color}-800 px-2 py-1 rounded-md cursor-pointer hover:bg-${color}-200" data-chord-name="${triad.name}">${triad.name}</span>`;
+                
+                // --- MODIFICADO ---
+                // Determinar el nombre a mostrar (para enarmonía)
+                let displayName = triad.name;
+                if (currentTriad && triad.hasSamePitchClasses(currentTriad) && triad.type === currentTriad.type) {
+                    displayName = currentTriad.name; // Usar ortografía activa
+                } else if (previousTriad && triad.hasSamePitchClasses(previousTriad) && triad.type === previousTriad.type) {
+                    displayName = previousTriad.name; // Usar ortografía previa
+                }
+                
+                return `<span class="bg-${color}-100 text-${color}-800 px-2 py-1 rounded-md cursor-pointer hover:bg-${color}-200" data-chord-name="${triad.name}">${displayName}</span>`;
+                // --- FIN DE MODIFICACIÓN ---
             };
 
             if (hexCycle) {
@@ -1480,6 +1507,7 @@
             const centerX = 150, centerY = 150, radius = 120, nodeWidth = 60, nodeHeight = 30;
 
             // --- NUEVA LÓGICA DE ROTACIÓN ---
+            // Encontrar el índice del acorde en el ciclo *basado en PC*, no en nombre
             const activeIndex = cycleChords.findIndex(t => t.hasSamePitchClasses(activeTriad) && t.type === activeTriad.type);
             const anglePerNode = (360 / cycleChords.length);
             const angleOffset = (activeIndex !== -1) ? (activeIndex * anglePerNode) : 0;
@@ -1499,14 +1527,22 @@
                 
                 const div = document.createElement("div");
                 div.className = "chord-node w-full h-full flex items-center justify-center";
-                div.textContent = triad.name;
                 
-                // Resaltar activo y anterior
-                if (activeTriad && triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type) {
+                // --- MODIFICADO ---
+                // Determinar si este nodo DEL CICLO es el ACTIVO o el ANTERIOR
+                const isThisNodeActive = activeTriad && triad.hasSamePitchClasses(activeTriad) && triad.type === activeTriad.type;
+                const isThisNodePrevious = prevTriad && triad.hasSamePitchClasses(prevTriad) && triad.type === prevTriad.type;
+
+                if (isThisNodeActive) {
+                    div.textContent = activeTriad.name; // Usar la ortografía del estado actual
                     div.classList.add("active");
-                } else if (prevTriad && triad.hasSamePitchClasses(prevTriad) && triad.type === prevTriad.type) {
+                } else if (isThisNodePrevious) {
+                    div.textContent = prevTriad.name; // Usar la ortografía del estado anterior
                     div.classList.add("previous-active");
+                } else {
+                    div.textContent = triad.name; // Usar la ortografía por defecto del ciclo
                 }
+                // --- FIN DE MODIFICACIÓN ---
                 
                 node.appendChild(div);
                 hexatonicCircleSvg.appendChild(node);
@@ -1752,6 +1788,55 @@
             const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
             playVoicing(midiNotes);
         });
+
+        // --- AÑADIDO: Listener para cambiar enarmonía ---
+        mainChordDisplay.addEventListener('click', (event) => {
+            // No activar si se hizo clic en el botón de play
+            if (event.target.closest('#playChordButton')) {
+                return;
+            }
+            
+            if (isInAnalysisMode) return; // No cambiar enarmónicos durante el análisis
+
+            // 1. Encontrar todos los equivalentes enarmónicos
+            const equivalents = allTriads.filter(t =>
+                t.type === currentTriad.type &&
+                t.hasSamePitchClasses(currentTriad)
+            );
+
+            if (equivalents.length <= 1) {
+                return; // No hay otros equivalentes
+            }
+
+            // --- MODIFICACIÓN ---
+            const oldTriad = currentTriad; // Guardar el acorde antiguo (y su nombre)
+
+            // 2. Encontrar el índice actual
+            const currentIndex = equivalents.findIndex(t => t.name === oldTriad.name);
+            
+            // 3. Calcular el siguiente índice
+            const nextIndex = (currentIndex + 1) % equivalents.length;
+            const newTriad = equivalents[nextIndex];
+
+            // 4. Actualizar el estado (sin historial y sin audio)
+            currentTriad = newTriad; // Actualizar el estado global
+            
+            // 5. NUEVO: Actualizar el historial
+            history.forEach(entry => {
+                if (entry.from === oldTriad.name) {
+                    entry.from = newTriad.name;
+                }
+                if (entry.to === oldTriad.name) {
+                    entry.to = newTriad.name;
+                }
+            });
+
+            // 6. Actualizar la UI (esto llamará a updateHistoryLog)
+            updateUI(); 
+            // No es una operación, así que no actualizar explicaciones ni resaltados
+            // --- FIN DE MODIFICACIÓN ---
+        });
+        // --- FIN DE AÑADIDO ---
 
         // Event listener genérico para todos los botones de operación
         operationButtons.forEach(button => {
