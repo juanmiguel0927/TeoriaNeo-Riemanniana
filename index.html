@@ -439,11 +439,21 @@
                 <div class="chord-display">
                     <div class="flex justify-center items-center gap-2">
                         <h2 class="text-xl font-bold text-blue-800">Acorde Actual: <span id="currentChordName">C Mayor</span></h2>
+                        <!-- MODIFICADO: Añadido botón de arpegio -->
                         <button id="playChordButton" class="btn btn-secondary p-2 leading-none">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
                                 <path d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.707.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.198 5.303z"/>
                                 <path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89z"/>
                                 <path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.489 3.489 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"/>
+                            </svg>
+                        </button>
+                        <!-- NUEVO: Botón de Arpegio -->
+                        <button id="arpChordButton" class="btn btn-secondary p-2 leading-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-music-note-list" viewBox="0 0 16 16">
+                                <path d="M12 13c0 1.105-1.12 2-2.5 2S7 14.105 7 13s1.12-2 2.5-2 2.5.895 2.5 2"/>
+                                <path fill-rule="evenodd" d="M12 3v10h-1V3z"/>
+                                <path d="M11 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 16 2.22V4l-5 1z"/>
+                                <path fill-rule="evenodd" d="M0 11.5a.5.5 0 0 1 .5-.5H4a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5m0-4A.5.5 0 0 1 .5 7H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5m0-4A.5.5 0 0 1 .5 3H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5"/>
                             </svg>
                         </button>
                     </div>
@@ -1051,6 +1061,7 @@
         const glossaryModal = document.getElementById("glossaryModal");
         const authorModal = document.getElementById('authorModal');
         const playChordButton = document.getElementById("playChordButton");
+        const arpChordButton = document.getElementById("arpChordButton"); // NUEVO
         const startChordContainer = document.getElementById("startChordContainer");
         // NUEVO: Botón de Mute
         const muteButton = document.getElementById("muteButton");
@@ -1082,7 +1093,7 @@
         const historyLog = document.getElementById("historyLog");
         const operationsBox = document.getElementById('operationsBox');
         const operationButtons = document.querySelectorAll('#operationsBox button');
-        const mainChordDisplay = document.querySelector('.chord-display'); // Referencia mantenida (aunque el clic se eliminó)
+        const mainChordDisplay = document.querySelector('.chord-display'); 
         // Botones de operaciones
         const opBtnL = document.getElementById('opL');
         const opBtnP = document.getElementById('opP');
@@ -1119,7 +1130,6 @@
         
 
         // --- Explicaciones de Operaciones ---
-        // ... (Sin cambios) ...
         const explanations = {
             "L": "<strong>L (Leittonechel / Intercambio de Tono Principal)</strong>: Transforma una tríada mayor en menor (y viceversa).<br>• <strong>Mayor → menor</strong>: Conserva la 3ª menor (Mi-Sol en DoM) y mueve la fundamental 1 semitono hacia abajo (Do → Si). Ej: <strong>DoM (C-E-G) → Mim (B-E-G)</strong>.<br>• <strong>menor → Mayor</strong>: Conserva la 3ª menor (Mi-Sol en Mim) y mueve la quinta 1 semitono hacia arriba (Si → Do). Ej: <strong>Mim (E-G-B) → DoM (E-G-C)</strong>.",
             "P": "<strong>P (Parallel / Paralelo)</strong>: Transforma una tríada en su paralela (mismo nombre, modo opuesto). Conserva la tónica y la quinta, y mueve la tercera 1 semitono.<br>• <strong>Mayor → menor</strong>: Baja la tercera (Mi → Mi♭). Ej: <strong>DoM (C-E-G) → Dom (C-E♭-G)</strong>.<br>• <strong>menor → Mayor</strong>: Sube la tercera (Mi♭ → Mi). Ej: <strong>Dom (C-E♭-G) → DoM (C-E-G)</strong>.",
@@ -1129,8 +1139,42 @@
             "S": "<strong>S (Slide / Deslizamiento)</strong>: Operación compuesta (<strong>RNR</strong> o <strong>NRN</strong>). Conecta dos tríadas de modo opuesto que comparten la tercera. Ej: <strong>DoM (C-E-G) → Do♯m (C♯-E-G♯)</strong>."
         };
 
-        function displayOperationExplanation(opCode) {
-            operationExplanation.innerHTML = explanations[opCode] || "Selecciona una operación para ver su descripción.";
+        // MODIFICADO: para incluir conducción de voces
+        function displayOperationExplanation(opCode, previousTriad = null, currentTriad = null, oldMidi = [], newMidi = []) {
+            let html = explanations[opCode] || "Selecciona una operación para ver su descripción.";
+
+            // NUEVO: Lógica de conducción de voces
+            if (previousTriad && currentTriad && oldMidi.length > 0 && newMidi.length > 0) {
+                const oldNotes = oldMidi.map(m => ({ midi: m, note: Tone.Frequency(m, "midi").toNote() }));
+                const newNotes = newMidi.map(m => ({ midi: m, note: Tone.Frequency(m, "midi").toNote() }));
+                
+                const commonNotes = oldNotes.filter(o => newNotes.some(n => n.midi === o.midi));
+                const movedNotes = oldNotes.filter(o => !commonNotes.some(c => c.midi === o.midi));
+                const newNotesForMoved = newNotes.filter(n => !commonNotes.some(c => c.midi === n.midi));
+                
+                // Ordenar para una visualización consistente
+                movedNotes.sort((a, b) => a.midi - b.midi);
+                newNotesForMoved.sort((a, b) => a.midi - b.midi);
+
+                html += '<h4 class="font-semibold mt-3 text-green-700">Conducción de Voces (Voicing):</h4>';
+                html += `<p class="text-xs text-gray-600">${previousTriad.name} → ${currentTriad.name}</p>`;
+                html += '<ul class="list-none list-inside text-gray-800 mt-1">';
+                
+                commonNotes.forEach(c => { 
+                    html += `<li><span class="font-bold text-blue-700">${c.note}</span> → <span class="font-bold text-blue-700">${c.note}</span> (Nota Común)</li>`; 
+                });
+                
+                movedNotes.forEach((o, i) => { 
+                    const n = newNotesForMoved[i];
+                    if(n) {
+                        html += `<li><span class="font-bold">${o.note}</span> → <span class="font-bold">${n.note}</span> (Movimiento)</li>`; 
+                    }
+                });
+                
+                html += '</ul>';
+            }
+            
+            operationExplanation.innerHTML = html;
         }
         
         // --- Lógica de Modales ---
@@ -1437,7 +1481,7 @@
         }
 
         // Añadir entrada al historial (MODIFICADO)
-        function addHistoryEntry(operationName, oldTriad, newTriad) {
+        function addHistoryEntry(operationName, oldTriad, newTriad, oldMidi, newMidi) {
             // NUEVO: Truncar historial si estamos "viajando en el tiempo"
             if (currentHistoryIndex < history.length - 1) {
                 history = history.slice(0, currentHistoryIndex + 1);
@@ -1447,7 +1491,9 @@
                 operation: operationName,
                 from: oldTriad.name,
                 to: newTriad.name,
-                timestamp: new Date().toLocaleTimeString()
+                timestamp: new Date().toLocaleTimeString(),
+                fromMidi: oldMidi, // NUEVO
+                toMidi: newMidi    // NUEVO
             };
             history.push(entry);
             currentHistoryIndex = history.length - 1; // Apuntar al nuevo último ítem
@@ -1632,11 +1678,10 @@
                 node.appendChild(div);
                 hexatonicCircleSvg.appendChild(node);
 
-                // Lógica de clic (MODIFICADA para usar la ortografía preferida)
+                // Lógica de clic (MODIFICADA para usar la ortografía preferida y MIDI)
                 node.addEventListener('click', () => {
                     if (isInAnalysisMode) return; 
 
-                    // Usar la tríada con la ortografía preferida para el clic
                     const clickedTriad = getPreferredSpelling(triad);
                     
                     if (clickedTriad.hasSamePitchClasses(currentTriad) && clickedTriad.type === currentTriad.type) {
@@ -1649,7 +1694,6 @@
                         const newMidiVoicing = getClosestVoicing(fromMidi, clickedTriad);
                         playVoicing(newMidiVoicing);
                         
-                        // Truncar historial si es necesario
                         if (currentHistoryIndex < history.length - 1) {
                             history = history.slice(0, currentHistoryIndex + 1);
                         }
@@ -1657,9 +1701,9 @@
                         previousTriad = currentTriad; 
                         currentTriad = clickedTriad;
                         
-                        addHistoryEntry("Click", previousTriad, currentTriad);
+                        addHistoryEntry("Click", previousTriad, currentTriad, fromMidi, newMidiVoicing); // AÑADIDO MIDI
                         updateUI();
-                        displayOperationExplanation('');
+                        displayOperationExplanation('Click', previousTriad, currentTriad, fromMidi, newMidiVoicing); // AÑADIDO VOICING
                         removeActiveOperationHighlight();
                         removeOperationsBoxHighlight();
                     }
@@ -1726,8 +1770,9 @@
         }
 
         // --- FUNCIONES DE ANÁLISIS GUIADO ---
-        // ... (Sin cambios) ...
+        
         function startAnalysis(analysisKey) {
+            // ... (Sin cambios) ...
             if (!analysisKey) {
                 exitAnalysis();
                 return;
@@ -1755,6 +1800,7 @@
             loadAnalysisStep(0);
         }
 
+        // MODIFICADO: para incluir MIDI en el historial
         function loadAnalysisStep(stepIndex) {
             if (!currentAnalysis || stepIndex < 0 || stepIndex >= currentAnalysis.steps.length) {
                 return; 
@@ -1776,16 +1822,17 @@
             currentTriad = newTriad;
 
             startAudioContext();
-            if (oldTriad) {
-                const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-                const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
-                updateVoicing(newMidiVoicing);
-            } else {
-                const rootNotes = newTriad.getNotes();
-                const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
-                const midiNotes = toneNotes.map(n => Tone.Frequency(n).toMidi());
-                updateVoicing(midiNotes);
-            }
+            
+            // CAPTURAR MIDI
+            const fromMidi = oldTriad 
+                ? lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi()) 
+                : newTriad.getNotes().map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`).map(n => Tone.Frequency(n).toMidi());
+            
+            const newMidiVoicing = oldTriad 
+                ? getClosestVoicing(fromMidi, newTriad) 
+                : fromMidi; // Si es el primer acorde, el "voicing" es solo él mismo
+            
+            updateVoicing(newMidiVoicing);
 
             updateUI(); 
             analysisExplanation.textContent = step.text; 
@@ -1803,13 +1850,18 @@
             removeActiveOperationHighlight(); 
             if (step.op) {
                 highlightActiveOperation(step.op);
+                // Mostrar conducción de voces
+                displayOperationExplanation(step.op, oldTriad, newTriad, fromMidi, newMidiVoicing);
+            } else {
+                // Limpiar la explicación de conducción de voces si no hay op
+                displayOperationExplanation('');
             }
 
             if (stepIndex > 0 && oldTriad) {
-                addHistoryEntry(step.op || "Siguiente", oldTriad, newTriad);
+                addHistoryEntry(step.op || "Siguiente", oldTriad, newTriad, fromMidi, newMidiVoicing);
             } else {
                 history = []; 
-                currentHistoryIndex = -1; // Reiniciar historial
+                currentHistoryIndex = -1;
                 updateHistoryLog();
             }
 
@@ -1818,6 +1870,7 @@
         }
 
         function exitAnalysis() {
+            // ... (Sin cambios) ...
             isInAnalysisMode = false;
             currentAnalysis = null;
             currentAnalysisStep = 0;
@@ -1838,7 +1891,7 @@
             removeActiveOperationHighlight();
             removeOperationsBoxHighlight();
             history = [];
-            currentHistoryIndex = -1; // Reiniciar historial
+            currentHistoryIndex = -1; 
             updateHistoryLog();
         }
 
@@ -1854,6 +1907,28 @@
             startAudioContext(); 
             const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
             playVoicing(midiNotes);
+        });
+
+        // NUEVO: Listener de Arpegio (MODIFICADO)
+        arpChordButton.addEventListener('click', () => {
+            if (isMuted) return;
+            startAudioContext();
+            
+            // 1. Obtener notas del voicing
+            const voicingNotes = lastPlayedVoicing; // ej: ["G4", "C5", "E5"]
+            
+            // 2. Convertir a MIDI, ordenar y convertir de nuevo a notas
+            const sortedNotes = voicingNotes
+                .map(note => Tone.Frequency(note).toMidi()) // ["G4", "C5", "E5"] -> [55, 60, 64]
+                .sort((a, b) => a - b) // ej si fuera ["G4", "E4", "C5"] -> [55, 52, 60] -> [52, 55, 60]
+                .map(midi => Tone.Frequency(midi, "midi").toNote()); // [52, 55, 60] -> ["E4", "G4", "C5"]
+
+            const now = Tone.now();
+            
+            // 3. Tocar las notas ordenadas
+            synth.triggerAttackRelease(sortedNotes[0], "8n", now);
+            synth.triggerAttackRelease(sortedNotes[1], "8n", now + 0.15);
+            synth.triggerAttackRelease(sortedNotes[2], "8n", now + 0.3);
         });
 
         // NUEVO: Listener de Mute
@@ -1920,16 +1995,18 @@
                 }
 
                 if (newTriad) {
+                    // CAPTURAR MIDI
                     const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                     const newMidiVoicing = getClosestVoicing(fromMidi, newTriad);
+                    
                     updateVoicing(newMidiVoicing); // Actualizar sin reproducir
 
                     previousTriad = oldTriad; 
                     currentTriad = newTriad;
                     
-                    addHistoryEntry(opCode, oldTriad, currentTriad); // addHistoryEntry ahora maneja el truncado
+                    addHistoryEntry(opCode, oldTriad, currentTriad, fromMidi, newMidiVoicing); // AÑADIDO MIDI
                     updateUI();
-                    displayOperationExplanation(opCode);
+                    displayOperationExplanation(opCode, oldTriad, newTriad, fromMidi, newMidiVoicing); // AÑADIDO VOICING
                     highlightActiveOperation(opCode);
                 } else {
                     console.error("Operación", opCode, "resultó en 'null' para el acorde", oldTriad.name);
@@ -1955,11 +2032,12 @@
             if (triadToPlay && !(triadToPlay.hasSamePitchClasses(currentTriad) && triadToPlay.type === currentTriad.type)) {
                 startAudioContext(); 
                 
+                // CAPTURAR MIDI
                 const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                 const newMidiVoicing = getClosestVoicing(fromMidi, triadToPlay);
+                
                 playVoicing(newMidiVoicing);
                 
-                // Truncar historial si es necesario
                 if (currentHistoryIndex < history.length - 1) {
                     history = history.slice(0, currentHistoryIndex + 1);
                 }
@@ -1967,14 +2045,13 @@
                 previousTriad = currentTriad; 
                 currentTriad = triadToPlay;
                 
-                addHistoryEntry("Click", previousTriad, currentTriad);
+                addHistoryEntry("Click", previousTriad, currentTriad, fromMidi, newMidiVoicing); // AÑADIDO MIDI
                 updateUI();
-                displayOperationExplanation('');
+                displayOperationExplanation('Click', previousTriad, currentTriad, fromMidi, newMidiVoicing); // AÑADIDO VOICING
                 removeActiveOperationHighlight();
                 removeOperationsBoxHighlight();
             
             } else if (triadToPlay) {
-                // Se hizo clic en el acorde actual, solo reproducir
                 startAudioContext();
                 const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
                 playVoicing(fromMidi);
@@ -1983,7 +2060,7 @@
 
         // NUEVO: Listener para "Viaje en el Tiempo" en el Historial
         historyLog.addEventListener('click', (event) => {
-            if (isInAnalysisMode) return; // No viajar en el tiempo durante el análisis
+            if (isInAnalysisMode) return; 
 
             const clickedItem = event.target.closest('.history-item');
             if (!clickedItem) return;
@@ -1992,18 +2069,18 @@
             if (isNaN(index) || index >= history.length) return;
 
             const entry = history[index];
-            const prevEntry = (index > 0) ? history[index - 1] : null;
-
+            
             // Establecer el estado
             currentTriad = getTriadByName(entry.to);
             previousTriad = getTriadByName(entry.from);
             currentHistoryIndex = index; // Establecer el puntero del historial
-
-            // Actualizar UI
-            updateUI(); // Esto se encargará de llamar a updateHistoryLog y atenuar
+            
+            updateVoicing(entry.toMidi); // RESTAURAR VOICING
+            
+            updateUI(); 
 
             // Mostrar info de la operación
-            displayOperationExplanation(entry.operation);
+            displayOperationExplanation(entry.operation, previousTriad, currentTriad, entry.fromMidi, entry.toMidi);
             highlightActiveOperation(entry.operation);
         });
 
@@ -2029,7 +2106,7 @@
         freeAnalysisButton.addEventListener('click', () => {
             exitAnalysis(); 
             history = []; 
-            currentHistoryIndex = -1; // Reiniciar historial
+            currentHistoryIndex = -1; 
             freeAnalysisError.textContent = ''; 
             startAudioContext();
 
@@ -2059,7 +2136,8 @@
             currentTriad = getPreferredSpelling(triads[0]);
             let currentVoicing = currentTriad.getNotes().map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
             lastPlayedVoicing = currentVoicing;
-            updateVoicing(lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi()));
+            let fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+            updateVoicing(fromMidi);
             
             // Iterar y analizar el resto
             for (let i = 0; i < triads.length - 1; i++) {
@@ -2067,13 +2145,16 @@
                 const chordB = getPreferredSpelling(triads[i+1]);
                 
                 const opName = findBestOperation(chordA, chordB);
-                addHistoryEntry(opName, chordA, chordB);
+                
+                // CAPTURAR MIDI
+                fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                const newMidiVoicing = getClosestVoicing(fromMidi, chordB);
+
+                addHistoryEntry(opName, chordA, chordB, fromMidi, newMidiVoicing); // AÑADIDO MIDI
 
                 previousTriad = chordA;
                 currentTriad = chordB;
 
-                const fromMidi = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-                const newMidiVoicing = getClosestVoicing(fromMidi, chordB);
                 updateVoicing(newMidiVoicing);
             }
             
