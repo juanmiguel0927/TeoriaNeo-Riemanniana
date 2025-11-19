@@ -51,12 +51,6 @@
 
         .chord-display {
             @apply bg-blue-100 p-4 rounded-lg text-center my-4 border border-blue-200;
-            /* AHORA NO ES INTERACTIVO, se usa el toggle global
-            cursor: pointer; 
-            */
-        }
-        .chord-display:hover {
-            /* @apply bg-blue-200; */ /* Deshabilitado */
         }
         .history-item {
             @apply bg-gray-50 p-2 rounded-md mb-2 text-sm border border-gray-100 cursor-pointer hover:bg-gray-100;
@@ -83,6 +77,7 @@
         .common-tone-note {
             @apply text-blue-600 font-bold; /* MODIFICADO: Color azul para notas comunes */
         }
+        /* MODIFICADO: Aplicado a todas las notas enarmónicas clickeables */
         .enharmonic-note {
             @apply border-b-2 border-dotted border-gray-500 cursor-pointer; /* Subrayado punteado */
         }
@@ -207,6 +202,23 @@
         }
         .modal-overlay.show .modal-content {
             transform: translateY(0);
+        }
+
+        /* NUEVO: Estilos para pestañas del modal de Ayuda */
+        .tab-nav {
+            @apply flex border-b border-gray-300 mb-4;
+        }
+        .tab-btn {
+            @apply px-4 py-2 -mb-px font-semibold text-gray-600 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-600 cursor-pointer;
+        }
+        .tab-btn.active {
+            @apply text-blue-600 border-blue-600;
+        }
+        .tab-pane {
+            @apply hidden; /* Oculto por defecto */
+        }
+        .tab-pane.active {
+            @apply block; /* Visible cuando está activo */
         }
 
         /* Estilos del interruptor (toggle) */
@@ -371,19 +383,12 @@
                         <!-- Opciones pobladas por JS -->
                     </select>
                     
-                    <!-- NUEVO: Interruptor de Enarmonía -->
-                    <div class="toggle-switch-container mt-3">
-                        <span class="toggle-switch-label">Preferir ♯</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="enharmonicToggle" class="toggle-switch-input">
-                            <span class="toggle-switch-slider"></span>
-                        </label>
-                        <span class="toggle-switch-label">Preferir ♭</span>
-                    </div>
+                    <!-- INTERRUPTOR DE ENARMONÍA MOVIDO -->
 
                     <div class="flex gap-3 mt-3">
                         <button id="resetButton" class="btn btn-primary w-1/3">Reiniciar</button>
-                        <button id="glossaryButton" class="btn btn-secondary w-1/3">Glosario</button>
+                        <!-- MODIFICADO: Glosario -> Ayuda -->
+                        <button id="glossaryButton" class="btn btn-secondary w-1/3">Ayuda</button>
                         <!-- NUEVO: Botón de Mute -->
                         <button id="muteButton" class="btn btn-secondary w-1/3">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16">
@@ -403,6 +408,16 @@
                         <option value="liszt">Liszt - Consolación IV</option>
                         <option value="schubert">Schubert - D.946 Nº2</option>
                     </select>
+                    
+                    <!-- MOVIDO: Interruptor de Enarmonía (para que sea visible en modo análisis) -->
+                    <div class="toggle-switch-container mt-3">
+                        <span class="toggle-switch-label">Preferir ♯</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="enharmonicToggle" class="toggle-switch-input">
+                            <span class="toggle-switch-slider"></span>
+                        </label>
+                        <span class="toggle-switch-label">Preferir ♭</span>
+                    </div>
                 </div>
                 
                 <!-- NUEVO: Controles de Análisis -->
@@ -475,6 +490,7 @@
                             </svg>
                         </button>
                     </div>
+                    <!-- MODIFICADO: Contenedor de notas para permitir clics en spans -->
                     <p class="text-lg text-gray-700">Notas: <span id="currentChordNotes">C, E, G</span></p>
                 </div>
 
@@ -581,32 +597,45 @@
         </div>
     </div>
     
-    <!-- Modal para el Glosario -->
+    <!-- MODIFICADO: Modal de Ayuda (antes Glosario) -->
     <div id="glossaryModal" class="modal-overlay">
         <div class="modal-content text-left">
-            <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">Glosario de Términos</h2>
+            <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">Ayuda / Glosario</h2>
             
-            <!-- NUEVO: Contenedor para operaciones dinámicas -->
-            <h3 class="text-xl font-semibold text-gray-800 mt-4">Operaciones Neo-Riemannianas</h3>
-            <div id="glossaryOperationsContainer" class="space-y-3 mt-2">
-                <!-- Se poblará por JS -->
+            <!-- NUEVO: Pestañas del Modal -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="operaciones">Operaciones</button>
+                <button class="tab-btn" data-tab="conceptos">Conceptos Generales</button>
             </div>
 
-            <h3 class="text-xl font-semibold text-gray-800 mt-6">Conceptos Generales</h3>
-            <h3 class="text-lg font-semibold text-gray-800 mt-4">Involución</h3>
-            <p class="text-gray-700">Una operación que es su propio inverso. Al aplicarla dos veces consecutivas, se vuelve al punto de partida (ej. P, L, R, N, H, S).</p>
-            
-            <h3 class="text-lg font-semibold text-gray-800 mt-4">Conducción Idealizada (más eficiente)</h3>
-            <p class="text-gray-700">Aquella conducción en la que los acordes se disponen de manera tal que cada voz se desplace la menor distancia posible, manteniendo fijas las notas en común.</p>
-            
-            <h3 class="text-lg font-semibold text-gray-800 mt-4">Ciclo Hexatónico</h3>
-            <p class="text-gray-700">Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones **L** y **P**.</p>
-            
-            <h3 class="text-lg font-semibold text-gray-800 mt-4">Región de Weitzmann</h3>
-            <p class="text-gray-700">Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones **R** y **N**. También puede generarse a partir de un acorde aumentado, moviendo cada una de sus notas un semitono hacia arriba (para crear las 3 menores) o hacia abajo (para crear las 3 mayores).</p>
-            
-            <h3 class="text-lg font-semibold text-gray-800 mt-4">Operación Compuesta</h3>
-            <p class="text-gray-700">Dos o tres operaciones simples condensadas en una sola (ej. H = PLP, S = RNR).</p>
+            <!-- Panel de Pestaña: Operaciones -->
+            <div id="tabOperaciones" class="tab-pane active">
+                <h3 class="text-xl font-semibold text-gray-800">Operaciones Neo-Riemannianas</h3>
+                <div id="glossaryOperationsContainer" class="space-y-3 mt-2">
+                    <!-- Se poblará por JS -->
+                </div>
+            </div>
+
+            <!-- Panel de Pestaña: Conceptos -->
+            <div id="tabConceptos" class="tab-pane">
+                <h3 class="text-xl font-semibold text-gray-800">Conceptos Generales</h3>
+                
+                <h4 class="text-lg font-semibold text-gray-800 mt-4">Involución</h4>
+                <p class="text-gray-700">Una operación que es su propio inverso. Al aplicarla dos veces consecutivas, se vuelve al punto de partida (ej. P, L, R, N, H, S).</p>
+                
+                <h4 class="text-lg font-semibold text-gray-800 mt-4">Conducción Idealizada (más eficiente)</h4>
+                <p class="text-gray-700">Aquella conducción en la que los acordes se disponen de manera tal que cada voz se desplace la menor distancia posible, manteniendo fijas las notas en común.</p>
+                
+                <h4 class="text-lg font-semibold text-gray-800 mt-4">Ciclo Hexatónico</h4>
+                <p class="text-gray-700">Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones **L** y **P**.</p>
+                
+                <h4 class="text-lg font-semibold text-gray-800 mt-4">Región de Weitzmann</h4>
+                <p class="text-gray-700">Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones **R** y **N**. También puede generarse a partir de un acorde aumentado, moviendo cada una de sus notas un semitono hacia arriba (para crear las 3 menores) o hacia abajo (para crear las 3 mayores).</p>
+                
+                <h4 class="text-lg font-semibold text-gray-800 mt-4">Operación Compuesta</h4>
+                <p class="text-gray-700">Dos o tres operaciones simples condensadas en una sola (ej. H = PLP, S = RNR).</p>
+            </div>
+            <!-- FIN de Paneles de Pestañas -->
 
             <button id="closeGlossaryButton" class="btn btn-primary w-full mt-6">Cerrar</button>
         </div>
@@ -764,10 +793,11 @@
                 imageUrl: "https://github.com/juanmiguel0927/TeoriaNeo-Riemanniana/raw/237988f08d9cfcc051ba15127077478eb15c7828/Liszt.png",
                 steps: [
                     // Coordenadas (top, left, width, height) en %
-                    { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio del pasaje en Si♭ menor.", marker: { top: '25%', left: '8%', width: '15%', height: '60%' } },
+                    // MODIFICADO: Acordes completos para Liszt
+                    { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio del pasaje en Si♭ menor (B♭m).", marker: { top: '25%', left: '8%', width: '15%', height: '60%' } },
                     { chord: 'D♭ Mayor', op: 'R', text: "Compás 21. Modelo (Paso 1): Se aplica la operación R (Relativo). B♭m → D♭M.", marker: { top: '25%', left: '23%', width: '15%', height: '60%' } },
                     { chord: 'D♭ menor', op: 'P', text: "Compás 21. Modelo (Paso 2): Se aplica la operación P (Paralelo). La cadena R-P está completa. D♭M → D♭m.", marker: { top: '25%', left: '38%', width: '15%', height: '60%' } },
-                    { chord: 'E Mayor', op: 'R', text: "Compás 22. Progresión 1 (Paso 1): Se repite el patrón. Se aplica R. D♭m → EM.", marker: { top: '25%', left: '53%', width: '15%', height: '60%' } },
+                    { chord: 'E Mayor', op: 'R', text: "Compás 22. Progresión 1 (Paso 1): Se repite el patrón. Se aplica R. D♭m → EM. (Enarmónicamente F♭M)", marker: { top: '25%', left: '53%', width: '15%', height: '60%' } },
                     { chord: 'E menor', op: 'P', text: "Compás 22. Progresión 1 (Paso 2): Se aplica P. Se completa la cadena R-P. EM → Em.", marker: { top: '25%', left: '68%', width: '15%', height: '60%' } },
                     { chord: 'G menor', op: null, text: "Compás 23. Progresión 2 (Condensada): Se aplica una operación compuesta R-P (Em → GM → Gm) en un solo paso. Em → Gm.", marker: { top: '25%', left: '83%', width: '15%', height: '60%' } }
                 ]
@@ -777,7 +807,7 @@
                 imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/237988f08d9cfcc051ba15127077478eb15c7828/Schubert.png",
                 steps: [
                     // Coordenadas (top, left, width, height) en %
-                    { chord: 'D menor', op: null, text: "Compás 46. Inicio del pasaje en Re menor.", marker: { top: '10%', left: '2%', width: '23%', height: '80%' } },
+                    { chord: 'D menor', op: null, text: "Compás 46. Inicio del pasaje en Re menor (Dm).", marker: { top: '10%', left: '2%', width: '23%', height: '80%' } },
                     { chord: 'A Mayor', op: 'N', text: "Compás 48. Se aplica la operación N (Nebenverwandt). Dm → AM.", marker: { top: '10%', left: '26%', width: '23%', height: '80%' } },
                     { chord: 'F menor', op: 'H', text: "Compás 49. Se aplica H (Polo Hexatónico, PLP). No comparten notas. AM → Fm.", marker: { top: '10%', left: '50%', width: '24%', height: '80%' } },
                     { chord: 'C Mayor', op: 'N', text: "Compás 51. Se aplica la operación N (Nebenverwandt). Fm → CM.", marker: { top: '10%', left: '75%', width: '12%', height: '80%' } },
@@ -912,12 +942,12 @@
                 const notes = [];
                 notes.push(this.root); // Raíz
 
-                const rootPc = this.pitchClasses[0];
-                const thirdPc = this.pitchClasses[1];
-                const fifthPc = this.pitchClasses[2];
+                const rootPc = noteToPitchClass[this.root]; // MODIFICADO: Usar la raíz conceptual
+                const thirdPc = (this.type === 'major') ? normalizePitch(rootPc + 4) : normalizePitch(rootPc + 3);
+                const fifthPc = normalizePitch(rootPc + 7);
 
                 // Ayudante para obtener la enarmonía correcta
-                const getNoteSpelling = (pc) => {
+                const getNoteSpelling = (pc, preference) => {
                     // Casos especiales (Ortografía estricta)
                     if (this.root === "C♯" && this.type === "major" && pc === 5) return "E♯";
                     if (this.root === "F♯" && this.type === "major" && pc === 0) return "B♯";
@@ -931,6 +961,10 @@
                     if (this.root === "G♭" && this.type === "major" && pc === 11) return "C♭";
                     if (this.root === "D♭" && this.type === "major" && pc === 5) return "F"; // DbM -> F
                     if (this.root === "A♭" && this.type === "major" && pc === 0) return "C"; // AbM -> C
+                    
+                    if (this.root === "E♭" && this.type === "minor" && pc === 6) return "G♭"; // Ebm -> Gb
+                    if (this.root === "B♭" && this.type === "minor" && pc === 1) return "D♭"; // Bbm -> Db
+                    if (this.root === "F" && this.type === "minor" && pc === 8) return "A♭"; // Fm -> Ab
 
                     // Preferencias basadas en la raíz
                     const preferFlats = ["D♭", "E♭", "G♭", "A♭", "B♭"].includes(this.root) || 
@@ -939,18 +973,21 @@
                                         (this.root === "G" && this.type === "minor") ||
                                         (this.root === "D" && this.type === "minor") || 
                                         (this.root === "A" && this.type === "minor");
+                    
+                    if (preference === 'flat') return canonicalSpelling['flat'][pc];
+                    if (preference === 'sharp') return canonicalSpelling['sharp'][pc];
 
                     if (preferFlats) {
                         return canonicalSpelling['flat'][pc];
                     }
                     return canonicalSpelling['sharp'][pc];
                 };
+                
+                // Usa la ortografía global preferida
+                const spellingPref = enharmonicPreference;
 
-                // Usa la ortografía global preferida como fallback
-                const fallbackSpelling = canonicalSpelling[enharmonicPreference];
-
-                notes.push(getNoteSpelling(thirdPc) || fallbackSpelling[thirdPc]); // Tercera
-                notes.push(getNoteSpelling(fifthPc) || fallbackSpelling[fifthPc]); // Quinta
+                notes.push(getNoteSpelling(thirdPc, spellingPref)); // Tercera
+                notes.push(getNoteSpelling(fifthPc, spellingPref)); // Quinta
 
                 return notes;
             }
@@ -1032,34 +1069,12 @@
             // CORRECCIÓN: La raíz de un acorde menor es la TERCERA PC más baja (ej. Am [0, 4, 9] -> A es 9)
             // La raíz de un acorde mayor es la PRIMERA PC más baja (ej. CM [0, 4, 7] -> C es 0)
             let rootPc;
-            if (type === 'major') {
-                rootPc = sortedPcs[0]; // C en [0, 4, 7]
-                // Comprobar si es una 1ra inversión (ej. E-G-C [4, 7, 0]) -> [0, 4, 7]
-                if (sortedPcs[1] - sortedPcs[0] === 3 && sortedPcs[2] - sortedPcs[1] === 5) { // ej. [0, 3, 8] -> no
-                     rootPc = sortedPcs[2]; // Raíz es 0
-                }
-                // Comprobar si es una 2da inversión (ej. G-C-E [7, 0, 4]) -> [0, 4, 7]
-                else if (sortedPcs[1] - sortedPcs[0] === 5 && sortedPcs[2] - sortedPcs[1] === 3) { // ej. [0, 5, 8] -> no
-                     rootPc = sortedPcs[1];
-                }
-                // La lógica anterior es defectuosa.
-                // La raíz de una tríada MAYOR es la nota 'r' tal que 'r+4' y 'r+7' están en el conjunto.
-                // La raíz de una tríada MENOR es la nota 'r' tal que 'r+3' y 'r+7' están en el conjunto.
-                
+            if (type === 'major') { // C(0), E(4), G(7)
                 let foundRootPc = -1;
-                if (type === 'major') {
-                    for (const pc of sortedPcs) {
-                        if (sortedPcs.includes(normalizePitch(pc + 4)) && sortedPcs.includes(normalizePitch(pc + 7))) {
-                            foundRootPc = pc;
-                            break;
-                        }
-                    }
-                } else { // minor
-                     for (const pc of sortedPcs) {
-                        if (sortedPcs.includes(normalizePitch(pc + 3)) && sortedPcs.includes(normalizePitch(pc + 7))) {
-                            foundRootPc = pc;
-                            break;
-                        }
+                for (const pc of sortedPcs) {
+                    if (sortedPcs.includes(normalizePitch(pc + 4)) && sortedPcs.includes(normalizePitch(pc + 7))) {
+                        foundRootPc = pc;
+                        break;
                     }
                 }
                 if (foundRootPc === -1) {
@@ -1068,8 +1083,8 @@
                 }
                 rootPc = foundRootPc;
             } else { // minor
-                let foundRootPc = -1;
-                for (const pc of sortedPcs) {
+                 let foundRootPc = -1;
+                 for (const pc of sortedPcs) {
                     if (sortedPcs.includes(normalizePitch(pc + 3)) && sortedPcs.includes(normalizePitch(pc + 7))) {
                         foundRootPc = pc;
                         break;
@@ -1311,6 +1326,10 @@
         const closeGlossaryButton = document.getElementById("closeGlossaryButton");
         const glossaryModal = document.getElementById("glossaryModal");
         const glossaryOperationsContainer = document.getElementById('glossaryOperationsContainer'); // NUEVO
+        // NUEVO: Pestañas del Modal de Ayuda
+        const helpModalTabs = glossaryModal.querySelectorAll('.tab-btn');
+        const helpModalPanes = glossaryModal.querySelectorAll('.tab-pane');
+
         const muteButton = document.getElementById('muteButton'); // NUEVO
         const muteButtonIcon = muteButton.querySelector('svg'); // NUEVO
         const authorModal = document.getElementById('authorModal');
@@ -1428,12 +1447,12 @@
             let explanationHtml = explanations[opCode] || "Selecciona una operación para ver su descripción.";
 
             if (fromTriad && toTriad && fromMidi && toMidi) {
-                // AÑADIDO: Botón de Play
+                // AÑADIDO: Botón de Play (Más vistoso)
                 titleHtml = `
                     <h3 class='text-lg font-semibold mb-2 text-green-800 inline-block'>Conducción de Voces (Voicing):</h3>
-                    <button id="playVoiceLeadingBtn" class="btn btn-secondary p-1 leading-none inline-block ml-2" title="Reproducir enlace de voces">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-                            <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                    <button id="playVoiceLeadingBtn" class="btn btn-secondary p-1 leading-none inline-block ml-2 rounded-full" title="Reproducir enlace de voces">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-play-circle-fill" viewBox="0 0 16 16">
+                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814z"/>
                         </svg>
                     </button>`;
                 
@@ -1499,9 +1518,11 @@
                     const fromHasEnh = hasEnharmonic(map.from); // MODIFICADO
                     const toHasEnh = hasEnharmonic(map.to); // MODIFICADO
                     
+                    // MODIFICADO: Añadir clase 'enharmonic-note' si tiene alternativa
                     const fromSpan = `<span class="voice-leading-note ${fromHasEnh ? 'enharmonic-note' : ''}" data-current="${fromNoteName}" ${fromAlt ? `data-alternate="${fromAlt}"` : ''}>${fromNoteName}</span>`;
                     const toSpan = `<span class="voice-leading-note ${toHasEnh ? 'enharmonic-note' : ''}" data-current="${toNoteName}" ${toAlt ? `data-alternate="${toAlt}"` : ''}>${toNoteName}</span>`;
 
+                    // MODIFICADO: Añadir clase 'common-tone-note'
                     if (map.common) {
                         voiceLeadingHtml += `<li class="common-tone-note">${fromSpan} → ${toSpan} (Nota Común)</li>`;
                     } else {
@@ -1540,14 +1561,9 @@
             const target = event.target;
             // Asegurarse de no activar si se hace clic en el botón de play
             if (target.closest('#playVoiceLeadingBtn')) return;
-
-            if (target.classList.contains('enharmonic-note')) {
-                const current = target.dataset.current;
-                const alternate = target.dataset.alternate;
-                if (alternate) {
-                    target.textContent = (target.textContent === current) ? alternate : current;
-                }
-            }
+            
+            // MODIFICADO: Llamar a la función de toggle enarmónico
+            toggleEnharmonicSpan(target);
         });
         
         // --- Lógica de Modales ---
@@ -1564,6 +1580,21 @@
         glossaryButton.addEventListener('click', () => glossaryModal.classList.add('show'));
         closeGlossaryButton.addEventListener('click', () => glossaryModal.classList.remove('show'));
 
+        // NUEVO: Lógica de pestañas del modal de Ayuda
+        helpModalTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Desactivar todas las pestañas y paneles
+                helpModalTabs.forEach(t => t.classList.remove('active'));
+                helpModalPanes.forEach(p => p.classList.remove('active'));
+
+                // Activar la pestaña y panel seleccionados
+                tab.classList.add('active');
+                const tabName = tab.dataset.tab;
+                document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+            });
+        });
+
+
         // NUEVO: Poblar el glosario de operaciones dinámicamente
         function populateGlossaryOperations() {
             glossaryOperationsContainer.innerHTML = ''; // Limpiar
@@ -1577,6 +1608,7 @@
                 if (titleMatch) {
                     const title = titleMatch[1];
                     const entryDiv = document.createElement('div');
+                    // MODIFICADO: Usar <H4> para la semántica correcta
                     entryDiv.innerHTML = `
                         <h4 class="text-lg font-semibold text-gray-800">${title}</h4>
                         <p class="text-gray-700">${description}</p>
@@ -1829,7 +1861,6 @@
             }
         }
 
-
         // --- Lógica de la Aplicación ---
         
         // Poblar selector de acordes
@@ -1863,10 +1894,15 @@
         /**
          * NUEVA FUNCIÓN: Establece el acorde de inicio y reinicia la UI.
          * Separada de initializeApp para evitar que el modal se muestre en cada cambio.
+         * MODIFICADO: No reiniciar el historial si solo cambia la enarmonía.
          */
-        function setStartChord(chordName) {
+        function setStartChord(chordName, preserveHistory = false) {
             try {
-                exitAnalysis(); // Asegurarse de que el modo análisis esté desactivado
+                // MODIFICADO: Solo salir de análisis si no estamos preservando el historial
+                // (ya que el cambio de enarmonía puede ocurrir *durante* el análisis)
+                if (!preserveHistory) {
+                    exitAnalysis(); // Asegurarse de que el modo análisis esté desactivado
+                }
                 
                 currentTriad = getTriadByName(chordName);
                 if (!currentTriad) {
@@ -1875,27 +1911,34 @@
                 // Asegurarse de que el acorde inicial respete la enarmonía
                 currentTriad = getPreferredSpelling(currentTriad);
 
-                previousTriad = null;
-                history = [];
-                currentHistoryIndex = -1; // Reiniciar índice de historial
-                currentVisualizationMode = 'lp'; // Asegurarse de que el modo inicial es 'lp'
-                vizToggle.checked = false; // Asegurarse de que el toggle esté en la posición 'lp'
-                
-                // NUEVO: Reiniciar contexto diatónico
-                currentDiatonicKey = 'none';
-                diatonicKeySelect.value = 'none';
+                // MODIFICADO: No reiniciar historial, octavas, etc., si preserveHistory es true.
+                if (!preserveHistory) {
+                    previousTriad = null;
+                    history = [];
+                    currentHistoryIndex = -1; // Reiniciar índice de historial
+                    currentVisualizationMode = 'lp'; // Asegurarse de que el modo inicial es 'lp'
+                    vizToggle.checked = false; // Asegurarse de que el toggle esté en la posición 'lp'
+                    
+                    // NUEVO: Reiniciar contexto diatónico
+                    currentDiatonicKey = 'none';
+                    diatonicKeySelect.value = 'none';
 
-                // Inicializar el lastPlayedVoicing
-                const rootNotes = currentTriad.getNotes();
-                const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
-                lastPlayedVoicing = toneNotes; // Inicializa en la 4ª octava
-                const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
-                updateVoicing(midiNotes); // Preparar el voicing sin reproducir
+                    // Inicializar el lastPlayedVoicing
+                    const rootNotes = currentTriad.getNotes();
+                    const toneNotes = rootNotes.map(n => `${n.replace('♯', '#').replace('♭', 'b')}4`);
+                    lastPlayedVoicing = toneNotes; // Inicializa en la 4ª octava
+                    const midiNotes = lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi());
+                    updateVoicing(midiNotes); // Preparar el voicing sin reproducir
+                }
 
                 updateUI();
-                displayOperationExplanation('');
-                removeActiveOperationHighlight();
-                removeOperationsBoxHighlight();
+                
+                // Solo limpiar la explicación y resaltados si no estamos preservando el historial
+                if (!preserveHistory) {
+                    displayOperationExplanation('');
+                    removeActiveOperationHighlight();
+                    removeOperationsBoxHighlight();
+                }
                 updateOperationButtonHighlights();
 
             } catch (error) {
@@ -1914,6 +1957,17 @@
             // Ahora solo llama a setStartChord y muestra el modal
             setStartChord(startChordSelect.value);
             showAuthorModal();
+        }
+        
+        // --- NUEVA FUNCIÓN: Clic en nota enarmónica ---
+        function toggleEnharmonicSpan(span) {
+            if (span && span.classList.contains('enharmonic-note')) {
+                const current = span.dataset.current;
+                const alternate = span.dataset.alternate;
+                if (alternate) {
+                    span.textContent = (span.textContent === current) ? alternate : current;
+                }
+            }
         }
 
         // Actualizar toda la UI
@@ -1939,8 +1993,25 @@
             currentChordName.textContent = currentTriad.name + functionalDegree;
             // --- FIN NUEVO ---
 
-            const notes = currentTriad.getNotes();
-            currentChordNotes.innerHTML = `Raíz: <span class="font-bold">${notes[0]}</span>, Tercera: <span class="font-bold">${notes[1]}</span>, Quinta: <span class="font-bold">${notes[2]}</span>`;
+            // MODIFICADO: Crear spans enarmónicos para las notas del acorde
+            const notes = currentTriad.getNotes(); // ['C', 'E', 'G']
+            const pcs = currentTriad.pitchClasses; // [0, 4, 7]
+            const rootPc = noteToPitchClass[currentTriad.root];
+            const thirdPc = (currentTriad.type === 'major') ? normalizePitch(rootPc + 4) : normalizePitch(rootPc + 3);
+            const fifthPc = normalizePitch(rootPc + 7);
+
+            const createNoteSpan = (noteName, pc) => {
+                const altNoteName = canonicalSpelling[enharmonicPreference === 'sharp' ? 'flat' : 'sharp'][pc];
+                const hasEnh = (noteName !== altNoteName);
+                
+                return `<span class="font-bold ${hasEnh ? 'enharmonic-note' : ''}" 
+                              data-current="${noteName}" 
+                              ${hasEnh ? `data-alternate="${altNoteName}"` : ''}>${noteName}</span>`;
+            };
+
+            currentChordNotes.innerHTML = `Raíz: ${createNoteSpan(notes[0], rootPc)}, 
+                                       Tercera: ${createNoteSpan(notes[1], thirdPc)}, 
+                                       Quinta: ${createNoteSpan(notes[2], fifthPc)}`;
             
             updateHistoryLog();
             updateSetRelationshipsDisplay();
@@ -1983,8 +2054,10 @@
                 return;
             }
             
-            [...history].reverse().forEach((entry, reverseIndex) => {
-                const originalIndex = history.length - 1 - reverseIndex; // Índice real en el array
+            [...history].reverse().forEach((reverseIndex, i) => {
+                // MODIFICADO: El historial se itera al revés, pero necesitamos la entrada correcta
+                const entry = history[history.length - 1 - i];
+                const originalIndex = history.length - 1 - i; // Índice real en el array
                 
                 const div = document.createElement("div");
                 div.className = "history-item";
@@ -1994,10 +2067,14 @@
                 let toFunc = '';
                 let opType = '';
 
-                if (diatonicInfo) {
-                    const fromTriad = getTriadByName(entry.from);
-                    const toTriad = getTriadByName(entry.to);
+                // MODIFICADO: Usar ortografía preferida actual para el historial
+                const fromTriad = getPreferredSpelling(getTriadByName(entry.from));
+                const toTriad = getPreferredSpelling(getTriadByName(entry.to));
+                const fromName = fromTriad ? fromTriad.name : entry.from;
+                const toName = toTriad ? toTriad.name : entry.to;
 
+
+                if (diatonicInfo) {
                     if (fromTriad) {
                         const fromInfo = diatonicInfo[noteToPitchClass[fromTriad.root]];
                         if (fromInfo && fromInfo.type === fromTriad.type) {
@@ -2016,7 +2093,7 @@
                     }
                 }
                 
-                div.textContent = `${entry.timestamp}: ${entry.from}${fromFunc} --(${entry.operation}${opType})--> ${entry.to}${toFunc}`;
+                div.textContent = `${entry.timestamp}: ${fromName}${fromFunc} --(${entry.operation}${opType})--> ${toName}${toFunc}`;
                 // --- FIN NUEVO ---
                 
                 div.dataset.index = originalIndex; // Guardar el índice real
@@ -2030,7 +2107,7 @@
                     div.classList.add('active-history');
                 }
                 
-                historyLog.prepend(div);
+                historyLog.appendChild(div); // MODIFICADO: Usar append para mantener el orden (ya estamos iterando al revés)
             });
         }
 
@@ -2367,7 +2444,8 @@
             currentAnalysisStep = stepIndex;
             const step = currentAnalysis.steps[stepIndex];
             
-            const newTriad = getTriadByName(step.chord);
+            // MODIFICADO: Usar la ortografía preferida
+            const newTriad = getPreferredSpelling(getTriadByName(step.chord));
             if (!newTriad) {
                 console.error("Acorde no encontrado en el análisis:", step.chord);
                 return;
@@ -2375,7 +2453,8 @@
 
             // Determinar el acorde anterior
             const prevStep = (stepIndex > 0) ? currentAnalysis.steps[stepIndex - 1] : null;
-            const oldTriad = prevStep ? getTriadByName(prevStep.chord) : null;
+            // MODIFICADO: Usar la ortografía preferida
+            const oldTriad = prevStep ? getPreferredSpelling(getTriadByName(prevStep.chord)) : null;
             
             previousTriad = oldTriad;
             currentTriad = newTriad;
@@ -2428,8 +2507,14 @@
             if (stepIndex > 0 && oldTriad) {
                 addHistoryEntry(step.op || "Siguiente", oldTriad, newTriad, fromMidi, toMidi);
             } else {
-                history = []; // Limpiar historial al inicio del análisis
-                currentHistoryIndex = -1;
+                // MODIFICADO: No limpiar el historial si solo cambia la enarmonía
+                if (history.length > 0) {
+                     // Si estamos recargando el paso 0 debido a un cambio de enarmonía,
+                     // no limpiamos el historial, simplemente actualizamos la UI.
+                } else {
+                    history = [];
+                    currentHistoryIndex = -1;
+                }
                 updateHistoryLog();
             }
 
@@ -2481,7 +2566,7 @@
             setStartChord(event.target.value);
         });
         
-        // NUEVO: Listener para el interruptor de Enarmonía
+        // NUEVO: Listener para el interruptor de Enarmonía (MODIFICADO)
         enharmonicToggle.addEventListener('change', () => {
             enharmonicPreference = enharmonicToggle.checked ? 'flat' : 'sharp';
             
@@ -2491,8 +2576,27 @@
             
             // Actualizar la UI
             populateStartChordSelect(); // Repoblar el selector
-            setStartChord(startChordSelect.value); // Reiniciar el estado
-            updateUI(); // Redibujar todo
+            
+            // MODIFICADO: Preservar el historial y el estado
+            setStartChord(startChordSelect.value, true); 
+            
+            // Si estamos en modo análisis, recargar el paso actual con la nueva enarmonía
+            if (isInAnalysisMode) {
+                loadAnalysisStep(currentAnalysisStep);
+            } else {
+                // Si no, solo actualizar la UI (ya hecho por setStartChord)
+                // y refrescar la explicación si existe
+                const lastEntry = history[currentHistoryIndex];
+                if (lastEntry) {
+                     displayOperationExplanation(lastEntry.operation, 
+                                             getPreferredSpelling(getTriadByName(lastEntry.from)), 
+                                             getPreferredSpelling(getTriadByName(lastEntry.to)), 
+                                             lastEntry.fromMidi, 
+                                             lastEntry.toMidi);
+                } else {
+                    displayOperationExplanation(''); // Limpiar si no hay historial
+                }
+            }
         });
 
         // NUEVO: Listener para el botón de Mute
@@ -2749,6 +2853,12 @@
             currentDiatonicKey = event.target.value === 'none' ? null : event.target.value;
             updateUI(); // Actualizar toda la UI con el nuevo contexto
         });
+        
+        // NUEVO: Listener para clics en notas enarmónicas en el display principal
+        currentChordNotes.addEventListener('click', (event) => {
+            toggleEnharmonicSpan(event.target);
+        });
+
 
         // NUEVO: Función para poblar el selector diatónico
         function populateDiatonicKeySelect() {
