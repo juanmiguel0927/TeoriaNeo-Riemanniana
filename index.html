@@ -459,7 +459,12 @@
             [...history].reverse().forEach((h, i) => {
                 const div = document.createElement("div");
                 div.className = `history-item ${history.length-1-i===currentHistoryIndex?'active-history':'inactive-history'}`;
-                div.textContent = `${h.timestamp}: ${h.from} --(${h.operation})--> ${h.to}`;
+                // Obtener ortografía preferida dinámica para el historial
+                const fT = getPreferredSpelling(getTriadByName(h.from));
+                const tT = getPreferredSpelling(getTriadByName(h.to));
+                const fName = fT ? fT.name : h.from;
+                const tName = tT ? tT.name : h.to;
+                div.textContent = `${h.timestamp}: ${fName} --(${h.operation})--> ${tName}`;
                 div.onclick = () => { 
                     if(isInAnalysisMode) {
                         const targetStep = (history.length - 1 - i) + 1;
@@ -604,6 +609,7 @@
             generateAllTriads(); genCycles(); populateStartChordSelect();
             setStartChord("C Mayor"); drawFullTonnetz();
             const sc = getElement("startChord"); if(sc) sc.addEventListener('change', (e)=>setStartChord(e.target.value));
+            const rb = getElement("resetButton"); if(rb) rb.onclick = () => { setStartChord("C Mayor"); populateStartChordSelect(); };
             const et = getElement("enharmonicToggle"); if(et) et.addEventListener('change', (e)=>{ enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; generateAllTriads(); genCycles(); populateStartChordSelect(); if(isInAnalysisMode) loadAnalysisStep(currentAnalysisStep); else setStartChord(sc.value, true); });
             const eta = getElement("enharmonicToggleAnalysis"); if(eta) eta.addEventListener('change', (e)=>{ enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; document.getElementById("enharmonicToggle").checked=e.target.checked; generateAllTriads(); genCycles(); populateStartChordSelect(); if(isInAnalysisMode) loadAnalysisStep(currentAnalysisStep); else setStartChord(sc.value, true); });
             document.querySelectorAll('#operationsBox button').forEach(b => b.addEventListener('click', (e) => {
