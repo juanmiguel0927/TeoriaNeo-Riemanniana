@@ -73,7 +73,7 @@
         /* Visualizaciones */
         .circle-container { height: 400px; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; }
         .tonnetz-container { height: 400px; width: 100%; overflow: hidden; background: #fafafa; border-radius: 8px; }
-        .tonnetz-node-circle { transition: fill 0.2s; cursor: pointer; }
+        .tonnetz-node-circle { transition: fill 0.3s ease; cursor: pointer; }
         .tonnetz-node-text { pointer-events: none; user-select: none; }
 
         /* Conducción de voces */
@@ -81,8 +81,25 @@
         .voice-leading-row:hover { background-color: #f0fdf4; }
         .voice-leading-row:active { background-color: #dcfce7; }
         .voice-leading-row:last-child { border-bottom: none; }
-        .common-tone { color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 0 4px; border-radius: 4px; }
-        .moving-tone { color: #dc2626; }
+        .common-tone { font-weight: bold; background-color: rgba(0,0,0,0.05); padding: 0 4px; border-radius: 4px; }
+        
+        /* Piano */
+        .piano-container { width: 100%; height: 80px; margin-top: 15px; display: flex; justify-content: center; }
+        .piano-key { fill: white; stroke: #333; stroke-width: 1px; transition: fill 0.1s; }
+        .piano-key.black { fill: #333; stroke: black; }
+        .piano-key.active { fill: #3b82f6 !important; }
+        .piano-key.black.active { fill: #2563eb !important; }
+
+        /* Quiz */
+        .quiz-option-btn {
+            background-color: #fff; border: 1px solid #e5e7eb; padding: 8px; 
+            border-radius: 6px; cursor: pointer; text-align: center; font-size: 0.9rem;
+            transition: all 0.1s;
+        }
+        .quiz-option-btn:hover { background-color: #f3f4f6; }
+        .quiz-option-btn.correct { background-color: #dcfce7; border-color: #16a34a; color: #166534; font-weight: bold; }
+        .quiz-option-btn.wrong { background-color: #fee2e2; border-color: #dc2626; color: #991b1b; }
+        .quiz-feedback { font-weight: bold; margin-top: 5px; min-height: 20px; }
 
         /* Toggle Switch */
         .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; vertical-align: middle; }
@@ -247,6 +264,9 @@
                                 <button id="playChordButton" class="btn btn-primary text-xs py-1 px-3 shadow-md shadow-blue-200">▶ Acorde (Espacio)</button>
                                 <button id="playArpeggioButton" class="btn btn-secondary text-xs py-1 px-3">🎹 Arpegio (A)</button>
                             </div>
+                            
+                            <!-- Piano Keyboard -->
+                            <div id="pianoContainer" class="piano-container"></div>
                         </div>
                         
                         <!-- Operations Grid -->
@@ -276,11 +296,23 @@
                 <div class="panel">
                     <div class="panel-header py-2 px-3 text-sm">Herramientas</div>
                     <div class="panel-body p-3 bg-gray-50">
-                        <select id="analysisSelect" class="w-full p-2 border border-gray-300 rounded text-sm mb-3">
-                            <option value="">📂 Cargar Análisis Guiado...</option>
-                            <option value="liszt">Liszt - Consolación IV</option>
-                            <option value="schubert">Schubert - D.946 Nº2</option>
-                        </select>
+                        <div class="mb-3 border-b pb-3">
+                            <select id="analysisSelect" class="w-full p-2 border border-gray-300 rounded text-sm mb-2">
+                                <option value="">📂 Cargar Análisis Guiado...</option>
+                                <option value="liszt">Liszt - Consolación IV</option>
+                                <option value="schubert">Schubert - D.946 Nº2</option>
+                            </select>
+                            <div id="quizContainer" class="mt-2 bg-amber-50 p-2 rounded border border-amber-100 hidden">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-amber-700 text-sm">Modo Quiz</span>
+                                    <button id="stopQuizBtn" class="text-xs text-gray-500 underline">Salir</button>
+                                </div>
+                                <p id="quizQuestion" class="text-sm mb-2 font-semibold text-center">¿Pregunta?</p>
+                                <div id="quizOptions" class="grid grid-cols-2 gap-2 mb-2"></div>
+                                <div id="quizFeedback" class="quiz-feedback text-xs text-center"></div>
+                            </div>
+                            <button id="startQuizBtn" class="btn btn-secondary w-full text-xs text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100">🎓 Iniciar Entrenamiento (Quiz)</button>
+                        </div>
                         
                         <div id="freeAnalysisContainer">
                             <textarea id="freeAnalysisInput" rows="1" class="w-full p-2 border border-gray-300 rounded text-sm resize-none" placeholder="Análisis libre: C Am F..."></textarea>
@@ -403,6 +435,12 @@
         let currentVisualizationMode = 'lp', isInAnalysisMode = false, currentAnalysis = null, currentAnalysisStep = 0;
         let enharmonicPreference = 'sharp';
         let isToneStarted = false, isMuted = false, lastPlayedVoicing = [], currentTonnetzHighlight = null;
+        
+        // Quiz State
+        let isQuizMode = false, quizTargetTriadName = null;
+
+        // Visual Assets
+        const voiceColors = ['#dc2626', '#16a34a', '#2563eb']; // Red, Green, Blue for Voice 0, 1, 2
 
         const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
         const arpeggioSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
@@ -469,18 +507,14 @@
         function opH(t) { let p=opP(t); if(!p)return null; let l=opL(p); if(!l)return null; return opP(l); }
         function opS(t) { let r=opR(t); if(!r)return null; let n=opN(r); if(!n)return null; return opR(n); }
         
-        // Find path for composite operations
         function findOperationPath(startTriad, targetTriad) {
             const queue = [{triad: startTriad, path: []}];
             const visited = new Set([startTriad.name]);
             const maxDepth = 4;
-            
             while(queue.length > 0) {
                 const {triad, path} = queue.shift();
                 if(triad.hasSamePitchClasses(targetTriad) && triad.type === targetTriad.type) return path.join("");
-                
                 if(path.length >= maxDepth) continue;
-                
                 const ops = [['L', opL], ['P', opP], ['R', opR]];
                 for(let [name, func] of ops) {
                     const nextT = func(triad);
@@ -490,7 +524,7 @@
                     }
                 }
             }
-            return null; // Not found in simple operations
+            return null; 
         }
         
         function findBestOperation(a, b) { 
@@ -500,8 +534,6 @@
             if(opN(a)&&opN(a).hasSamePitchClasses(b)) return 'N'; 
             if(opS(a)&&opS(a).hasSamePitchClasses(b)) return 'S'; 
             if(opH(a)&&opH(a).hasSamePitchClasses(b)) return 'H'; 
-            
-            // Try to find composite path
             const path = findOperationPath(a, b);
             return path || '??'; 
         }
@@ -588,16 +620,27 @@
             if(isMuted) return;
             startAudioContext();
             const now = Tone.now();
-            // Chord 1
             const notes1 = fromMidi.map(m => Tone.Frequency(m, "midi").toNote());
+            
+            // Visuals synced with audio
+            highlightKeys(fromMidi);
             synth.triggerAttackRelease(notes1, "2n", now);
-            // Chord 2
+            
             const notes2 = toMidi.map(m => Tone.Frequency(m, "midi").toNote());
+            // Delay visual update for second chord approx 1s (2n at 120bpm)
+            setTimeout(() => highlightKeys(toMidi), 1000);
             synth.triggerAttackRelease(notes2, "1n", now + 1);
         }
         
-        function playVoicing(m) { if(isMuted)return; startAudioContext(); updateVoicing(m); synth.triggerAttackRelease(lastPlayedVoicing, "1s"); }
-        function playArpeggio(m) { if(isMuted)return; startAudioContext(); [...m].sort((a,b)=>a-b).map(x=>Tone.Frequency(x,"midi").toNote()).forEach((n,i)=>arpeggioSynth.triggerAttackRelease(n, "8n", Tone.now()+i*0.15)); }
+        function playVoicing(m) { 
+            if(isMuted)return; startAudioContext(); updateVoicing(m); synth.triggerAttackRelease(lastPlayedVoicing, "1s"); 
+            highlightKeys(m);
+        }
+        function playArpeggio(m) { 
+            if(isMuted)return; startAudioContext(); 
+            highlightKeys(m);
+            [...m].sort((a,b)=>a-b).map(x=>Tone.Frequency(x,"midi").toNote()).forEach((n,i)=>arpeggioSynth.triggerAttackRelease(n, "8n", Tone.now()+i*0.15)); 
+        }
         
         function playVoiceLeading(midiFrom, midiTo) {
              if(isMuted) return;
@@ -605,58 +648,43 @@
              const n1 = Tone.Frequency(midiFrom, "midi").toNote();
              const n2 = Tone.Frequency(midiTo, "midi").toNote();
              const now = Tone.now();
+             highlightKeys([midiFrom]);
              arpeggioSynth.triggerAttackRelease(n1, "8n", now);
+             setTimeout(() => highlightKeys([midiTo]), 300);
              arpeggioSynth.triggerAttackRelease(n2, "4n", now + 0.3);
         }
 
-        // Improved Voice Leading Logic: STRICT Voice Preservation + Parsimony
+        // Improved Voice Leading Logic
         function getSmartVoicing(fromMidi, toTriad) {
-            const targetPcs = toTriad.pitchClasses; // [0, 4, 7] etc.
+            const targetPcs = toTriad.pitchClasses; 
             let newVoicing = new Array(fromMidi.length).fill(null);
             let availableTargetPcs = [...targetPcs];
             
-            // 1. Strict Common Tone Retention (Same Voice Index)
             for(let i=0; i < fromMidi.length; i++) {
                 const currentPc = fromMidi[i] % 12;
                 if(availableTargetPcs.includes(currentPc)) {
-                    newVoicing[i] = fromMidi[i]; // Keep same MIDI note
-                    // Remove from available (handle duplicate PCs in target if needed, though triads usually unique)
+                    newVoicing[i] = fromMidi[i]; 
                     const idx = availableTargetPcs.indexOf(currentPc);
                     if(idx > -1) availableTargetPcs.splice(idx, 1);
                 }
             }
             
-            // 2. Parsimonious Movement for remaining voices
             for(let i=0; i < newVoicing.length; i++) {
                 if(newVoicing[i] === null) {
                     const startNote = fromMidi[i];
-                    // Find closest available target PC
                     let bestMidi = -1;
                     let minDist = Infinity;
                     
-                    // Iterate remaining target PCs and find closest octave
                     for(let j=0; j < availableTargetPcs.length; j++) {
                         const targetPc = availableTargetPcs[j];
-                        // Candidates: same octave, up, down
                         const currentOctaveBase = Math.floor(startNote / 12) * 12;
-                        const candidates = [
-                            currentOctaveBase + targetPc,
-                            currentOctaveBase + targetPc + 12,
-                            currentOctaveBase + targetPc - 12
-                        ];
-                        
+                        const candidates = [currentOctaveBase + targetPc, currentOctaveBase + targetPc + 12, currentOctaveBase + targetPc - 12];
                         for(let cand of candidates) {
                             const dist = Math.abs(cand - startNote);
-                            if(dist < minDist) {
-                                minDist = dist;
-                                bestMidi = cand;
-                            }
+                            if(dist < minDist) { minDist = dist; bestMidi = cand; }
                         }
                     }
-                    
                     newVoicing[i] = bestMidi;
-                    
-                    // Remove the used PC from available (simple matching)
                     const usedPc = bestMidi % 12;
                     const idx = availableTargetPcs.indexOf(usedPc);
                     if(idx > -1) availableTargetPcs.splice(idx, 1);
@@ -665,7 +693,6 @@
             return newVoicing;
         }
 
-        // Deprecated simple voicing, mapped to smart one for safety
         function getClosestVoicing(f, t) { return getSmartVoicing(f, t); }
 
         function updateUI() {
@@ -676,6 +703,7 @@
             const cn = getElement("currentChordNotes");
             if(cn) cn.innerHTML = notes.join(" - ");
             updateHistoryLog(); updateSetRelationshipsDisplay(); updateCircleVisualization(currentTriad, previousTriad); drawFullTonnetz(); highlightTonnetzTriad(currentTriad, previousTriad);
+            highlightKeys(lastPlayedVoicing.map(n => Tone.Frequency(n).toMidi()));
         }
         function updateHistoryLog() {
             const log = getElement("historyLog"); if(!log) return; log.innerHTML = "";
@@ -698,21 +726,14 @@
                         updateVoicing(tMidi); 
                         updateUI(); 
                         displayOperationExplanation(h.operation, getTriadByName(h.from), currentTriad, fMidi, tMidi); 
-                        playProgression(fMidi, tMidi); // Play progression on click
+                        playProgression(fMidi, tMidi); 
                     }
                 };
                 log.appendChild(div);
             });
         }
         function displayOperationExplanation(op, from, to, fMidi, tMidi) {
-            const opDefinitions = { 
-                "L": "Leading-Tone (Sensible)", 
-                "P": "Parallel (Paralela)", 
-                "R": "Relative (Relativa)", 
-                "N": "Neighbor (Vecina)", 
-                "H": "Hexatonic Pole (Polo)", 
-                "S": "Slide (Deslizamiento)" 
-            };
+            const opDefinitions = { "L": "Leading-Tone (Sensible)", "P": "Parallel (Paralela)", "R": "Relative (Relativa)", "N": "Neighbor (Vecina)", "H": "Hexatonic Pole (Polo)", "S": "Slide (Deslizamiento)" };
             const opName = opDefinitions[op] || op;
             
             let html = op ? `<strong class="text-blue-600 block mb-2 text-center text-base border-b pb-2">Operación: ${opName}</strong>` : "Selecciona una operación.";
@@ -720,19 +741,19 @@
             if(from && to && fMidi && tMidi) {
                 html += `<div class="mt-2 text-xs"><strong>Conducción de Voces:</strong><br><span class="text-gray-400 text-[10px] block mb-1 font-normal">(Haz clic en una fila para escuchar)</span><div class="flex flex-col gap-1 mt-1 bg-white p-2 rounded border border-gray-100">`;
                 
-                // IMPORTANT: Use index-based matching to visualize voices correctly
                 for(let i=0; i<fMidi.length; i++) {
                      const fm = fMidi[i];
                      const tm = tMidi[i];
                      const isCommon = (fm % 12) === (tm % 12);
                      const noteNameFrom = getNoteNameFromMidi(fm);
                      const noteNameTo = getNoteNameFromMidi(tm);
+                     const voiceColor = voiceColors[i % voiceColors.length];
                      
                      html += `
-                    <div class="voice-leading-row" onclick="window.playVoiceLeading(${fm}, ${tm})" title="Reproducir movimiento: ${noteNameFrom} -> ${noteNameTo}">
-                        <span class="${isCommon ? 'common-tone' : 'moving-tone'} w-1/3 text-right">${noteNameFrom}</span>
+                    <div class="voice-leading-row" style="color:${voiceColor}" onclick="window.playVoiceLeading(${fm}, ${tm})" title="Reproducir movimiento: ${noteNameFrom} -> ${noteNameTo}">
+                        <span class="${isCommon ? 'common-tone' : ''} w-1/3 text-right">${noteNameFrom}</span>
                         <span class="text-gray-400 w-1/6 text-center">→</span>
-                        <span class="${isCommon ? 'common-tone' : 'moving-tone'} w-1/3 text-left">${noteNameTo}</span>
+                        <span class="${isCommon ? 'common-tone' : ''} w-1/3 text-left">${noteNameTo}</span>
                         <span class="w-1/6 text-xs text-gray-500 text-right flex items-center justify-end">${isCommon ? 'Común' : '🔊'}</span>
                     </div>`;
                 }
@@ -753,11 +774,50 @@
             if(currentTriad) sel.value = getPreferredSpelling(currentTriad).name;
         }
 
+        // --- KEYBOARD VISUALIZATION ---
+        function renderKeyboard() {
+            const container = getElement("pianoContainer"); if(!container) return;
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%"); svg.setAttribute("viewBox", "0 0 350 80");
+            
+            const whiteKeyWidth = 16, blackKeyWidth = 10, blackKeyHeight = 50, whiteKeyHeight = 80;
+            const startMidi = 48; // C3
+            let x = 0;
+            const whiteKeys = [], blackKeys = [];
+            
+            for(let m = startMidi; m <= 84; m++) { // Up to C6
+                const pc = m % 12;
+                const isBlack = [1,3,6,8,10].includes(pc);
+                if(!isBlack) {
+                    const r = document.createElementNS(svgNS, "rect");
+                    r.setAttribute("x", x); r.setAttribute("y", 0); r.setAttribute("width", whiteKeyWidth); r.setAttribute("height", whiteKeyHeight);
+                    r.setAttribute("class", "piano-key white"); r.dataset.midi = m;
+                    whiteKeys.push(r);
+                    x += whiteKeyWidth;
+                } else {
+                    const r = document.createElementNS(svgNS, "rect");
+                    r.setAttribute("x", x - (blackKeyWidth/2)); r.setAttribute("y", 0); r.setAttribute("width", blackKeyWidth); r.setAttribute("height", blackKeyHeight);
+                    r.setAttribute("class", "piano-key black"); r.dataset.midi = m;
+                    blackKeys.push(r);
+                }
+            }
+            whiteKeys.forEach(k => svg.appendChild(k));
+            blackKeys.forEach(k => svg.appendChild(k)); // Append black last to layer on top
+            container.innerHTML = ""; container.appendChild(svg);
+        }
+
+        function highlightKeys(midiNotes) {
+            document.querySelectorAll(".piano-key").forEach(k => k.classList.remove("active"));
+            midiNotes.forEach(m => {
+                const k = document.querySelector(`.piano-key[data-midi="${m}"]`);
+                if(k) k.classList.add("active");
+            });
+        }
+
         // --- VISUALIZACIONES ---
         function updateCircleVisualization(act, prev) {
             const svg = document.querySelector("#hexatonicCircle svg"); if(!svg) return; svg.innerHTML = "";
-            const title = document.getElementById("circleTitle");
-            if(title) title.textContent = currentVisualizationMode === 'lp' ? "Ciclo Hexatónico (L/P)" : "Región de Weitzmann (R/N)";
             const cycle = (currentVisualizationMode==='rn'?weitzmannCycles:hexatonicCycles).find(c => c.members.some(m => m.hasSamePitchClasses(act) && m.type===act.type));
             if(!cycle) return;
             const cx = 150, cy = 150, r = 120;
@@ -822,6 +882,18 @@
                 c.setAttribute("fill", "#f8fafc"); c.setAttribute("stroke", "#cbd5e1"); c.setAttribute("stroke-width", "1");
                 t.setAttribute("fill", "#94a3b8"); t.style.fontWeight = "normal";
             });
+            
+            // Highlight previous triad (Ghost)
+            if(prev) {
+                prev.pitchClasses.forEach(pc => {
+                    const nodes = document.querySelectorAll(`.tonnetz-node-group[data-pc="${pc}"]`);
+                    nodes.forEach(g => {
+                        const c = g.querySelector("circle");
+                        c.setAttribute("fill", "#dbeafe"); // Lighter blue for ghost
+                    });
+                });
+            }
+
             if(triad) {
                 triad.pitchClasses.forEach(pc => {
                     const nodes = document.querySelectorAll(`.tonnetz-node-group[data-pc="${pc}"]`);
@@ -845,12 +917,88 @@
              });
         }
 
+        // --- QUIZ LOGIC ---
+        function startQuiz() {
+            isQuizMode = true;
+            document.getElementById("quizContainer").classList.remove("hidden");
+            document.getElementById("startQuizBtn").classList.add("hidden");
+            generateQuizQuestion();
+        }
+        function stopQuiz() {
+            isQuizMode = false;
+            document.getElementById("quizContainer").classList.add("hidden");
+            document.getElementById("startQuizBtn").classList.remove("hidden");
+        }
+        
+        function generateQuizQuestion() {
+            // Random start chord
+            const startTriad = allTriads[Math.floor(Math.random() * allTriads.length)];
+            // Random operation
+            const ops = ["L", "P", "R", "N", "S", "H"];
+            const quizTargetOp = ops[Math.floor(Math.random() * ops.length)];
+            
+            // Calculate correct result
+            let correctTriad;
+            if(quizTargetOp==='L') correctTriad=opL(startTriad); 
+            else if(quizTargetOp==='P') correctTriad=opP(startTriad); 
+            else if(quizTargetOp==='R') correctTriad=opR(startTriad);
+            else if(quizTargetOp==='N') correctTriad=opN(startTriad); 
+            else if(quizTargetOp==='S') correctTriad=opS(startTriad); 
+            else if(quizTargetOp==='H') correctTriad=opH(startTriad);
+            
+            quizTargetTriadName = correctTriad.name;
+            
+            // Generate distractors (3 unique random triads not equal to correct)
+            const options = [correctTriad];
+            while(options.length < 4) {
+                const randomT = allTriads[Math.floor(Math.random() * allTriads.length)];
+                if(!options.some(t => t.name === randomT.name)) {
+                    options.push(randomT);
+                }
+            }
+            
+            // Shuffle options
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
+            
+            // Update UI
+            document.getElementById("quizQuestion").innerHTML = `Aplique la transformación <span class="text-blue-600 font-bold">${quizTargetOp}</span> a <span class="font-bold">${startTriad.name}</span>`;
+            document.getElementById("quizFeedback").textContent = "";
+            
+            const optsContainer = document.getElementById("quizOptions");
+            optsContainer.innerHTML = "";
+            options.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "quiz-option-btn";
+                btn.textContent = opt.name;
+                btn.onclick = () => checkQuizAnswer(btn, opt.name);
+                optsContainer.appendChild(btn);
+            });
+            
+            // Set current triad visually for context
+            setStartChord(startTriad.name, true);
+        }
+        
+        function checkQuizAnswer(btnElement, selectedName) {
+            if(selectedName === quizTargetTriadName) {
+                btnElement.classList.add("correct");
+                document.getElementById("quizFeedback").innerHTML = `<span class="text-green-600">¡Correcto!</span>`;
+                setTimeout(generateQuizQuestion, 1500);
+            } else {
+                btnElement.classList.add("wrong");
+                document.getElementById("quizFeedback").innerHTML = `<span class="text-red-600">Incorrecto. Intenta de nuevo.</span>`;
+            }
+        }
+
         // --- INICIALIZACIÓN ---
         window.onload = () => {
             window.playVoiceLeading = playVoiceLeading;
             
             generateAllTriads(); genCycles(); populateStartChordSelect();
             setStartChord("C Mayor"); 
+            renderKeyboard(); // Draw keys
             
             // Event Listeners Básicos
             getElement("startChord").onchange = (e) => setStartChord(e.target.value);
@@ -860,8 +1008,13 @@
             // Listeners para botones de operación
             document.querySelectorAll('button[data-op]').forEach(b => b.onclick = (e) => {
                 const op = e.currentTarget.dataset.op; 
+                if(isQuizMode) return; // Disable main ops in quiz mode? Or maybe just let them explore
                 handleOperation(op);
             });
+
+            // Quiz Buttons
+            document.getElementById("startQuizBtn").onclick = startQuiz;
+            document.getElementById("stopQuizBtn").onclick = stopQuiz;
 
             // Función unificada para operaciones
             function handleOperation(op) {
@@ -958,6 +1111,8 @@
 
                 // Operaciones
                 if (['l', 'p', 'r', 'n', 's', 'h'].includes(key)) {
+                    if(isQuizMode) return; // Prevent shortcuts messing with quiz flow or add logic
+                    
                     // Feedback visual en el botón
                     const btn = document.querySelector(`button[data-op="${key.toUpperCase()}"]`);
                     if(btn) {
