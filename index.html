@@ -3,298 +3,410 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Explorador de Teoría Neo-Riemanniana</title>
+    <title>Explorador Neo-Riemanniano</title>
+    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Incluir Tone.js para Web Audio -->
+    <!-- Tone.js (Audio) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; color: #334155; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 1.5rem; background-color: #ffffff; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .btn { @apply px-4 py-2 rounded-lg font-semibold transition-all duration-200 cursor-pointer; }
-        .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-lg transform hover:scale-105; }
-        .btn-secondary { @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 shadow-md transform hover:scale-105; }
-        .btn:disabled { @apply bg-gray-300 text-gray-500 cursor-not-allowed transform-none shadow-none hover:bg-gray-300; }
-        .btn-secondary.active-op-btn { @apply bg-yellow-400 text-gray-900 border-2 border-yellow-600 shadow-xl transform scale-105; }
-        .btn-secondary.keyboard-active { @apply bg-blue-400 text-white transform scale-95 border-blue-500; }
+        /* Estilos Base */
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; color: #1f2937; margin: 0; padding: 1rem; }
+        .container { max-width: 1600px; margin: 0 auto; background: transparent; }
         
-        #operationsBox { transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out; }
-        #operationsBox.operations-box-active { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 10px 20px -5px rgba(59, 130, 246, 0.3); border-color: #3b82f6; }
-        .chord-display { @apply bg-blue-100 p-4 rounded-lg text-center my-4 border border-blue-200; }
-        .explanation-box { @apply bg-green-50 p-4 rounded-lg text-sm my-4 border border-green-100; }
-        
-        .history-item { @apply bg-gray-50 p-2 rounded-md mb-2 text-sm border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors; }
-        .history-item.active-history { @apply bg-yellow-100 border-yellow-300 font-medium; border-left: 4px solid #eab308; }
-        .history-item.inactive-history { @apply opacity-50 bg-gray-100; }
-        
-        .non-diatonic-node { @apply opacity-40 grayscale; }
-        .voice-leading-note { @apply font-mono; }
-        .common-tone-note { @apply text-blue-600 font-bold; }
-        .enharmonic-note { @apply text-indigo-700 border-b-2 border-dotted border-indigo-400 cursor-help transition-colors duration-200; }
-        .enharmonic-note:hover { @apply bg-indigo-100 text-indigo-900 border-indigo-600; }
-        
-        .circle-container { position: relative; margin: 0 auto; border: 2px solid #cbd5e1; border-radius: 50%; display: flex; justify-content: center; align-items: center; background-color: #f8fafc; width: 100%; height: 100%; }
-        .chord-node { position: absolute; width: 60px; height: 30px; background-color: #e2e8f0; border: 1px solid #94a3b8; border-radius: 0.5rem; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: bold; color: #475569; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .chord-node.active { background-color: #3b82f6; color: white; border-color: #1d4ed8; box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.4); animation: pulse 1.5s infinite alternate; }
-        .chord-node.previous-active { background-color: #94a3b8; color: #e2e8f0; border-color: #64748b; opacity: 0.7; }
-        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.03); } }
-        .arrow { position: absolute; stroke: #94a3b8; stroke-width: 2; fill: none; marker-end: url(#arrowhead); pointer-events: none; }
-        #arrowhead { fill: #94a3b8; }
-        
-        .tonnetz-node-circle { transition: fill 0.2s, stroke 0.2s; }
-        .tonnetz-node-circle.active { fill: #3b82f6; stroke: #1d4ed8; stroke-width: 2px; }
-        .tonnetz-node-circle.previous-active { fill: #94a3b8; stroke: #64748b; stroke-width: 1px; opacity: 0.7; }
-        .tonnetz-node-text { transition: fill 0.2s; }
-        .tonnetz-node-text.active { fill: white; font-weight: bold; }
-        .tonnetz-triad-fill { transition: fill 0.2s; opacity: 0.4; }
-        .tonnetz-triad-fill.active { fill: #3b82f6; }
-        .tonnetz-triad-fill.previous-active { fill: #94a3b8; opacity: 0.3; }
-        .tonnetz-transformation-path { stroke: #3b82f6; stroke-width: 3; fill: none; marker-end: url(#arrowhead-tonnetz); opacity: 0; animation: drawTonnetzPath 1s ease-out forwards; }
-        @keyframes drawTonnetzPath { 0% { stroke-dasharray: 500; stroke-dashoffset: 500; opacity: 1; } 70% { stroke-dasharray: 500; stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dasharray: 500; stroke-dashoffset: 0; opacity: 0; } }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
-        .modal-content { background-color: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-width: 90%; width: 600px; max-height: 85vh; overflow-y: auto; transform: translateY(-20px); transition: transform 0.3s ease; }
-        .modal-overlay.show .modal-content { transform: translateY(0); }
-
-        .tab-nav { @apply flex border-b border-gray-200 mb-4; }
-        .tab-btn { @apply px-4 py-2 text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-colors; }
-        .tab-btn.active { @apply text-blue-600 border-blue-600 font-bold; }
-        .tab-pane { @apply hidden; }
-        .tab-pane.active { @apply block animate-fade-in; }
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-
-        .toggle-switch-container { @apply flex items-center justify-center space-x-2 my-2; }
-        .toggle-switch { @apply relative inline-block w-10 h-6; }
-        .toggle-switch-input { @apply opacity-0 w-0 h-0; }
-        .toggle-switch-slider { @apply absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all; }
-        .toggle-switch-slider:before { @apply absolute content-[''] h-4 w-4 left-1 bottom-1 bg-white rounded-full transition-all; }
-        .toggle-switch-input:checked + .toggle-switch-slider { @apply bg-blue-600; }
-        .toggle-switch-input:checked + .toggle-switch-slider:before { transform: translateX(16px); }
-
-        .viz-tab-container { @apply flex border-b border-gray-300 mb-4; }
-        .viz-tab-btn { @apply px-4 py-2 -mb-px font-semibold text-gray-600 border-b-2 border-transparent hover:text-blue-600; }
-        .viz-tab-btn.active { @apply text-blue-600 border-blue-600; }
-        .viz-pane { @apply hidden; }
-        .viz-pane.active { @apply block; }
-
-        .btn-op-highlight-lp { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); border-color: #3b82f6; }
-        .btn-op-highlight-rn { box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.5); border-color: #16a34a; }
-
-        .analysis-explanation-box { @apply bg-yellow-50 p-4 rounded-lg text-sm my-4 border border-yellow-200 text-gray-800; }
-        .analysis-score-container { @apply relative w-full mb-4; }
-        .analysis-score-image { @apply w-full rounded-lg border-2 border-gray-300 shadow-md; }
-        #analysisScoreMarker { @apply absolute border-4 border-red-500 rounded-md transition-all duration-500 ease-in-out; background-color: rgba(239, 68, 68, 0.3); pointer-events: none; opacity: 0; }
-        #analysisScoreMarker.show { opacity: 1; }
-        
-        .audio-controls { @apply flex items-center gap-2 bg-gray-100 p-2 rounded-lg border border-gray-200 mt-2 text-sm; }
-        .volume-slider { @apply w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer; }
-        .volume-slider::-webkit-slider-thumb { @apply appearance-none w-4 h-4 bg-blue-600 rounded-full cursor-pointer; }
-        .hidden { display: none; }
-
-        /* Footer Credits Centered */
-        .credits-footer {
-            @apply mt-8 pt-6 border-t border-gray-200 flex justify-center items-center text-sm text-gray-500;
+        /* Layout Grid Principal */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
         }
+        
+        @media (min-width: 1280px) {
+            .dashboard-grid {
+                grid-template-columns: 3fr 1fr; /* Más espacio para visualizaciones */
+            }
+        }
+
+        /* Grid de Visualizaciones (Simultáneas) */
+        .viz-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+        
+        @media (min-width: 1024px) {
+            .viz-grid {
+                grid-template-columns: 1fr 1fr; /* Lado a lado */
+            }
+        }
+
+        /* Paneles */
+        .panel { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; }
+        .panel-header { background: #f9fafb; padding: 10px 15px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; }
+        .panel-body { padding: 15px; flex-grow: 1; position: relative; }
+
+        /* Utilidades */
+        .hidden { display: none !important; }
+        .show { opacity: 1 !important; visibility: visible !important; }
+        
+        /* Botones */
+        .btn { padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-size: 0.9rem; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-secondary { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+        .btn-secondary:hover { background-color: #e5e7eb; }
+        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; opacity: 0.7; }
+        
+        /* Botones de Operación */
+        .op-btn { height: 50px; font-size: 1.2rem; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.1; }
+        .op-btn span { font-size: 0.65rem; font-weight: normal; color: #555; }
+        .op-btn strong { font-size: 1.1rem; }
+
+        /* Componentes específicos */
+        .chord-display-main { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #bfdbfe; margin-bottom: 15px; }
+        .history-container { max-height: 300px; overflow-y: auto; }
+        .history-item { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; cursor: pointer; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+        .history-item:hover { background-color: #f9fafb; }
+        .history-item:last-child { border-bottom: none; }
+        .active-history { background-color: #eff6ff; border-left: 3px solid #3b82f6; }
+
+        /* Visualizaciones */
+        .circle-container { height: 400px; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; }
+        .tonnetz-container { height: 400px; width: 100%; overflow: hidden; background: #fafafa; border-radius: 8px; }
+        .tonnetz-node-circle { transition: fill 0.2s; cursor: pointer; }
+        .tonnetz-node-text { pointer-events: none; user-select: none; }
+
+        /* Conducción de voces */
+        .voice-leading-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; font-family: monospace; font-size: 0.95rem; }
+        .voice-leading-row:last-child { border-bottom: none; }
+        .common-tone { color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 0 4px; border-radius: 4px; }
+        .moving-tone { color: #dc2626; }
+
+        /* Toggle Switch */
+        .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; vertical-align: middle; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .toggle-slider { background-color: #3b82f6; }
+        input:checked + .toggle-slider:before { transform: translateX(16px); }
+
+        /* Top Bar Inputs */
+        .top-bar-select { background: #f9fafb; border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; }
+        .top-bar-label { font-size: 0.8rem; font-weight: 600; color: #6b7280; margin-right: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Modales */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 25px rgba(0,0,0,0.1); }
+        .show { opacity: 1 !important; visibility: visible !important; }
+        
+        .tab-btn { padding: 8px 16px; border-bottom: 2px solid transparent; font-weight: 500; color: #6b7280; }
+        .tab-btn.active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 700; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
-<body class="p-4">
+<body>
     <div class="container">
-        <h1 class="text-3xl font-bold text-center mb-6 text-blue-700">Explorador de Teoría Neo-Riemanniana</h1>
+        <!-- Header / Top Bar -->
+        <header class="mb-4">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <span class="text-blue-600 text-3xl">✦</span> Explorador Neo-Riemanniano
+                </h1>
+                <!-- Texto de versión eliminado -->
+            </div>
 
-        <div class="flex flex-col md:flex-row gap-6">
-            <!-- Panel Izquierdo -->
-            <div class="md:w-1/2 flex flex-col">
-                <div id="startChordContainer" class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
-                    <label for="startChord" class="block text-gray-700 text-sm font-bold mb-2">Selecciona un acorde inicial:</label>
-                    <select id="startChord" class="shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
-                    <div class="toggle-switch-container mt-3">
-                        <span class="toggle-switch-label">Preferir ♯</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="enharmonicToggle" class="toggle-switch-input">
-                            <span class="toggle-switch-slider"></span>
-                        </label>
-                        <span class="toggle-switch-label">Preferir ♭</span>
-                    </div>
-                    <div class="audio-controls">
-                        <span class="font-semibold text-gray-600">Sonido:</span>
-                        <select id="waveTypeSelect" class="text-xs border border-gray-300 rounded px-1 py-1 bg-white">
+            <!-- Global Controls Bar -->
+            <div id="startChordContainer" class="panel p-3 flex flex-wrap items-center gap-4 md:gap-6 bg-white shadow-sm flex-row">
+                <!-- Selector Acorde -->
+                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <span class="top-bar-label">Inicio:</span>
+                    <select id="startChord" class="top-bar-select w-full max-w-[180px]"></select>
+                </div>
+
+                <!-- Enharmonic Toggle -->
+                <div class="flex items-center gap-2 border-l border-gray-200 pl-4">
+                    <span class="text-xs font-bold text-gray-500">♯</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="enharmonicToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="text-xs font-bold text-gray-500">♭</span>
+                </div>
+
+                <!-- Sound Controls -->
+                <div class="flex items-center gap-3 border-l border-gray-200 pl-4">
+                    <div class="flex items-center gap-1">
+                        <select id="waveTypeSelect" class="top-bar-select py-1 text-xs">
                             <option value="triangle">Triángulo</option>
                             <option value="sine">Senoidal</option>
-                            <option value="sawtooth">Sierra</option>
-                            <option value="square">Cuadrada</option>
                         </select>
-                        <span class="ml-2">Vol:</span>
-                        <input type="range" id="volumeSlider" min="-30" max="0" value="-10" class="volume-slider">
                     </div>
-                    <div class="flex gap-3 mt-3">
-                        <button id="resetButton" class="btn btn-primary w-1/3">Reiniciar</button>
-                        <button id="glossaryButton" class="btn btn-secondary w-1/3">Ayuda</button>
-                        <button id="muteButton" class="btn btn-secondary w-1/3">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16"><path d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.707.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.198 5.303z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.489 3.489 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"/></svg>
-                        </button>
+                    <div class="flex items-center gap-1">
+                        <span class="text-xs text-gray-500">Vol</span>
+                        <input type="range" id="volumeSlider" min="-30" max="0" value="-10" class="w-20 accent-blue-600">
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 text-center">Atajos: L, P, R, N, S, H | Espacio: Play | A: Arpegio | Z: Deshacer</p>
+                    <button id="muteButton" class="btn btn-secondary py-1 px-2 text-sm" title="Silenciar (M)">🔊</button>
                 </div>
 
-                <div class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Análisis Guiado:</label>
-                    <select id="analysisSelect" class="shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                        <option value="">Selecciona un análisis...</option>
-                        <option value="liszt">Liszt - Consolación IV</option>
-                        <option value="schubert">Schubert - D.946 Nº2</option>
-                    </select>
-                </div>
-
-                <div id="analysisControls" class="hidden mb-4 p-4 bg-yellow-50 rounded-lg shadow-inner border border-yellow-200">
-                    <h3 class="text-lg font-semibold mb-2 text-gray-800">Análisis: <span id="analysisTitle"></span></h3>
-                    <div class="toggle-switch-container mt-3 mb-3 bg-white p-2 rounded-lg border border-yellow-100">
-                        <span class="toggle-switch-label">Preferir ♯</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="enharmonicToggleAnalysis" class="toggle-switch-input">
-                            <span class="toggle-switch-slider"></span>
-                        </label>
-                        <span class="toggle-switch-label">Preferir ♭</span>
-                    </div>
-                    <div id="analysisScoreContainer" class="analysis-score-container hidden">
-                        <img id="analysisScoreImage" src="" alt="Partitura" class="analysis-score-image">
-                        <div id="analysisScoreMarker"></div>
-                    </div>
-                    <div id="analysisExplanation" class="analysis-explanation-box"></div>
-                    <div class="flex justify-between gap-3 mt-3">
-                        <button id="prevStepBtn" class="btn btn-secondary w-1/3">Anterior</button>
-                        <button id="nextStepBtn" class="btn btn-secondary w-1/3">Siguiente</button>
-                        <button id="exitAnalysisBtn" class="btn btn-primary w-1/3">Salir</button>
-                    </div>
-                </div>
-
-                <!-- (Removed Diatonic Context) -->
-
-                <div id="freeAnalysisContainer" class="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
-                    <label for="freeAnalysisInput" class="block text-gray-700 text-sm font-bold mb-2">Análisis Libre</label>
-                    <textarea id="freeAnalysisInput" rows="3" class="shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Escribe una progresión, ej: DoM, Lam, FaM, DoM"></textarea>
-                    <button id="freeAnalysisButton" class="btn btn-primary w-full mt-3">Analizar Progresión</button>
-                    <p id="freeAnalysisError" class="text-red-600 text-sm mt-2"></p>
-                </div>
-
-                <div class="chord-display">
-                    <div class="flex justify-center items-center gap-2">
-                        <h2 class="text-xl font-bold text-blue-800">Acorde: <span id="currentChordName">C Mayor</span></h2>
-                        <button id="playChordButton" class="btn btn-secondary p-2 leading-none" title="Play (Espacio)"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-volume-up-fill" viewBox="0 0 16 16"><path d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.707.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.198 5.303z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.489 3.489 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"/></svg></button>
-                        <button id="playArpeggioButton" class="btn btn-secondary p-2 leading-none" title="Arpegio (A)"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-music-note-list" viewBox="0 0 16 16"><path d="M12 13c0 1.105-1.12 2-2.5 2S7 14.105 7 13s1.12-2 2.5-2 2.5.895 2.5 2"/><path fill-rule="evenodd" d="M12 3v10h-1V3z"/><path d="M11 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 16 2.22V4l-5 1z"/><path fill-rule="evenodd" d="M0 11.5a.5.5 0 0 1 .5-.5H4a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5m0-4A.5.5 0 0 1 .5 7H8a.5.5 0 0 1 0 7.5m0-4A.5.5 0 0 1 .5 3H8a.5.5 0 0 1 0 1H.5A.5.5 0 0 1 0 3.5"/></svg></button>
-                    </div>
-                    <p class="text-lg text-gray-700">Notas: <span id="currentChordNotes"></span></p>
-                </div>
-
-                <div id="operationsBox" class="mb-4 p-4 bg-blue-50 rounded-lg shadow-inner border border-blue-100">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Operaciones:</h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <button class="btn btn-secondary" data-op="L" title="Atajo: L">L (Leittonechel)</button>
-                        <button class="btn btn-secondary" data-op="P" title="Atajo: P">P (Parallel)</button>
-                        <button class="btn btn-secondary" data-op="R" title="Atajo: R">R (Relative)</button>
-                        <button class="btn btn-secondary" data-op="N" title="Atajo: N">N (Next Related)</button>
-                        <button class="btn btn-secondary" data-op="H" title="Atajo: H">H (Hexatonic Pole)</button>
-                        <button class="btn btn-secondary" data-op="S" title="Atajo: S">S (Slide)</button>
-                    </div>
-                </div>
-
-                <div class="explanation-box">
-                    <div id="explanationTitleContainer"></div>
-                    <p id="operationExplanation" class="text-gray-800">Selecciona una operación.</p>
-                </div>
-
-                <div class="p-4 bg-gray-50 rounded-lg shadow-inner mt-6">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Relación entre Conjuntos:</h3>
-                    <div id="setRelationships" class="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
-                        <p><strong class="text-blue-700">Ciclo L/P:</strong> <span id="currentHexatonicCycle"></span></p>
-                        <div id="hexatonicCycleMembers" class="flex flex-wrap gap-2 text-sm"></div>
-                        <p><strong class="text-green-700">Región R/N:</strong> <span id="currentWeitzmannRegion"></span></p>
-                        <div id="weitzmannRegionMembers" class="flex flex-wrap gap-2 text-sm"></div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-gray-50 rounded-lg shadow-inner mt-6 flex-grow">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Historial:</h3>
-                    <div id="historyLog" class="h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-white"></div>
+                <!-- Actions -->
+                <div class="flex items-center gap-2 border-l border-gray-200 pl-4 ml-auto">
+                    <button id="resetButton" class="btn btn-secondary text-sm">↺ Reiniciar</button>
+                    <button id="glossaryButton" class="btn btn-secondary text-sm font-bold text-blue-600 border-blue-200 bg-blue-50">? Ayuda</button>
                 </div>
             </div>
 
-            <!-- Panel Derecho -->
-            <div class="md:w-1/2 flex flex-col">
-                <div class="viz-tab-container">
-                    <button id="tabBtnCircle" class="viz-tab-btn active" data-viz="circle">Círculo</button>
-                    <button id="tabBtnTonnetz" class="viz-tab-btn" data-viz="tonnetz">Tonnetz</button>
+            <!-- Analysis Controls -->
+            <div id="analysisControls" class="hidden panel p-4 bg-yellow-50 border-yellow-200 mb-4 flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-gray-800 text-lg">Análisis: <span id="analysisTitle" class="text-blue-700"></span></h3>
+                    <div class="text-xs text-gray-500">Usa las flechas ← → para navegar</div>
+                    <button id="exitAnalysisBtn" class="btn btn-secondary bg-white text-xs text-red-600 border-red-200 hover:bg-red-50">✕ Salir (Esc)</button>
                 </div>
-                <div id="vizPaneCircle" class="viz-pane active">
-                    <div class="p-4 flex flex-col items-center bg-white rounded-lg shadow-inner h-[450px]">
-                        <h3 id="circleTitle" class="text-lg font-semibold mb-3 text-gray-800">Visualización</h3>
-                        <div class="toggle-switch-container">
-                            <span class="toggle-switch-label">L/P</span>
-                            <label class="toggle-switch"><input type="checkbox" id="vizToggle" class="toggle-switch-input"><span class="toggle-switch-slider"></span></label>
-                            <span class="toggle-switch-label">R/N</span>
+                
+                <div class="flex flex-col gap-4">
+                    <!-- Contenedor de Imagen a ancho completo para que se vea mucho más grande -->
+                    <div class="w-full bg-white p-2 rounded shadow-sm border border-gray-200">
+                        <div id="analysisScoreContainer" class="hidden text-center">
+                            <img id="analysisScoreImage" src="" alt="Partitura" class="w-full h-auto object-contain max-h-[400px]">
                         </div>
-                        <div id="hexatonicCircle" class="circle-container"><svg width="100%" height="100%" viewBox="0 0 300 300"></svg></div>
+                        <div id="analysisCitation" class="text-xs text-gray-500 italic mt-2 text-center"></div>
+                    </div>
+                    
+                    <div class="w-full flex flex-col justify-between">
+                        <div id="analysisExplanation" class="bg-white p-4 rounded border border-yellow-100 text-sm mb-3 shadow-sm"></div>
+                        <div class="flex gap-2">
+                            <button id="prevStepBtn" class="btn btn-secondary flex-1">← Anterior</button>
+                            <button id="nextStepBtn" class="btn btn-primary flex-1">Siguiente →</button>
+                        </div>
                     </div>
                 </div>
-                <div id="vizPaneTonnetz" class="viz-pane">
-                    <div class="p-4 bg-white rounded-lg shadow-inner h-[450px] flex flex-col items-center">
-                        <h3 class="text-lg font-semibold mb-3 text-gray-800">Visualización del Tonnetz</h3>
-                        <div id="tonnetzVisualization" class="w-full h-full border border-gray-200 rounded-lg"></div>
-                        <p class="text-xs text-gray-500 mt-2">Haz clic en una nota para resaltar tríadas.</p>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Column: VISUALIZACIONES SIMULTÁNEAS -->
+            <div class="viz-grid">
+                
+                <!-- Panel 1: Círculo -->
+                <div class="panel h-full">
+                    <div class="panel-header">
+                        <span>Círculos de Transformación</span>
+                        <div class="text-xs flex items-center gap-2 font-normal">
+                            <span>Ciclos L/P</span>
+                            <label class="toggle-switch scale-75 origin-center">
+                                <input type="checkbox" id="vizToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span>Regiones R/N</span>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-body flex items-center justify-center bg-white flex-col">
+                        <h3 id="circleTitle" class="text-sm font-bold text-gray-500 mb-2 absolute top-2 left-3">Ciclo Hexatónico</h3>
+                        <div id="hexatonicCircle" class="circle-container">
+                            <svg width="100%" height="100%" viewBox="0 0 300 300"></svg>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500 text-center bg-gray-50 p-2 rounded w-full">
+                            Ciclo Actual: <span id="currentHexatonicCycle" class="font-bold text-blue-600">-</span> <br>
+                            Región Weitzmann: <span id="currentWeitzmannRegion" class="font-bold text-indigo-600">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Tonnetz -->
+                <div class="panel h-full">
+                    <div class="panel-header">
+                        <span>Tonnetz (Red Tonal)</span>
+                        <span class="text-xs text-gray-400 font-normal">Click en nodos para fijar</span>
+                    </div>
+                    
+                    <div class="panel-body p-0">
+                        <div id="vizPaneTonnetz" class="w-full h-full">
+                            <div id="tonnetzVisualization" class="tonnetz-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Operations & Info -->
+            <div class="flex flex-col gap-4 h-full">
+                
+                <!-- Current Chord -->
+                <div class="panel">
+                    <div class="panel-body">
+                        <div class="chord-display-main">
+                            <h2 class="text-2xl font-bold text-blue-800 mb-1"><span id="currentChordName">C Mayor</span></h2>
+                            <p class="text-sm text-gray-500 mb-3 tracking-widest font-mono"><span id="currentChordNotes">C E G</span></p>
+                            <div class="flex justify-center gap-2">
+                                <button id="playChordButton" class="btn btn-primary text-xs py-1 px-3 shadow-md shadow-blue-200">▶ Acorde (Espacio)</button>
+                                <button id="playArpeggioButton" class="btn btn-secondary text-xs py-1 px-3">🎹 Arpegio (A)</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Operations Grid -->
+                        <div id="operationsBox">
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-2 block text-center">Transformaciones (Teclado)</label>
+                            <div class="grid grid-cols-3 gap-2 mb-4">
+                                <button class="btn btn-secondary op-btn relative" data-op="L"><strong>L</strong><span>Sensible</span></button>
+                                <button class="btn btn-secondary op-btn relative" data-op="P"><strong>P</strong><span>Paralela</span></button>
+                                <button class="btn btn-secondary op-btn relative" data-op="R"><strong>R</strong><span>Relativa</span></button>
+                                <button class="btn btn-secondary op-btn relative" data-op="N"><strong>N</strong><span>Vecina</span></button>
+                                <button class="btn btn-secondary op-btn relative" data-op="S"><strong>S</strong><span>Deslizar</span></button>
+                                <button class="btn btn-secondary op-btn relative" data-op="H"><strong>H</strong><span>Polo</span></button>
+                            </div>
+                        </div>
+                        
+                        <!-- Explanation Box -->
+                        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                            <div id="explanationTitleContainer"></div>
+                            <div id="operationExplanation" class="text-sm text-gray-700">
+                                <p class="text-center text-gray-400 italic">Selecciona una operación arriba para ver la conducción de voces.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tools Panel -->
+                <div class="panel">
+                    <div class="panel-header py-2 px-3 text-sm">Herramientas</div>
+                    <div class="panel-body p-3 bg-gray-50">
+                        <select id="analysisSelect" class="w-full p-2 border border-gray-300 rounded text-sm mb-3">
+                            <option value="">📂 Cargar Análisis Guiado...</option>
+                            <option value="liszt">Liszt - Consolación IV</option>
+                            <option value="schubert">Schubert - D.946 Nº2</option>
+                            <option value="norma">Bellini - Norma</option>
+                        </select>
+                        
+                        <div id="freeAnalysisContainer">
+                            <textarea id="freeAnalysisInput" rows="1" class="w-full p-2 border border-gray-300 rounded text-sm resize-none" placeholder="Análisis libre: C Am F..."></textarea>
+                            <div class="flex justify-between items-center mt-2">
+                                <p id="freeAnalysisError" class="text-red-600 text-xs"></p>
+                                <button id="freeAnalysisButton" class="btn btn-primary text-xs py-1">Analizar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div class="panel flex-grow h-[300px]">
+                    <div class="panel-header py-2 px-3 text-sm">Historial de Movimientos</div>
+                    <div id="historyLog" class="history-container bg-white flex-grow">
+                        <div class="p-4 text-center text-gray-400 text-xs italic">El historial aparecerá aquí</div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="credits-footer">Realizado por: <span class="font-bold text-gray-700 ml-1">Juan Miguel Ríos Redondo</span></div>
+        <div class="credits mt-8 text-center text-xs text-gray-400">
+            Realizado por: <strong>Juan Miguel Ríos Redondo</strong>
+        </div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modal Ayuda -->
     <div id="glossaryModal" class="modal-overlay">
-        <div class="modal-content text-left">
-            <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">Ayuda</h2>
-            <div class="tab-nav">
-                <button class="tab-btn active" data-tab="operaciones">Operaciones</button>
-                <button class="tab-btn" data-tab="conceptos">Conceptos</button>
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">Ayuda y Conceptos</h2>
+            <div class="bg-gray-100 p-3 rounded mb-4 text-sm text-center">
+                <strong>Atajos de Teclado:</strong><br>
+                Teclas <span class="font-mono bg-white px-1 rounded">L</span> <span class="font-mono bg-white px-1 rounded">P</span> <span class="font-mono bg-white px-1 rounded">R</span> <span class="font-mono bg-white px-1 rounded">N</span> <span class="font-mono bg-white px-1 rounded">S</span> <span class="font-mono bg-white px-1 rounded">H</span> para Operaciones<br>
+                <span class="font-mono bg-white px-1 rounded">Espacio</span> Reproducir | <span class="font-mono bg-white px-1 rounded">A</span> Arpegio | <span class="font-mono bg-white px-1 rounded">M</span> Silencio<br>
+                <span class="font-mono bg-white px-1 rounded">←</span> <span class="font-mono bg-white px-1 rounded">→</span> Navegar Análisis | <span class="font-mono bg-white px-1 rounded">Esc</span> Salir
             </div>
-            <div id="tabOperaciones" class="tab-pane active">
-                <div class="space-y-4 text-sm text-gray-700">
-                    <div><strong class="text-blue-600 text-base block mb-1">P (Parallel)</strong>Relaciona una tríada mayor con su homónima menor (ej. Do Mayor ↔ Do menor). Mueve la tercera un semitono.</div>
-                    <div><strong class="text-blue-600 text-base block mb-1">L (Leittonwechsel)</strong>Intercambio de sensible. Relaciona tríadas que comparten la tercera mayor y menor (ej. Do Mayor ↔ Mi menor). Mueve la fundamental un semitono.</div>
-                    <div><strong class="text-blue-600 text-base block mb-1">R (Relative)</strong>Relaciona una tríada con su relativa (ej. Do Mayor ↔ La menor). Mueve la quinta un tono.</div>
-                    <div><strong class="text-green-600 text-base block mb-1">N (Nebenverwandt)</strong>Relación de vecindad. Intercambia una tríada mayor por su subdominante menor (ej. C ↔ Fm). Es compuesta (R-L-P).</div>
-                    <div><strong class="text-green-600 text-base block mb-1">S (Slide)</strong>Deslizamiento. Comparte la tercera pero cambia el modo (ej. C ↔ C#m). Es compuesta (L-P-R).</div>
-                    <div><strong class="text-green-600 text-base block mb-1">H (Hexatonic Pole)</strong>Polo hexatónico. Conecta una tríada con su opuesta en el ciclo hexatónico (ej. C ↔ Abm). Es compuesta (L-P-L).</div>
+            <div class="flex border-b mb-4">
+                <button class="tab-btn active w-1/2" data-tab="operaciones">Operaciones</button>
+                <button class="tab-btn w-1/2" data-tab="conceptos">Conceptos Teóricos</button>
+            </div>
+            
+            <div id="tabOperaciones" class="tab-pane active h-[350px] overflow-y-auto pr-2">
+                <div class="space-y-4 text-sm">
+                    <div class="border-b pb-2">
+                        <strong class="text-lg text-blue-600">P (Paralela)</strong>
+                        <p class="mt-1">Relaciona una tríada mayor con su menor paralela (y viceversa). <br>
+                        <em>Ejemplo: C Mayor ↔ C menor.</em></p>
+                        <p class="text-xs text-gray-500 mt-1">Conducción: La quinta se mantiene, la fundamental se mantiene, la tercera se mueve medio tono (3M ↔ 3m).</p>
+                    </div>
+                    <div class="border-b pb-2">
+                        <strong class="text-lg text-blue-600">L (Leittonwechsel - Sensible)</strong>
+                        <p class="mt-1">Intercambio de sensible. Se conserva la tercera mayor (o menor) y la quinta (o fundamental) se mueve medio tono.<br>
+                        <em>Ejemplo: C Mayor ↔ E menor.</em></p>
+                        <p class="text-xs text-gray-500 mt-1">Conducción: La fundamental baja medio tono a la sensible (C → B).</p>
+                    </div>
+                    <div class="border-b pb-2">
+                        <strong class="text-lg text-blue-600">R (Relativa)</strong>
+                        <p class="mt-1">Relaciona una tríada con su relativa diatónica.<br>
+                        <em>Ejemplo: C Mayor ↔ A menor.</em></p>
+                        <p class="text-xs text-gray-500 mt-1">Conducción: La quinta sube un tono (G → A).</p>
+                    </div>
+                    <div class="border-b pb-2">
+                        <strong class="text-lg text-blue-600">N (Nebenverwandt - Vecina)</strong>
+                        <p class="mt-1">Relaciona una tríada con su subdominante menor (desde mayor) o dominante mayor (desde menor). Equivale a aplicar R, luego L, luego P.<br>
+                        <em>Ejemplo: C Mayor ↔ F menor.</em></p>
+                    </div>
+                    <div class="border-b pb-2">
+                        <strong class="text-lg text-blue-600">S (Slide - Deslizamiento)</strong>
+                        <p class="mt-1">Dos tríadas que comparten la tercera, pero cambian de modo (invirtiendo fundamental y quinta).<br>
+                        <em>Ejemplo: C Mayor ↔ C# menor.</em></p>
+                    </div>
+                    <div>
+                        <strong class="text-lg text-blue-600">H (Hexatonic Pole - Polo)</strong>
+                        <p class="mt-1">Relaciona una tríada con su "polo opuesto" en el ciclo hexatónico. Equivale a L-P-L.<br>
+                        <em>Ejemplo: C Mayor ↔ Ab menor.</em></p>
+                    </div>
                 </div>
             </div>
-            <div id="tabConceptos" class="tab-pane">
-                <div class="space-y-4 text-sm text-gray-700">
-                    <div><h4 class="font-bold text-gray-900 text-base">Involución</h4><p>Una operación que es su propio inverso. Al aplicarla dos veces consecutivas, se vuelve al punto de partida (ej. P, L, R).</p></div>
-                    <div><h4 class="font-bold text-gray-900 text-base">Conducción Idealizada</h4><p>Aquella conducción en la que los acordes se disponen de manera tal que cada voz se desplace la menor distancia posible (semitono o tono), manteniendo fijas las notas en común.</p></div>
-                    <div><h4 class="font-bold text-gray-900 text-base">Ciclo Hexatónico</h4><p>Un conjunto de seis tríadas (tres mayores y tres menores) generado por el encadenamiento alterno de las operaciones L y P.</p></div>
-                    <div><h4 class="font-bold text-gray-900 text-base">Región de Weitzmann</h4><p>Un conjunto de seis tríadas generado por el encadenamiento alterno de las operaciones R y N.</p></div>
-                    <div><h4 class="font-bold text-gray-900 text-base">Tonnetz</h4><p>Red de relaciones tonales que visualiza la proximidad armónica y la estructura interválica de los acordes.</p></div>
+            
+            <div id="tabConceptos" class="tab-pane h-[350px] overflow-y-auto pr-2">
+                <div class="space-y-4 text-sm">
+                    <div>
+                        <strong class="text-blue-600">Tonnetz (Red Tonal)</strong>
+                        <p class="mt-1">Un gráfico que representa el espacio tonal. Los nodos son notas. Los triángulos formados por tres notas conectadas representan tríadas mayores (hacia arriba) y menores (hacia abajo).</p>
+                        <ul class="list-disc pl-5 mt-2 text-gray-600">
+                            <li>Ejes horizontales: Intervalos de 5ta justa.</li>
+                            <li>Diagonales (/) : Intervalos de 3ra mayor.</li>
+                            <li>Diagonales (\) : Intervalos de 3ra menor.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong class="text-blue-600">Ciclo Hexatónico</strong>
+                        <p class="mt-1">Una cadena de 6 acordes conectados por operaciones L y P alternadas. Estos acordes "orbitan" alrededor de un centro tonal implícito y generan una sensación de suspensión tonal.</p>
+                        <p class="mt-1"><em>Ejemplo "Maximally Smooth": C - Cm - Ab - Abm - E - Em - C</em></p>
+                    </div>
+                    <div>
+                        <strong class="text-blue-600">Conducción Parsimoniosa</strong>
+                        <p class="mt-1">El principio de mover las voces la menor distancia posible (tonos comunes o semitonos) al cambiar de acorde.</p>
+                    </div>
                 </div>
             </div>
             <button id="closeGlossaryButton" class="btn btn-primary w-full mt-6">Cerrar</button>
         </div>
     </div>
+
+    <!-- Modal Autor -->
     <div id="authorModal" class="modal-overlay">
-        <div class="modal-content text-center"><p class="text-gray-800 text-lg">Realizado por:</p><p class="text-blue-600 text-2xl font-bold mt-2">Juan Miguel Ríos Redondo</p></div>
+         <div class="modal-content text-center max-w-sm">
+            <h2 class="text-xl font-bold text-blue-700 mb-2">¡Bienvenido!</h2>
+            <p class="text-gray-600">Explorador de Teoría Neo-Riemanniana</p>
+            <div class="animate-pulse mt-4 text-blue-500">Iniciando motor de audio...</div>
+        </div>
     </div>
 
     <script>
-        // Global Vars
+        // --- LOGICA DE LA APLICACIÓN ---
+        
         let currentTriad, previousTriad = null, history = [], currentHistoryIndex = -1;
         let hexatonicCycles = [], weitzmannCycles = [];
         let currentVisualizationMode = 'lp', isInAnalysisMode = false, currentAnalysis = null, currentAnalysisStep = 0;
         let enharmonicPreference = 'sharp';
         let isToneStarted = false, isMuted = false, lastPlayedVoicing = [], currentTonnetzHighlight = null;
 
-        // Tone
         const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
         const arpeggioSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
 
-        // Data
         const noteToPitchClass = { "C":0, "C♯":1, "D♭":1, "D":2, "D♯":3, "E♭":3, "E":4, "F":5, "F♯":6, "G♭":6, "G":7, "G♯":8, "A♭":8, "A":9, "A♯":10, "B♭":10, "B":11, "E♯":5, "B♯":0, "C♭":11, "F♭":4, "Gx":9, "Ax":11 };
         const canonicalSpelling = {
             sharp: { 0:"C", 1:"C♯", 2:"D", 3:"D♯", 4:"E", 5:"F", 6:"F♯", 7:"G", 8:"G♯", 9:"A", 10:"A♯", 11:"B" },
@@ -305,8 +417,36 @@
             sharp: ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"],
             flat:  ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]
         };
-        
-        // Tonnetz data - Vertical spacing increased (Y values)
+
+        const citationText = "Calabrese, A. (2025). Armonía de los Siglos XIX al XXI: Claves para navegar el espacio cromático. Ombú Ediciones Musicales.";
+        const analysisData = {
+            'liszt': { 
+                name: "Liszt - Consolación IV", 
+                imageUrl: "https://github.com/juanmiguel0927/TeoriaNeo-Riemanniana/raw/237988f08d9cfcc051ba15127077478eb15c7828/Liszt.png", 
+                citation: citationText,
+                steps: [ { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio en Si♭m." }, { chord: 'D♭ Mayor', op: 'R', text: "Compás 21. B♭m → D♭M." }, { chord: 'D♭ menor', op: 'P', text: "Compás 21. D♭M → D♭m." }, { chord: 'E Mayor', op: 'R', text: "Compás 22. D♭m → EM." }, { chord: 'E menor', op: 'P', text: "Compás 22. EM → Em." }, { chord: 'G menor', op: null, text: "Compás 23. Em → Gm." } ] 
+            },
+            'schubert': { 
+                name: "Schubert - D.946 Nº2", 
+                imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/237988f08d9cfcc051ba15127077478eb15c7828/Schubert.png", 
+                citation: citationText,
+                steps: [ { chord: 'D menor', op: null, text: "Compás 46. Inicio en Dm." }, { chord: 'A Mayor', op: 'N', text: "Compás 48. Dm → AM." }, { chord: 'F menor', op: 'H', text: "Compás 49. AM → Fm." }, { chord: 'C Mayor', op: 'N', text: "Compás 51. Fm → CM." }, { chord: 'A♭ menor', op: 'H', text: "Compás 52. CM → A♭m." } ] 
+            },
+            'norma': { 
+                name: "Bellini - Norma (Ciclo Hexatónico)", 
+                imageUrl: "", 
+                citation: citationText,
+                steps: [ 
+                    { chord: 'G Mayor', op: null, text: "Inicio en Sol Mayor." },
+                    { chord: 'G menor', op: 'P', text: "Transformación P: G Maj → G min." }, 
+                    { chord: 'E♭ Mayor', op: 'L', text: "Transformación L: G min → E♭ Maj." }, 
+                    { chord: 'E♭ menor', op: 'P', text: "Transformación P: E♭ Maj → E♭ min." }, 
+                    { chord: 'B Mayor', op: 'L', text: "Transformación L: E♭ min → B (Cb) Maj." },
+                    { chord: 'B menor', op: 'P', text: "Transformación P: B Maj → B min." }
+                ] 
+            }
+        };
+
         const tonnetzNodesData = [
             { note: "D♯", pc: 3, x: 0, y: 0 }, { note: "A♯", pc: 10, x: 80, y: 0 }, { note: "E♯", pc: 5, x: 160, y: 0 }, { note: "B♯", pc: 0, x: 240, y: 0 }, { note: "Gx", pc: 9, x: 320, y: 0 },
             { note: "B", pc: 11, x: -40, y: 75 }, { note: "F♯", pc: 6, x: 40, y: 75 }, { note: "C♯", pc: 1, x: 120, y: 75 }, { note: "G♯", pc: 8, x: 200, y: 75 }, { note: "D♯", pc: 3, x: 280, y: 75 }, { note: "A♯", pc: 10, x: 360, y: 75 },
@@ -316,19 +456,10 @@
             { note: "F♭", pc: 4, x: 40, y: 375 }, { note: "C♭", pc: 11, x: 120, y: 375 }, { note: "G♭", pc: 6, x: 200, y: 375 }, { note: "D♭", pc: 1, x: 280, y: 375 }, { note: "A♭", pc: 8, x: 360, y: 375 },
             { note: "B", pc: 11, x: -40, y: 375 }, { note: "E", pc: 4, x: 40, y: 375 }
         ];
-        
-        const analysisData = {
-            'liszt': { name: "Liszt - Consolación IV", imageUrl: "https://github.com/juanmiguel0927/TeoriaNeo-Riemanniana/raw/237988f08d9cfcc051ba15127077478eb15c7828/Liszt.png", steps: [ { chord: 'B♭ menor', op: null, text: "Compás 20. Inicio en Si♭m." }, { chord: 'D♭ Mayor', op: 'R', text: "Compás 21. B♭m → D♭M." }, { chord: 'D♭ menor', op: 'P', text: "Compás 21. D♭M → D♭m." }, { chord: 'E Mayor', op: 'R', text: "Compás 22. D♭m → EM." }, { chord: 'E menor', op: 'P', text: "Compás 22. EM → Em." }, { chord: 'G menor', op: null, text: "Compás 23. Em → Gm." } ] },
-            'schubert': { name: "Schubert - D.946 Nº2", imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/237988f08d9cfcc051ba15127077478eb15c7828/Schubert.png", steps: [ { chord: 'D menor', op: null, text: "Compás 46. Inicio en Dm." }, { chord: 'A Mayor', op: 'N', text: "Compás 48. Dm → AM." }, { chord: 'F menor', op: 'H', text: "Compás 49. AM → Fm." }, { chord: 'C Mayor', op: 'N', text: "Compás 51. Fm → CM." }, { chord: 'A♭ menor', op: 'H', text: "Compás 52. CM → A♭m." } ] }
-        };
-        const explanations = { "L":"L (Leittonechel): Mueve una voz por semitono.","P":"P (Parallel): Relativa menor/mayor.","R":"R (Relative): Relativa diatónica.","N":"N (Nebenverwandt): Vecina relacionada.","H":"H (Hexatonic Pole): Polo opuesto.","S":"S (Slide): Deslizamiento semitonal." };
 
-        // --- UTILS ---
         function normalizePitch(pc) { return (pc % 12 + 12) % 12; }
         function getNoteNameFromMidi(midi, pref = enharmonicPreference) { return canonicalSpelling[pref][normalizePitch(midi)] + (Math.floor(midi/12)-1); }
-        function getAlternateSpelling(midi) { const altPref = (enharmonicPreference === 'sharp') ? 'flat' : 'sharp'; const curr = canonicalSpelling[enharmonicPreference][normalizePitch(midi)]; const alt = canonicalSpelling[altPref][normalizePitch(midi)]; return (curr !== alt) ? getNoteNameFromMidi(midi, altPref) : null; }
-        function hasEnharmonic(midi) { return canonicalSpelling['sharp'][normalizePitch(midi)] !== canonicalSpelling['flat'][normalizePitch(midi)]; }
-        function getElement(id) { const el = document.getElementById(id); if(!el) console.warn("Missing:", id); return el; }
+        function getElement(id) { return document.getElementById(id); }
         function safeClassListRemove(id, cls) { const el = getElement(id); if(el) el.classList.remove(cls); }
         function safeClassListAdd(id, cls) { const el = getElement(id); if(el) el.classList.add(cls); }
 
@@ -339,7 +470,6 @@
             hasSamePitchClasses(o) { return this.pitchClasses.every((p,i)=>p===o.pitchClasses[i]); }
         }
 
-        let allTriads = [];
         function generateAllTriads() { allTriads = []; const added = new Set(); allPossibleRootNames.forEach(r => { ["major", "minor"].forEach(t => { const tr = new Triad(r, t); if(!added.has(tr.name)){ allTriads.push(tr); added.add(tr.name); } }) }); }
         function getTriadByName(n) { if(!n)return null; let nm = n.trim().replace(/b/g,'♭').replace(/#/g,'♯'); let type = (nm.toLowerCase().includes("m") && !nm.includes("Mayor")) ? "minor" : "major"; nm = nm.replace(/menor|major|mayor|m/gi, '').trim(); let r = nm.charAt(0).toUpperCase() + nm.slice(1); return allTriads.find(t=>t.name===`${r} ${type==='major'?'Mayor':'menor'}`); }
         function getPreferredSpelling(t) { if(!t)return null; const r = noteToPitchClass[t.root]; const pr = canonicalSpelling[enharmonicPreference][r]; return allTriads.find(x=>x.root===pr && x.type===t.type)||t; }
@@ -365,13 +495,13 @@
                 weitzmannCycles.push({name: `Región ${i+1}`, members: c.filter(Boolean)});
             });
         }
-        
         function getHexatonicCycleForTriad(triad) { if (!triad) return null; return hexatonicCycles.find(cycle => cycle.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)); }
         function getWeitzmannRegionForTriad(triad) { if (!triad) return null; return weitzmannCycles.find(cycle => cycle.members.some(member => member.hasSamePitchClasses(triad) && member.type === triad.type)); }
 
-        // --- CORE LOGIC ---
+        // --- GESTIÓN DE ANÁLISIS ---
         function exitAnalysis() {
             isInAnalysisMode = false; currentAnalysis = null;
+            const sel = getElement("analysisSelect"); if(sel) sel.value = "";
             safeClassListAdd("analysisControls", "hidden");
             safeClassListRemove("startChordContainer", "hidden");
             safeClassListRemove("operationsBox", "hidden");
@@ -381,11 +511,15 @@
         function startAnalysis(key) {
             isInAnalysisMode = true; currentAnalysis = analysisData[key]; currentAnalysisStep = 0;
             const t = getElement("analysisTitle"); if(t) t.textContent = currentAnalysis.name;
-            const img = getElement("analysisScoreImage"); if(img) img.src = currentAnalysis.imageUrl;
+            const cit = getElement("analysisCitation"); if(cit) cit.textContent = currentAnalysis.citation || "";
+            const img = getElement("analysisScoreImage"); const cont = getElement("analysisScoreContainer");
+            if(img && cont) { 
+                if(currentAnalysis.imageUrl) { img.src = currentAnalysis.imageUrl; cont.classList.remove('hidden'); } 
+                else { cont.classList.add('hidden'); } 
+            }
             safeClassListRemove("analysisControls", "hidden");
-            safeClassListRemove("analysisScoreContainer", "hidden");
             safeClassListAdd("startChordContainer", "hidden");
-            safeClassListAdd("operationsBox", "hidden");
+            safeClassListAdd("operationsBox", "hidden"); 
             safeClassListAdd("freeAnalysisContainer", "hidden");
             loadAnalysisStep(0);
         }
@@ -410,12 +544,13 @@
             updateUI();
             displayOperationExplanation(step.op || "Siguiente", oldTriad, newTriad, fMidi, tMidi);
             const desc = getElement("operationExplanation");
-            if(desc) desc.innerHTML = `<p class="mb-2 font-semibold">${step.text}</p>` + desc.innerHTML;
-            if (step.marker) { const m = getElement("analysisScoreMarker"); if(m) { m.style.top=step.marker.top; m.style.left=step.marker.left; m.style.width=step.marker.width; m.style.height=step.marker.height; m.classList.add('show'); } }
+            if(desc) desc.innerHTML = `<p class="mb-2 font-bold text-blue-800">${step.text}</p>` + desc.innerHTML;
             if (idx > 0) addHistoryEntry(step.op || "Siguiente", oldTriad, newTriad, fMidi, tMidi); else { history=[]; currentHistoryIndex=-1; updateHistoryLog(); }
             const prevBtn = getElement("prevStepBtn"); if(prevBtn) prevBtn.disabled = (idx === 0);
             const nextBtn = getElement("nextStepBtn"); if(nextBtn) nextBtn.disabled = (idx === currentAnalysis.steps.length - 1);
         }
+
+        // --- CORE UI ---
         function setStartChord(name, preserve) {
             if(!preserve) exitAnalysis();
             currentTriad = getPreferredSpelling(getTriadByName(name) || allTriads[0]);
@@ -423,8 +558,6 @@
             updateUI(); if(!preserve) displayOperationExplanation('');
             safeClassListRemove("operationsBox", "operations-box-active");
         }
-
-        // --- UI UPDATES ---
         async function startAudioContext() { if(!isToneStarted){ await Tone.start(); isToneStarted=true; } }
         function updateVoicing(m) { lastPlayedVoicing = m.map(x=>Tone.Frequency(x,"midi").toNote()); }
         function playVoicing(m) { if(isMuted)return; startAudioContext(); updateVoicing(m); synth.triggerAttackRelease(lastPlayedVoicing, "1s"); }
@@ -445,73 +578,71 @@
             currentTriad = getPreferredSpelling(currentTriad);
             const notes = currentTriad.getNotes(), pcs = currentTriad.pitchClasses;
             const nm = getElement("currentChordName"); if(nm) nm.textContent = currentTriad.name;
-            const createSpan = (n, pc) => {
-                const alt = canonicalSpelling[enharmonicPreference==='sharp'?'flat':'sharp'][pc];
-                const has = (n !== alt);
-                return `<span class="font-bold ${has?'enharmonic-note':''}" data-current="${n}" ${has?`data-alternate="${alt}"`:''}>${n}</span>`;
-            };
             const cn = getElement("currentChordNotes");
-            if(cn) cn.innerHTML = `Raíz: ${createSpan(notes[0], pcs[0])}, Tercera: ${createSpan(notes[1], pcs[1])}, Quinta: ${createSpan(notes[2], pcs[2])}`;
+            if(cn) cn.innerHTML = notes.join(" - ");
             updateHistoryLog(); updateSetRelationshipsDisplay(); updateCircleVisualization(currentTriad, previousTriad); drawFullTonnetz(); highlightTonnetzTriad(currentTriad, previousTriad);
         }
         function updateHistoryLog() {
             const log = getElement("historyLog"); if(!log) return; log.innerHTML = "";
+            if(history.length === 0) {
+                 log.innerHTML = '<div class="p-4 text-center text-gray-400 text-xs italic">El historial aparecerá aquí</div>';
+                 return;
+            }
             [...history].reverse().forEach((h, i) => {
                 const div = document.createElement("div");
-                div.className = `history-item ${history.length-1-i===currentHistoryIndex?'active-history':'inactive-history'}`;
-                // Obtener ortografía preferida dinámica para el historial
-                const fT = getPreferredSpelling(getTriadByName(h.from));
-                const tT = getPreferredSpelling(getTriadByName(h.to));
-                const fName = fT ? fT.name : h.from;
-                const tName = tT ? tT.name : h.to;
-                div.textContent = `${h.timestamp}: ${fName} --(${h.operation})--> ${tName}`;
+                div.className = `history-item ${history.length-1-i===currentHistoryIndex?'active-history':''}`;
+                const fT = getPreferredSpelling(getTriadByName(h.from)); const tT = getPreferredSpelling(getTriadByName(h.to));
+                div.innerHTML = `<span>${fT?fT.name:h.from} <span class="text-blue-500 font-bold">→</span> ${tT?tT.name:h.to}</span> <span class="text-xs bg-gray-200 px-1 rounded">${h.operation}</span>`;
                 div.onclick = () => { 
-                    if(isInAnalysisMode) {
-                        const targetStep = (history.length - 1 - i) + 1;
-                        loadAnalysisStep(targetStep);
-                    } else {
-                        currentHistoryIndex = history.length-1-i; 
-                        currentTriad = getTriadByName(h.to); 
-                        updateVoicing(h.toMidi); 
-                        updateUI(); 
-                        displayOperationExplanation(h.operation, getTriadByName(h.from), currentTriad, h.fromMidi, h.toMidi); 
-                    }
+                    if(isInAnalysisMode) { loadAnalysisStep((history.length - 1 - i) + 1); } 
+                    else { currentHistoryIndex = history.length-1-i; currentTriad = getTriadByName(h.to); updateVoicing(h.toMidi); updateUI(); displayOperationExplanation(h.operation, getTriadByName(h.from), currentTriad, h.fromMidi, h.toMidi); }
                 };
                 log.appendChild(div);
             });
         }
         function displayOperationExplanation(op, from, to, fMidi, tMidi) {
-            let html = explanations[op] || "Selecciona una operación.";
-            let title = `<h3 class="text-lg font-semibold mb-2 text-green-800 inline-block">Explicación:</h3>`;
+            const opDefinitions = { 
+                "L": "Leittonwechsel (Sensible)", 
+                "P": "Parallel (Paralela)", 
+                "R": "Relative (Relativa)", 
+                "N": "Nebenverwandt (Vecina)", 
+                "H": "Hexatonic Pole (Polo)", 
+                "S": "Slide (Deslizamiento)" 
+            };
+            const opName = opDefinitions[op] || op;
+            
+            let html = op ? `<strong class="text-blue-600 block mb-2 text-center text-base border-b pb-2">Operación: ${opName}</strong>` : "Selecciona una operación.";
+            
             if(from && to && fMidi && tMidi) {
-                title = `<h3 class='text-lg font-semibold mb-2 text-green-800 inline-block'>Conducción de Voces (Voicing):</h3>
-                         <button id="playVoiceLeadingBtn" class="btn btn-secondary p-1 leading-none inline-block ml-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814z"/></svg></button>`;
-                const common = fMidi.map(m=>m%12).filter(p => tMidi.map(x=>x%12).includes(p));
-                let list = "<ul class='list-disc list-inside mt-1'>";
-                fMidi.forEach((fm, i) => {
-                    const tm = tMidi[i];
-                    const fn = getNoteNameFromMidi(fm), tn = getNoteNameFromMidi(tm);
-                    const fAlt = getAlternateSpelling(fm), tAlt = getAlternateSpelling(tm);
-                    const isCom = common.includes(fm%12) && (Math.abs(fm-tm)<0.1);
-                    const fSpan = `<span class="voice-leading-note ${fAlt?'enharmonic-note':''}" data-current="${fn}" ${fAlt?`data-alternate="${fAlt}"`:''}>${fn}</span>`;
-                    const tSpan = `<span class="voice-leading-note ${tAlt?'enharmonic-note':''}" data-current="${tn}" ${tAlt?`data-alternate="${tAlt}"`:''}>${tn}</span>`;
-                    list += `<li class="${isCom?'common-tone-note':''}">${fSpan} → ${tSpan} ${isCom?'(Nota Común)':''}</li>`;
+                html += `<div class="mt-2 text-xs"><strong>Conducción de Voces:</strong><br><div class="flex flex-col gap-1 mt-1 bg-white p-2 rounded border border-gray-100">`;
+                const fRev = [...fMidi].reverse();
+                const tRev = [...tMidi].reverse();
+
+                fRev.forEach((fm, i) => {
+                    const tm = tRev[i];
+                    // Check if Pitch Class is the same (Common Tone)
+                    const isCommon = (fm % 12) === (tm % 12);
+                    
+                    const noteNameFrom = getNoteNameFromMidi(fm);
+                    const noteNameTo = getNoteNameFromMidi(tm);
+                    
+                    html += `
+                    <div class="voice-leading-row">
+                        <span class="${isCommon ? 'common-tone' : 'moving-tone'} w-1/3 text-right">${noteNameFrom}</span>
+                        <span class="text-gray-400 w-1/6 text-center">→</span>
+                        <span class="${isCommon ? 'common-tone' : 'moving-tone'} w-1/3 text-left">${noteNameTo}</span>
+                        <span class="w-1/6 text-xs text-gray-500 text-right flex items-center justify-end">${isCommon ? 'Común' : ''}</span>
+                    </div>`;
                 });
-                html = list + "</ul>";
+                html += `</div></div>`;
             }
-            const titleEl = getElement('explanationTitleContainer'); if(titleEl) titleEl.innerHTML = title;
             const opEl = getElement('operationExplanation'); if(opEl) opEl.innerHTML = html;
-            const btn = getElement('playVoiceLeadingBtn');
-            if(btn) btn.addEventListener('click', (e)=>{e.stopPropagation(); if(!isMuted){startAudioContext(); const now=Tone.now(); synth.triggerAttackRelease(fMidi.map(x=>Tone.Frequency(x,"midi").toNote()), "0.8s", now); synth.triggerAttackRelease(tMidi.map(x=>Tone.Frequency(x,"midi").toNote()), "0.8s", now+0.9);}});
         }
-        function toggleEnharmonicSpan(span) { if(span && span.classList.contains('enharmonic-note')) { const c = span.dataset.current, a = span.dataset.alternate; if(a) span.textContent = (span.textContent === c) ? a : c; } }
-        function addHistoryEntry(op, from, to, fMidi, tMidi) { if(currentHistoryIndex < history.length - 1) history = history.slice(0, currentHistoryIndex + 1); history.push({operation: op, from: from.name, to: to.name, fromMidi: fMidi, toMidi: tMidi, timestamp: new Date().toLocaleTimeString()}); currentHistoryIndex = history.length - 1; updateHistoryLog(); }
+        function addHistoryEntry(op, from, to, fMidi, tMidi) { if(currentHistoryIndex < history.length - 1) history = history.slice(0, currentHistoryIndex + 1); history.push({operation: op, from: from.name, to: to.name, fromMidi: fMidi, toMidi: tMidi}); currentHistoryIndex = history.length - 1; updateHistoryLog(); }
         function updateSetRelationshipsDisplay() {
              const hex = getHexatonicCycleForTriad(currentTriad); const wei = getWeitzmannRegionForTriad(currentTriad);
              const hexEl = getElement("currentHexatonicCycle"); if(hexEl) hexEl.textContent = hex ? hex.name : "-";
-             const hexM = getElement("hexatonicCycleMembers"); if(hexM) hexM.innerHTML = hex ? hex.members.map(m=>`<span class="bg-blue-100 px-1 rounded">${getPreferredSpelling(m).name}</span>`).join(" ") : "";
              const weiEl = getElement("currentWeitzmannRegion"); if(weiEl) weiEl.textContent = wei ? wei.name : "-";
-             const weiM = getElement("weitzmannRegionMembers"); if(weiM) weiM.innerHTML = wei ? wei.members.map(m=>`<span class="bg-green-100 px-1 rounded">${getPreferredSpelling(m).name}</span>`).join(" ") : "";
         }
         function populateStartChordSelect() {
             const sel = document.getElementById("startChord"); if(!sel) return;
@@ -519,150 +650,239 @@
             rootNamesByPreference[enharmonicPreference].forEach(r => { ["major", "minor"].forEach(t => { const tr = allTriads.find(x => x.root === r && x.type === t); if(tr && !added.has(tr.name)){ const o = document.createElement("option"); o.value = tr.name; o.textContent = tr.name; sel.appendChild(o); added.add(tr.name); } }) });
             if(currentTriad) sel.value = getPreferredSpelling(currentTriad).name;
         }
-        function highlightActiveOperation(op) {
-            document.querySelectorAll('#operationsBox button').forEach(b=>b.classList.remove('active-op-btn'));
-            const btn = document.querySelector(`button[data-op="${op}"]`);
-            if(btn) btn.classList.add('active-op-btn');
-        }
-        function removeActiveOperationHighlight() { document.querySelectorAll('#operationsBox button').forEach(b=>b.classList.remove('active-op-btn')); }
-        function removeOperationsBoxHighlight() { const box = document.getElementById("operationsBox"); if(box) box.classList.remove('operations-box-active'); }
 
+        // --- VISUALIZACIONES ---
         function updateCircleVisualization(act, prev) {
             const svg = document.querySelector("#hexatonicCircle svg"); if(!svg) return; svg.innerHTML = "";
             const title = document.getElementById("circleTitle");
-            if(title) title.textContent = currentVisualizationMode === 'lp' ? "Visualización (Ciclo L/P)" : "Visualización (Ciclo R/N)";
+            if(title) title.textContent = currentVisualizationMode === 'lp' ? "Ciclo Hexatónico (L/P)" : "Región de Weitzmann (R/N)";
             const cycle = (currentVisualizationMode==='rn'?weitzmannCycles:hexatonicCycles).find(c => c.members.some(m => m.hasSamePitchClasses(act) && m.type===act.type));
             if(!cycle) return;
             const cx = 150, cy = 150, r = 120;
-            const drawArrow = (x1,y1,x2,y2) => {
-                const angle = Math.atan2(y2-y1,x2-x1); const startX=x1+30*Math.cos(angle), startY=y1+15*Math.sin(angle), endX=x2-30*Math.cos(angle), endY=y2-15*Math.sin(angle);
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path"); path.setAttribute("d", `M ${startX} ${startY} L ${endX} ${endY}`); path.setAttribute("class", `arrow`); svg.appendChild(path);
-            };
             cycle.members.forEach((m, i) => {
                 const ang = (i * 60 - 90) * Math.PI / 180;
                 const x = cx + r * Math.cos(ang), y = cy + r * Math.sin(ang);
-                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                const isActive = (act && m.hasSamePitchClasses(act) && m.type===act.type);
+                
                 const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                 rect.setAttribute("x", x-30); rect.setAttribute("y", y-15); rect.setAttribute("width", 60); rect.setAttribute("height", 30);
-                rect.setAttribute("rx", 5); rect.setAttribute("fill", (act && m.hasSamePitchClasses(act) && m.type===act.type) ? "#3b82f6" : "#e2e8f0");
+                rect.setAttribute("rx", 5); rect.setAttribute("fill", isActive ? "#3b82f6" : "#f3f4f6");
+                rect.setAttribute("stroke", isActive ? "#2563eb" : "#e5e7eb");
+                
                 const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 txt.setAttribute("x", x); txt.setAttribute("y", y+5); txt.setAttribute("text-anchor", "middle");
-                txt.setAttribute("fill", (act && m.hasSamePitchClasses(act) && m.type===act.type) ? "white" : "#334155");
+                txt.setAttribute("fill", isActive ? "white" : "#4b5563");
+                txt.setAttribute("font-weight", isActive ? "bold" : "normal");
                 txt.textContent = getPreferredSpelling(m).name.replace(" Mayor","").replace(" menor","m");
-                g.appendChild(rect); g.appendChild(txt); svg.appendChild(g);
+                
+                svg.appendChild(rect); svg.appendChild(txt);
                 
                 const nextIdx = (i + 1) % 6;
                 const nextAng = (nextIdx * 60 - 90) * Math.PI / 180;
-                drawArrow(x, y, cx + r * Math.cos(nextAng), cy + r * Math.sin(nextAng));
-            });
-        }
-        function drawFullTonnetz() {
-            const svg = getElement("tonnetzVisualization"); if(!svg) return; svg.innerHTML = "";
-            const svgNS = "http://www.w3.org/2000/svg";
-            const mainSvg = document.createElementNS(svgNS, "svg"); mainSvg.setAttribute("width", "100%"); mainSvg.setAttribute("height", "100%");
-            const coordToNodeMap = new Map();
-            tonnetzNodesData.forEach(node => coordToNodeMap.set(`${node.x},${node.y}`, node));
-            const makeLine = (x1,y1,x2,y2) => { const l = document.createElementNS(svgNS, "line"); l.setAttribute("x1",x1); l.setAttribute("y1",y1); l.setAttribute("x2",x2); l.setAttribute("y2",y2); l.setAttribute("stroke","#cbd5e1"); mainSvg.appendChild(l); };
-            // Updated spacing constants for line drawing
-            const P5X = 80, THY = 75, THX = 40;
-            tonnetzNodesData.forEach(n => { 
-                if(coordToNodeMap.has(`${n.x+P5X},${n.y}`)) makeLine(n.x,n.y,n.x+P5X,n.y); 
-                if(coordToNodeMap.has(`${n.x+THX},${n.y-THY}`)) makeLine(n.x,n.y,n.x+THX,n.y-THY); 
-                if(coordToNodeMap.has(`${n.x-THX},${n.y-THY}`)) makeLine(n.x,n.y,n.x-THX,n.y-THY); 
-            });
-            tonnetzNodesData.forEach(n => {
-                const g = document.createElementNS(svgNS, "g"); g.setAttribute("transform", `translate(${n.x},${n.y})`); g.classList.add("tonnetz-node-group"); g.dataset.pc = n.pc;
-                const c = document.createElementNS(svgNS, "circle"); c.setAttribute("r", 15); c.classList.add("tonnetz-node-circle"); c.setAttribute("fill","#e2e8f0"); c.setAttribute("stroke","#94a3b8");
-                const t = document.createElementNS(svgNS, "text"); t.textContent = n.note; t.setAttribute("text-anchor","middle"); t.setAttribute("y",5); t.classList.add("tonnetz-node-text"); t.setAttribute("fill","#475569"); t.setAttribute("font-size","10");
-                g.appendChild(c); g.appendChild(t); mainSvg.appendChild(g);
-            });
-            let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-            tonnetzNodesData.forEach(n=>{ minX=Math.min(minX,n.x); minY=Math.min(minY,n.y); maxX=Math.max(maxX,n.x); maxY=Math.max(maxY,n.y); });
-            mainSvg.setAttribute("viewBox", `${minX-40} ${minY-40} ${maxX-minX+80} ${maxY-minY+80}`);
-            svg.appendChild(mainSvg);
-        }
-        function highlightTonnetzTriad(triad, prev) {
-            const svg = document.querySelector("#tonnetzVisualization svg"); if(!svg || !triad) return;
-            svg.querySelectorAll(".tonnetz-node-circle").forEach(c=>{c.setAttribute("fill","#e2e8f0"); c.setAttribute("stroke","#94a3b8"); c.setAttribute("stroke-width","1");});
-            svg.querySelectorAll(".tonnetz-node-text").forEach(t=>{t.setAttribute("fill","#475569"); t.style.fontWeight="normal";});
-            const drawTri = (t, color) => {
-                const nodes = Array.from(svg.querySelectorAll(".tonnetz-node-group")).filter(g=>t.pitchClasses.includes(parseInt(g.dataset.pc)));
-                nodes.forEach(g=>{ g.querySelector("circle").setAttribute("fill", color); g.querySelector("circle").setAttribute("stroke-width", "2"); g.querySelector("text").setAttribute("fill", "white"); g.querySelector("text").style.fontWeight="bold"; });
-            };
-            if(prev) drawTri(prev, "#94a3b8"); drawTri(triad, "#3b82f6");
-        }
-        function highlightTonnetzByNote(pc) {
-            const svg = document.querySelector("#tonnetzVisualization svg"); if (!svg) return;
-            svg.querySelectorAll(".tonnetz-node-circle").forEach(c => { c.setAttribute("fill", "#e2e8f0"); c.setAttribute("stroke", "#94a3b8"); c.setAttribute("stroke-width", "1"); });
-            svg.querySelectorAll(".tonnetz-node-text").forEach(t => { t.setAttribute("fill", "#475569"); t.style.fontWeight = "normal"; });
-            const targetGroups = Array.from(svg.querySelectorAll(".tonnetz-node-group")).filter(g => parseInt(g.dataset.pc) === pc);
-            targetGroups.forEach(g => { g.querySelector("circle").setAttribute("fill", "#facc15"); g.querySelector("circle").setAttribute("stroke", "#eab308"); g.querySelector("text").setAttribute("fill", "#422006"); g.querySelector("text").style.fontWeight = "bold"; });
-            const triads = allTriads.filter(t => t.pitchClasses.includes(pc));
-            triads.forEach(t => {
-                const nodesToHighlight = t.pitchClasses;
-                const groups = Array.from(svg.querySelectorAll(".tonnetz-node-group")).filter(g => nodesToHighlight.includes(parseInt(g.dataset.pc)));
-                groups.forEach(g => { if (parseInt(g.dataset.pc) !== pc) { g.querySelector("circle").setAttribute("fill", "#bfdbfe"); g.querySelector("circle").setAttribute("stroke", "#3b82f6"); } });
+                const nextX = cx + r * Math.cos(nextAng), nextY = cy + r * Math.sin(nextAng);
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                path.setAttribute("x1", x); path.setAttribute("y1", y); path.setAttribute("x2", nextX); path.setAttribute("y2", nextY);
+                path.setAttribute("stroke", "#e5e7eb"); path.setAttribute("stroke-width", "2");
+                path.setAttribute("stroke-dasharray", "4");
+                svg.insertBefore(path, rect);
             });
         }
 
-        window.onload = () => {
-            generateAllTriads(); genCycles(); populateStartChordSelect();
-            setStartChord("C Mayor"); drawFullTonnetz();
-            const sc = getElement("startChord"); if(sc) sc.addEventListener('change', (e)=>setStartChord(e.target.value));
-            const rb = getElement("resetButton"); if(rb) rb.onclick = () => { setStartChord("C Mayor"); populateStartChordSelect(); };
-            const et = getElement("enharmonicToggle"); if(et) et.addEventListener('change', (e)=>{ enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; generateAllTriads(); genCycles(); populateStartChordSelect(); if(isInAnalysisMode) loadAnalysisStep(currentAnalysisStep); else setStartChord(sc.value, true); });
-            const eta = getElement("enharmonicToggleAnalysis"); if(eta) eta.addEventListener('change', (e)=>{ enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; document.getElementById("enharmonicToggle").checked=e.target.checked; generateAllTriads(); genCycles(); populateStartChordSelect(); if(isInAnalysisMode) loadAnalysisStep(currentAnalysisStep); else setStartChord(sc.value, true); });
-            document.querySelectorAll('#operationsBox button').forEach(b => b.addEventListener('click', (e) => {
-                if(isInAnalysisMode) return;
-                const op = e.target.dataset.op;
-                let n; if(op==='L')n=opL(currentTriad); else if(op==='P')n=opP(currentTriad); else if(op==='R')n=opR(currentTriad); else if(op==='N')n=opN(currentTriad); else if(op==='H')n=opH(currentTriad); else if(op==='S')n=opS(currentTriad);
-                if(n) { const fM = lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()); const tM = getClosestVoicing(fM, n); updateVoicing(tM); const p = currentTriad; currentTriad = n; addHistoryEntry(op, p, n, fM, tM); updateUI(); displayOperationExplanation(op, p, n, fM, tM); }
-            }));
-            const as = getElement("analysisSelect"); if(as) as.addEventListener('change', (e) => { if(e.target.value) startAnalysis(e.target.value); else exitAnalysis(); });
-            const eb = getElement("exitAnalysisBtn"); if(eb) eb.onclick = exitAnalysis;
-            const nb = getElement("nextStepBtn"); if(nb) nb.onclick = () => loadAnalysisStep(currentAnalysisStep+1);
-            const pb = getElement("prevStepBtn"); if(pb) pb.onclick = () => loadAnalysisStep(currentAnalysisStep-1);
-            const gb = getElement("glossaryButton"); if(gb) gb.onclick = () => safeClassListAdd("glossaryModal", "show");
-            const cb = getElement("closeGlossaryButton"); if(cb) cb.onclick = () => safeClassListRemove("glossaryModal", "show");
-            const am = getElement("authorModal"); if(am) { safeClassListAdd("authorModal", "show"); setTimeout(()=>safeClassListRemove("authorModal","show"), 4000); }
-            document.querySelectorAll('.tab-btn').forEach(b => b.onclick = (e) => { document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active')); e.target.classList.add('active'); document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active')); const target = getElement(`tab${e.target.dataset.tab.charAt(0).toUpperCase()+e.target.dataset.tab.slice(1)}`); if(target) target.classList.add('active'); });
-            const opCont = getElement("glossaryOperationsContainer"); if(opCont) opCont.innerHTML = Object.keys(explanations).map(k=>`<p>${explanations[k]}</p>`).join("");
-            const pcb = getElement("playChordButton"); if(pcb) pcb.onclick = () => playVoicing(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()));
-            const pab = getElement("playArpeggioButton"); if(pab) pab.onclick = () => playArpeggio(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()));
-            const mb = getElement("muteButton"); if(mb) mb.onclick = () => { isMuted = !isMuted; mb.classList.toggle("bg-red-300"); };
-            const ws = getElement("waveTypeSelect"); if(ws) ws.onchange = (e) => { synth.set({oscillator:{type:e.target.value}}); arpeggioSynth.set({oscillator:{type:e.target.value}}); };
-            const vs = getElement("volumeSlider"); if(vs) vs.oninput = (e) => Tone.Destination.volume.rampTo(parseFloat(e.target.value), 0.1);
-            const vt = getElement("vizToggle"); if(vt) vt.addEventListener('change', (e) => { currentVisualizationMode = e.target.checked ? 'rn' : 'lp'; updateCircleVisualization(currentTriad, previousTriad); });
-            const vtc = document.querySelector('.viz-tab-container'); if(vtc) vtc.addEventListener('click', (e) => { if(e.target.classList.contains('viz-tab-btn')) { document.querySelectorAll('.viz-tab-btn').forEach(b=>b.classList.remove('active')); e.target.classList.add('active'); document.querySelectorAll('.viz-pane').forEach(p=>p.classList.remove('active')); const p = getElement(`vizPane${e.target.dataset.viz.charAt(0).toUpperCase()+e.target.dataset.viz.slice(1)}`); if(p) p.classList.add('active'); } });
-            const fab = getElement("freeAnalysisButton"); if(fab) fab.onclick = () => { const txt = getElement("freeAnalysisInput").value; const names = txt.split(",").map(s=>s.trim()).filter(s=>s); if(names.length < 2) return; exitAnalysis(); history=[]; currentHistoryIndex=-1; startAudioContext(); const t1 = getTriadByName(names[0]); if(!t1) return; currentTriad = t1; updateVoicing(t1.getNotes().map(n=>Tone.Frequency(n.replace('♯','#').replace('♭','b')+"4").toMidi())); updateUI(); let curr = t1, cmidi = lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()); for(let i=1; i<names.length; i++){ const next = getTriadByName(names[i]); if(!next) continue; const op = findBestOperation(curr, next); const tMidi = getClosestVoicing(cmidi, next); addHistoryEntry(op, curr, next, cmidi, tMidi); curr = next; cmidi = tMidi; } currentTriad = curr; updateVoicing(cmidi); updateUI(); };
-            const ccn = getElement("currentChordNotes"); if(ccn) ccn.onclick = (e) => toggleEnharmonicSpan(e.target);
-            const oe = getElement("operationExplanation"); if(oe) oe.onclick = (e) => { if(!e.target.closest('button')) toggleEnharmonicSpan(e.target); };
-            
-            const tonnetzVis = document.getElementById("tonnetzVisualization");
-            if (tonnetzVis) {
-                tonnetzVis.addEventListener('click', (e) => {
-                    const g = e.target.closest('.tonnetz-node-group');
-                    if (!g) {
-                        if (currentTonnetzHighlight !== null) {
-                            currentTonnetzHighlight = null;
-                            highlightTonnetzTriad(currentTriad, previousTriad);
-                        }
-                        return;
-                    }
-                    const pc = parseInt(g.dataset.pc);
-                    if (isNaN(pc)) return;
-                    
-                    if (currentTonnetzHighlight === pc) {
-                        currentTonnetzHighlight = null;
-                        highlightTonnetzTriad(currentTriad, previousTriad);
-                    } else {
-                        currentTonnetzHighlight = pc;
-                        highlightTonnetzByNote(pc);
+        function drawFullTonnetz() {
+            const div = getElement("tonnetzVisualization"); if(!div) return; div.innerHTML = "";
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg"); svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
+            tonnetzNodesData.forEach(n => {
+                tonnetzNodesData.forEach(n2 => {
+                    const dx = Math.abs(n.x - n2.x), dy = Math.abs(n.y - n2.y);
+                    if ((dx === 80 && dy === 0) || (dx === 40 && dy === 75)) {
+                        const l = document.createElementNS(svgNS, "line");
+                        l.setAttribute("x1", n.x + 40); l.setAttribute("y1", n.y + 40); l.setAttribute("x2", n2.x + 40); l.setAttribute("y2", n2.y + 40);
+                        l.setAttribute("stroke", "#e5e7eb"); svg.appendChild(l);
                     }
                 });
+            });
+            tonnetzNodesData.forEach(n => {
+                const g = document.createElementNS(svgNS, "g"); g.setAttribute("transform", `translate(${n.x+40},${n.y+40})`); g.dataset.pc = n.pc; g.classList.add("tonnetz-node-group");
+                const c = document.createElementNS(svgNS, "circle"); c.setAttribute("r", 15); c.classList.add("tonnetz-node-circle"); c.setAttribute("fill", "#f8fafc"); c.setAttribute("stroke", "#cbd5e1");
+                const t = document.createElementNS(svgNS, "text"); t.textContent = n.note; t.setAttribute("text-anchor", "middle"); t.setAttribute("y", 5); t.classList.add("tonnetz-node-text"); t.setAttribute("fill", "#94a3b8"); t.setAttribute("font-size", "10");
+                g.appendChild(c); g.appendChild(t); svg.appendChild(g);
+                g.onclick = () => highlightTonnetzByNote(n.pc);
+            });
+            svg.setAttribute("viewBox", "0 0 450 450");
+            div.appendChild(svg);
+        }
+
+        function highlightTonnetzTriad(triad, prev) {
+            const groups = document.querySelectorAll(".tonnetz-node-group");
+            groups.forEach(g => {
+                const c = g.querySelector("circle"), t = g.querySelector("text");
+                c.setAttribute("fill", "#f8fafc"); c.setAttribute("stroke", "#cbd5e1"); c.setAttribute("stroke-width", "1");
+                t.setAttribute("fill", "#94a3b8"); t.style.fontWeight = "normal";
+            });
+            if(triad) {
+                triad.pitchClasses.forEach(pc => {
+                    const nodes = document.querySelectorAll(`.tonnetz-node-group[data-pc="${pc}"]`);
+                    nodes.forEach(g => {
+                        const c = g.querySelector("circle"), t = g.querySelector("text");
+                        c.setAttribute("fill", "#3b82f6"); c.setAttribute("stroke", "#2563eb");
+                        t.setAttribute("fill", "white"); t.style.fontWeight = "bold";
+                    });
+                });
+            }
+        }
+        function highlightTonnetzByNote(pc) {
+             const groups = document.querySelectorAll(".tonnetz-node-group");
+             groups.forEach(g => {
+                 const c = g.querySelector("circle"), t = g.querySelector("text");
+                 if(parseInt(g.dataset.pc) === pc) {
+                     c.setAttribute("fill", "#facc15"); t.setAttribute("fill", "black");
+                 } else {
+                     c.setAttribute("fill", "#f8fafc"); t.setAttribute("fill", "#94a3b8");
+                 }
+             });
+        }
+
+        // --- INICIALIZACIÓN ---
+        window.onload = () => {
+            generateAllTriads(); genCycles(); populateStartChordSelect();
+            setStartChord("C Mayor"); 
+            
+            // Event Listeners Básicos
+            getElement("startChord").onchange = (e) => setStartChord(e.target.value);
+            getElement("resetButton").onclick = () => setStartChord("C Mayor");
+            getElement("enharmonicToggle").onchange = (e) => { enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; generateAllTriads(); genCycles(); populateStartChordSelect(); setStartChord(currentTriad.name, true); };
+            
+            // Listeners para botones de operación
+            document.querySelectorAll('button[data-op]').forEach(b => b.onclick = (e) => {
+                // Click handler wrapper to reuse logic for shortcuts
+                const op = e.currentTarget.dataset.op; // Use currentTarget because of span inside
+                handleOperation(op);
+            });
+
+            // Función unificada para operaciones
+            function handleOperation(op) {
+                if(isInAnalysisMode) return;
+                let n; 
+                if(op==='L') n=opL(currentTriad); else if(op==='P') n=opP(currentTriad); else if(op==='R') n=opR(currentTriad);
+                else if(op==='N') n=opN(currentTriad); else if(op==='H') n=opH(currentTriad); else if(op==='S') n=opS(currentTriad);
+                
+                if(n) { 
+                    const fM = lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()); 
+                    const tM = getClosestVoicing(fM, n); 
+                    updateVoicing(tM); 
+                    const p = currentTriad; currentTriad = n; 
+                    addHistoryEntry(op, p, n, fM, tM); 
+                    updateUI(); 
+                    displayOperationExplanation(op, p, n, fM, tM); 
+                }
             }
 
-            document.addEventListener('keydown', (e) => { if(e.target.tagName==='TEXTAREA' || e.target.tagName==='INPUT') return; const k = e.key.toUpperCase(); if(['L','P','R','N','H','S'].includes(k)) { const b=document.querySelector(`button[data-op="${k}"]`); if(b) b.click(); } if(e.code==='Space') { e.preventDefault(); if(pcb) pcb.click(); } if(k==='A') if(pab) pab.click(); if((k==='Z'||e.key==='Backspace') && history.length>0) { if(isInAnalysisMode) { const pb=getElement("prevStepBtn"); if(pb && !pb.disabled) pb.click(); } else if(currentHistoryIndex>0) document.querySelectorAll('.history-item')[history.length-currentHistoryIndex].click(); } });
+            // Analysis
+            getElement("analysisSelect").onchange = (e) => { if(e.target.value) startAnalysis(e.target.value); else exitAnalysis(); };
+            getElement("exitAnalysisBtn").onclick = exitAnalysis;
+            getElement("nextStepBtn").onclick = () => loadAnalysisStep(currentAnalysisStep+1);
+            getElement("prevStepBtn").onclick = () => loadAnalysisStep(currentAnalysisStep-1);
+
+            // Free Analysis
+            getElement("freeAnalysisButton").onclick = () => {
+                const txt = getElement("freeAnalysisInput").value;
+                const names = txt.split(/[\s,]+/).filter(s=>s);
+                if(names.length < 2) return;
+                
+                const t1 = getTriadByName(names[0]);
+                if(!t1) { getElement("freeAnalysisError").textContent = "Acorde no reconocido."; return; }
+                getElement("freeAnalysisError").textContent = "";
+                
+                exitAnalysis(); history=[]; currentHistoryIndex=-1; startAudioContext();
+                currentTriad = t1;
+                updateVoicing(t1.getNotes().map(n=>Tone.Frequency(n.replace('♯','#').replace('♭','b')+"4").toMidi()));
+                updateUI();
+                
+                let curr = t1, cmidi = lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi());
+                for(let i=1; i<names.length; i++){
+                    const next = getTriadByName(names[i]);
+                    if(!next) continue;
+                    const op = findBestOperation(curr, next);
+                    const tMidi = getClosestVoicing(cmidi, next);
+                    addHistoryEntry(op, curr, next, cmidi, tMidi);
+                    curr = next; cmidi = tMidi;
+                }
+                currentTriad = curr; updateVoicing(cmidi); updateUI();
+            };
+
+            // Audio
+            getElement("playChordButton").onclick = () => playVoicing(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()));
+            getElement("playArpeggioButton").onclick = () => playArpeggio(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()));
+            getElement("muteButton").onclick = () => { isMuted = !isMuted; getElement("muteButton").textContent = isMuted ? "🔇" : "🔊"; };
+            
+            // Visual Toggle
+            getElement("vizToggle").onchange = (e) => { currentVisualizationMode = e.target.checked ? 'rn' : 'lp'; updateCircleVisualization(currentTriad, previousTriad); };
+
+            // Modals
+            getElement("glossaryButton").onclick = () => getElement("glossaryModal").classList.add("show");
+            getElement("closeGlossaryButton").onclick = () => getElement("glossaryModal").classList.remove("show");
+            
+            // Tabs in Glossary
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                    const targetId = 'tab' + e.target.getAttribute('data-tab').charAt(0).toUpperCase() + e.target.getAttribute('data-tab').slice(1);
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+
+            // Welcome Modal
+            const authorModal = getElement("authorModal");
+            if (authorModal) {
+                setTimeout(() => authorModal.classList.add("show"), 500);
+                setTimeout(() => authorModal.classList.remove("show"), 3500);
+            }
+
+            // --- ATAJOS DE TECLADO (SHORTCUTS) ---
+            document.addEventListener('keydown', (e) => {
+                // Ignorar si el usuario está escribiendo en un input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+                const key = e.key.toLowerCase();
+
+                // Operaciones
+                if (['l', 'p', 'r', 'n', 's', 'h'].includes(key)) {
+                    // Feedback visual en el botón
+                    const btn = document.querySelector(`button[data-op="${key.toUpperCase()}"]`);
+                    if(btn) {
+                        btn.classList.add('ring-4', 'ring-blue-300');
+                        setTimeout(() => btn.classList.remove('ring-4', 'ring-blue-300'), 150);
+                    }
+                    handleOperation(key.toUpperCase());
+                }
+
+                // Audio
+                if (key === ' ' || key === 'spacebar') { // Espacio para Acorde
+                    e.preventDefault(); // Prevenir scroll
+                    document.getElementById('playChordButton').click();
+                }
+                if (key === 'a') { // 'A' para Arpegio
+                    document.getElementById('playArpeggioButton').click();
+                }
+                if (key === 'm') { // 'M' para Mute
+                    document.getElementById('muteButton').click();
+                }
+
+                // Navegación Análisis
+                if (isInAnalysisMode) {
+                    if (key === 'arrowright') document.getElementById('nextStepBtn').click();
+                    if (key === 'arrowleft') document.getElementById('prevStepBtn').click();
+                    if (key === 'escape') document.getElementById('exitAnalysisBtn').click();
+                } else {
+                    // Resetear app si no está en análisis
+                    if (key === 'backspace' || key === 'delete') {
+                        document.getElementById('resetButton').click();
+                    }
+                }
+            });
         };
     </script>
 </body>
