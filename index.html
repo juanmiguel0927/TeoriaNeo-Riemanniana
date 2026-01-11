@@ -147,7 +147,7 @@
     </style>
 </head>
 <body class="bg-bgBody text-textMain min-h-screen">
-    <div class="container p-4 mx-auto">
+    <div class="container p-4 mx-auto max-w-7xl">
         
         <!-- HEADER -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -157,7 +157,7 @@
                     Explorador Neo-Riemanniano
                 </span>
             </h1>
-            <button id="themeToggleBtn" class="px-4 py-2 rounded-full bg-bgPanel border border-borderBase shadow-sm hover:shadow-md transition-all text-xl" title="Cambiar Tema">
+            <button id="themeToggleBtn" class="px-4 py-2 rounded-full bg-bgPanel border border-borderBase shadow-sm hover:shadow-md transition-all text-xl" title="Cambiar Tema (Tecla: D)">
                 🌞
             </button>
         </header>
@@ -191,7 +191,7 @@
 
             <!-- Actions -->
             <div class="flex items-center gap-2 ml-auto">
-                <button id="resetButton" class="px-3 py-1.5 text-sm rounded bg-bgBody border border-borderBase hover:bg-borderBase transition-colors text-textMain">↺ Reset</button>
+                <button id="resetButton" class="px-3 py-1.5 text-sm rounded bg-bgBody border border-borderBase hover:bg-borderBase transition-colors text-textMain font-medium" title="Atajo: Backspace">↺ Reset</button>
                 <button id="glossaryButton" class="px-3 py-1.5 text-sm font-bold text-accent rounded bg-bgBody border border-accent hover:bg-accent hover:text-white transition-colors">? Ayuda / Help</button>
             </div>
         </div>
@@ -203,12 +203,12 @@
                 <button id="exitAnalysisBtn" class="text-xs px-3 py-1 rounded border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors">✕ Salir (Esc)</button>
             </div>
             <div class="flex flex-col gap-6">
-                <!-- IMAGEN GRANDE Y CLARA (Con URL raw) -->
+                <!-- IMAGEN GRANDE Y CLARA -->
                 <div id="analysisScoreContainer" class="w-full bg-white rounded p-2 flex items-center justify-center border border-borderBase shadow-inner min-h-[250px] relative overflow-hidden">
                     <!-- Image inserted via JS -->
                 </div>
                 <div class="w-full flex flex-col">
-                    <div id="analysisExplanation" class="flex-grow bg-bgBody p-4 rounded border border-borderBase mb-2 text-sm overflow-y-auto text-textMain"></div>
+                    <div id="analysisExplanation" class="flex-grow bg-bgBody p-4 rounded border border-borderBase mb-2 text-sm overflow-y-auto text-textMain max-h-[150px]"></div>
                     <div id="analysisCitation" class="text-xs text-textMuted italic mb-4 text-center"></div>
                     <div class="flex gap-2 mt-auto">
                         <button id="prevStepBtn" class="flex-1 py-2 rounded bg-bgBody border border-borderBase hover:border-primary text-textMain">← Anterior (Prev)</button>
@@ -218,147 +218,153 @@
             </div>
         </div>
 
-        <!-- GRID PRINCIPAL -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- GRID PRINCIPAL (Fila Superior - Altura aumentada a 680px) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-32">
             
-            <!-- COLUMNA IZQUIERDA (2/3): VISUALIZACIONES -->
-            <div class="lg:col-span-2 flex flex-col gap-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
-                    
-                    <!-- Círculo Hexatónico -->
-                    <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[450px]">
-                        <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl flex justify-between items-center">
-                            <span class="font-bold text-sm text-textMain" id="circleTitle">Círculo Hexatónico</span>
-                            <div class="flex items-center gap-2 text-xs text-textMuted">
-                                <span>L/P</span>
-                                <label class="toggle-switch scale-75">
-                                    <input type="checkbox" id="vizToggle">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                                <span>R/N</span>
-                            </div>
-                        </div>
-                        <div class="flex-grow relative flex flex-col items-center justify-center p-2 overflow-hidden">
-                            <!-- ViewBox ajustado para márgenes -->
-                            <div id="hexatonicCircle" class="w-full h-full flex items-center justify-center">
-                                <svg width="100%" height="100%" viewBox="-50 -50 400 400" preserveAspectRatio="xMidYMid meet"></svg>
-                            </div>
-                            <div class="absolute bottom-2 left-2 right-2 bg-bgBody/80 backdrop-blur-sm p-2 rounded text-center text-xs border border-borderBase text-textMain">
-                                Ciclo: <span id="currentHexatonicCycle" class="font-bold text-accent">-</span> | Región: <span id="currentWeitzmannRegion" class="font-bold text-accent">-</span>
-                            </div>
-                        </div>
+            <!-- Círculo Hexatónico -->
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[680px]">
+                <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl flex justify-between items-center">
+                    <span class="font-bold text-sm text-textMain" id="circleTitle">Círculo Hexatónico</span>
+                    <div class="flex items-center gap-2 text-xs text-textMuted">
+                        <span>L/P</span>
+                        <label class="toggle-switch scale-75" title="Atajo: V">
+                            <input type="checkbox" id="vizToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span>R/N</span>
                     </div>
-
-                    <!-- Tonnetz -->
-                    <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[450px]">
-                        <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl">
-                            <span class="font-bold text-sm text-textMain">Tonnetz</span>
-                        </div>
-                        <div id="vizPaneTonnetz" class="flex-grow w-full h-full overflow-hidden">
-                            <!-- ViewBox ajustado para Tonnetz más amplio -->
-                            <div id="tonnetzVisualization" class="w-full h-full flex items-center justify-center"></div>
-                        </div>
+                </div>
+                <div class="flex-grow relative flex flex-col items-center justify-center p-2 overflow-hidden">
+                    <div id="hexatonicCircle" class="w-full h-full flex items-center justify-center">
+                        <svg width="100%" height="100%" viewBox="-50 -50 400 400" preserveAspectRatio="xMidYMid meet"></svg>
+                    </div>
+                    <div class="absolute bottom-2 left-2 right-2 bg-bgBody/80 backdrop-blur-sm p-2 rounded text-center text-xs border border-borderBase text-textMain">
+                        Ciclo: <span id="currentHexatonicCycle" class="font-bold text-accent">-</span> | Región: <span id="currentWeitzmannRegion" class="font-bold text-accent">-</span>
                     </div>
                 </div>
             </div>
 
-            <!-- COLUMNA DERECHA (1/3): CONTROLES -->
-            <div class="flex flex-col gap-4">
+            <!-- Tonnetz -->
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[680px]">
+                <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl">
+                    <span class="font-bold text-sm text-textMain">Tonnetz</span>
+                </div>
+                <div id="vizPaneTonnetz" class="flex-grow w-full h-full overflow-hidden">
+                    <div id="tonnetzVisualization" class="w-full h-full flex items-center justify-center"></div>
+                </div>
+            </div>
+
+             <!-- Display Acorde & Operaciones (Altura aumentada para ver tabla completa) -->
+             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col h-[680px]">
                 
-                <!-- Display Acorde & Piano -->
-                <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm">
-                    <div class="text-center mb-4 p-4 rounded-lg bg-gradient-to-br from-bgBody to-bgHeader border border-borderBase">
-                        <h2 class="text-3xl font-bold text-accent mb-1"><span id="currentChordName">C Mayor</span></h2>
-                        <p class="text-sm text-textMuted tracking-[0.2em] font-mono mb-4"><span id="currentChordNotes">C E G</span></p>
-                        
-                        <div class="flex justify-center gap-2 mb-4">
-                            <button id="playChordButton" class="px-4 py-1.5 rounded-full bg-primary text-primaryText text-xs font-bold shadow transition-transform hover:scale-105">▶ Acorde</button>
-                            <button id="playArpeggioButton" class="px-4 py-1.5 rounded-full bg-bgBody border border-borderBase text-textMain text-xs font-bold hover:border-primary transition-colors">🎹 Arpegio</button>
-                        </div>
-
-                        <!-- Piano SVG Container -->
-                        <div id="pianoContainer" class="h-20 w-full rounded overflow-hidden border border-borderBase bg-white/50"></div>
+                <!-- Sección superior: Acorde y Piano -->
+                <div class="text-center mb-4 p-4 rounded-lg bg-gradient-to-br from-bgBody to-bgHeader border border-borderBase flex-shrink-0 mt-2">
+                    <h2 class="text-3xl font-bold text-accent mb-1"><span id="currentChordName">C Mayor</span></h2>
+                    <p class="text-sm text-textMuted tracking-[0.2em] font-mono mb-4"><span id="currentChordNotes">C E G</span></p>
+                    
+                    <div class="flex justify-center gap-2 mb-4">
+                        <button id="playChordButton" class="px-4 py-1.5 rounded-full bg-primary text-primaryText text-xs font-bold shadow transition-transform hover:scale-105" title="Espacio">▶ Acorde</button>
+                        <button id="playArpeggioButton" class="px-4 py-1.5 rounded-full bg-bgBody border border-borderBase text-textMain text-xs font-bold hover:border-primary transition-colors" title="Tecla: A">🎹 Arpegio</button>
                     </div>
 
-                    <!-- Operaciones Grid -->
-                    <div id="operationsBox">
-                        <label class="block text-center text-xs font-bold text-textMuted uppercase mb-2">Transformaciones</label>
-                        <div class="grid grid-cols-3 gap-2 mb-4">
-                            <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="L">
-                                <strong class="text-lg">L</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Leading-Tone<br>Sensible</span>
-                            </button>
-                            <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="P">
-                                <strong class="text-lg">P</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Parallel<br>Paralela</span>
-                            </button>
-                            <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="R">
-                                <strong class="text-lg">R</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Relative<br>Relativa</span>
-                            </button>
-                            <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="N">
-                                <strong class="text-lg">N</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Neighbor<br>Vecina</span>
-                            </button>
-                            <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="S">
-                                <strong class="text-lg">S</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Slide<br>Deslizar</span>
-                            </button>
-                            <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="H">
-                                <strong class="text-lg">H</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Hex. Pole<br>Polo</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Explicación -->
-                    <div class="bg-bgBody border border-borderBase rounded-lg p-3 min-h-[80px]">
-                        <div id="explanationTitleContainer"></div>
-                        <div id="operationExplanation" class="text-sm text-center text-textMuted italic pt-2">Selecciona una operación.</div>
-                    </div>
+                    <!-- Piano SVG Container -->
+                    <div id="pianoContainer" class="h-20 w-full rounded overflow-hidden border border-borderBase bg-white/50"></div>
                 </div>
 
-                <!-- Herramientas & Quiz -->
-                <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm">
-                    <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain">Herramientas</div>
-                    <div class="p-4">
-                        <select id="analysisSelect" class="w-full p-2 mb-3 text-sm bg-bgBody border border-borderBase rounded text-textMain">
-                            <option value="">📂 Cargar Análisis Guiado...</option>
+                <!-- Operaciones Grid (Ahora tiene mucho más espacio abajo) -->
+                <div id="operationsBox" class="flex-grow flex flex-col justify-center">
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="L">
+                            <strong class="text-lg">L</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Leading<br>Sensible</span>
+                        </button>
+                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="P">
+                            <strong class="text-lg">P</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Parallel<br>Paralela</span>
+                        </button>
+                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="R">
+                            <strong class="text-lg">R</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Relative<br>Relativa</span>
+                        </button>
+                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="N">
+                            <strong class="text-lg">N</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Neighbor<br>Vecina</span>
+                        </button>
+                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="S">
+                            <strong class="text-lg">S</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Slide<br>Deslizar</span>
+                        </button>
+                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="H">
+                            <strong class="text-lg">H</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Hex Pole<br>Polo</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Explicación (Conducción de voces aparecerá aquí) -->
+                    <div class="bg-bgBody border border-borderBase rounded-lg p-3 min-h-[60px] flex items-center justify-center flex-col">
+                        <div id="explanationTitleContainer"></div>
+                        <div id="operationExplanation" class="text-xs text-center text-textMuted italic w-full">Selecciona una transformación para ver detalles.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRID INFERIOR (Empujada hacia abajo) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            
+            <!-- Herramientas & Quiz -->
+            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[300px] flex flex-col">
+                <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center">
+                    <span>Herramientas de Análisis</span>
+                    <span class="text-xs text-accent">Quiz & Análisis Libre</span>
+                </div>
+                <div class="p-4 flex-grow flex flex-col gap-4 overflow-y-auto">
+                    <div>
+                         <label class="text-xs font-bold text-textMuted uppercase mb-1 block">Análisis Guiado</label>
+                        <select id="analysisSelect" class="w-full p-2 text-sm bg-bgBody border border-borderBase rounded text-textMain focus:border-primary outline-none">
+                            <option value="">📂 Seleccionar Obra...</option>
                             <option value="liszt">Liszt - Consolación IV</option>
                             <option value="schubert">Schubert - D.946 Nº2</option>
                         </select>
+                    </div>
 
-                        <!-- Quiz Section -->
-                        <div id="quizContainer" class="hidden bg-bgBody border border-accent/30 p-3 rounded mb-3">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs font-bold text-accent">MODO QUIZ</span>
-                                <button id="stopQuizBtn" class="text-xs underline text-textMuted">Salir</button>
-                            </div>
-                            <p id="quizQuestion" class="text-sm font-bold mb-3 text-center text-textMain">Pregunta...</p>
-                            <div id="quizOptions" class="grid grid-cols-2 gap-2 mb-2"></div>
-                            <div id="quizFeedback" class="h-6 text-center text-xs font-bold text-textMain"></div>
+                    <!-- Quiz Section -->
+                    <div id="quizContainer" class="hidden bg-bgBody border border-accent/30 p-3 rounded flex-grow flex flex-col justify-center">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-accent">MODO QUIZ</span>
+                            <button id="stopQuizBtn" class="text-xs underline text-textMuted hover:text-red-500">Salir</button>
                         </div>
-                        <button id="startQuizBtn" class="w-full py-2 text-xs font-bold border border-borderBase rounded hover:bg-bgBody text-textMain transition-colors">🎓 Entrenar Oído y Teoría (Quiz)</button>
+                        <p id="quizQuestion" class="text-sm font-bold mb-3 text-center text-textMain">Pregunta...</p>
+                        <div id="quizOptions" class="grid grid-cols-2 gap-2 mb-2"></div>
+                        <div id="quizFeedback" class="h-6 text-center text-xs font-bold text-textMain"></div>
+                    </div>
+                    
+                    <button id="startQuizBtn" class="w-full py-3 text-sm font-bold border border-borderBase rounded hover:bg-bgBody text-textMain transition-colors flex items-center justify-center gap-2">
+                        <span>🎓</span> Iniciar Entrenamiento Auditivo (Quiz)
+                    </button>
 
-                        <hr class="my-3 border-borderBase">
-                        
-                        <!-- Free Analysis -->
-                        <div id="freeAnalysisContainer">
-                            <textarea id="freeAnalysisInput" rows="1" class="w-full p-2 text-sm bg-bgBody border border-borderBase rounded mb-2 resize-none text-textMain" placeholder="Análisis libre: C Am F..."></textarea>
-                            <div class="flex justify-between items-center">
-                                <p id="freeAnalysisError" class="text-xs text-red-500"></p>
-                                <button id="freeAnalysisButton" class="px-3 py-1 bg-primary text-primaryText text-xs rounded font-bold transition-colors">Analizar</button>
-                            </div>
+                    <div id="freeAnalysisContainer" class="mt-auto">
+                         <label class="text-xs font-bold text-textMuted uppercase mb-1 block">Análisis Libre</label>
+                        <div class="flex gap-2">
+                            <textarea id="freeAnalysisInput" rows="1" class="flex-grow p-2 text-sm bg-bgBody border border-borderBase rounded resize-none text-textMain focus:border-primary outline-none" placeholder="Ej: C Am F Fm C..."></textarea>
+                            <button id="freeAnalysisButton" class="px-4 py-1 bg-primary text-primaryText text-xs rounded font-bold transition-colors hover:brightness-110">Analizar</button>
                         </div>
+                        <p id="freeAnalysisError" class="text-xs text-red-500 mt-1 h-4"></p>
                     </div>
                 </div>
-
-                <!-- Historial -->
-                <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm flex-grow min-h-[200px]">
-                    <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain">Historial</div>
-                    <div id="historyLog" class="history-container overflow-y-auto max-h-[250px] p-0 bg-bgPanel">
-                        <div class="p-6 text-center text-textMuted text-xs italic">El historial aparecerá aquí</div>
-                    </div>
-                </div>
-
             </div>
+
+            <!-- Historial -->
+            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[300px] flex flex-col">
+                <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center">
+                    <span>Historial de Transformaciones</span>
+                    <button onclick="document.getElementById('resetButton').click()" class="text-xs text-textMuted hover:text-red-500 transition-colors">Borrar Todo</button>
+                </div>
+                <div id="historyLog" class="history-container overflow-y-auto flex-grow bg-bgPanel custom-scrollbar">
+                    <div class="h-full flex flex-col items-center justify-center text-textMuted opacity-50">
+                        <span class="text-2xl mb-2">📜</span>
+                        <p class="text-xs italic">El historial aparecerá aquí</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
         
-        <div class="mt-8 text-center text-xs text-textMuted">
+        <div class="mt-8 text-center text-xs text-textMuted pb-4">
             Realizado por: <strong>Juan Miguel Ríos Redondo</strong>
         </div>
     </div>
@@ -507,6 +513,8 @@
                     <div class="bg-bgBody p-3 rounded border border-borderBase">
                         <strong class="block text-accent mb-2">Navegación y Audio</strong>
                         <ul class="space-y-1 text-textMuted">
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">V</kbd> : Cambiar Vista L/P - R/N</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">D</kbd> : Tema Oscuro/Claro</li>
                             <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">Espacio</kbd> : Reproducir Acorde</li>
                             <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">A</kbd> : Arpegio</li>
                             <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">M</kbd> : Silenciar/Mute</li>
@@ -557,7 +565,7 @@
             flat:  ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]
         };
 
-        // TONNETZ EXTENDIDO (Más nodos a la izquierda)
+        // TONNETZ EXTENDIDO
         const tonnetzNodesData = [
             { note: "D♯", pc: 3, x: -150, y: 0 }, { note: "A♯", pc: 10, x: -70, y: 0 }, { note: "E♯", pc: 5, x: 10, y: 0 }, { note: "B♯", pc: 0, x: 90, y: 0 }, { note: "Gx", pc: 9, x: 170, y: 0 }, { note: "Dx", pc: 4, x: 250, y: 0 },
             { note: "G♯", pc: 8, x: -110, y: 75 }, { note: "D♯", pc: 3, x: -30, y: 75 }, { note: "A♯", pc: 10, x: 50, y: 75 }, { note: "F", pc: 5, x: 130, y: 75 }, { note: "C", pc: 0, x: 210, y: 75 }, { note: "G", pc: 7, x: 290, y: 75 },
@@ -568,7 +576,7 @@
             { note: "A", pc: 9, x: -70, y: 450 }, { note: "E", pc: 4, x: 10, y: 450 }, { note: "B", pc: 11, x: 90, y: 450 }, { note: "F♯", pc: 6, x: 170, y: 450 }, { note: "C♯", pc: 1, x: 250, y: 450 }
         ];
 
-        // DATOS ANALISIS (Updated Images with Raw GitHub Links - Final Fix)
+        // DATOS ANALISIS
         const analysisData = {
             'liszt': { 
                 name: "Liszt - Consolación IV", 
@@ -664,18 +672,13 @@
             const t = getElement("analysisTitle"); if(t) t.textContent = currentAnalysis.name;
             const cit = getElement("analysisCitation"); if(cit) cit.innerHTML = currentAnalysis.citation || ""; 
             const cont = getElement("analysisScoreContainer");
-            
             if(cont) { 
                 if(currentAnalysis.imageUrl) {
-                    // Force refresh image tag
                     cont.innerHTML = `<img id="analysisScoreImage" src="${currentAnalysis.imageUrl}" alt="Partitura" class="w-full h-auto shadow-sm" onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=\\'text-gray-400 italic p-4\\'>Imagen no disponible.</p>'">`;
                     cont.classList.remove('hidden'); 
                 } 
-                else { 
-                    cont.classList.add('hidden'); 
-                } 
+                else { cont.classList.add('hidden'); } 
             }
-            
             safeClassListRemove("analysisControls", "hidden");
             safeClassListAdd("startChordContainer", "hidden");
             safeClassListAdd("operationsBox", "hidden");
@@ -713,9 +716,13 @@
         function setStartChord(name, preserve) {
             if(!preserve) exitAnalysis();
             const newStart = getPreferredSpelling(getTriadByName(name) || allTriads[0]);
-            visualRotationRoot = newStart; // Update rotation anchor on manual start change
+            visualRotationRoot = newStart; 
             currentTriad = newStart;
             
+            // Sync the dropdown explicitly to match internal state
+            const sel = getElement("startChord");
+            if(sel && newStart) sel.value = newStart.name;
+
             if(!preserve) { history=[]; currentHistoryIndex=-1; previousTriad=null; updateVoicing(currentTriad.getNotes().map(n=>Tone.Frequency(n.replace('♯','#').replace('♭','b')+"4").toMidi())); }
             updateUI(); if(!preserve) displayOperationExplanation('');
         }
@@ -759,7 +766,7 @@
              setTimeout(() => highlightKeys([midiTo]), 300); arpeggioSynth.triggerAttackRelease(n2, "4n", now + 0.3);
         }
 
-        // --- ACTUALIZACIÓN DE UI ---
+        // --- UI ---
         function updateUI() {
             if(!currentTriad) return;
             currentTriad = getPreferredSpelling(currentTriad);
@@ -771,7 +778,7 @@
         }
         function updateHistoryLog() {
             const log = getElement("historyLog"); if(!log) return; log.innerHTML = "";
-            if(history.length === 0) { log.innerHTML = '<div class="p-6 text-center text-textMuted text-xs italic">El historial aparecerá aquí</div>'; return; }
+            if(history.length === 0) { log.innerHTML = '<div class="h-full flex flex-col items-center justify-center text-textMuted opacity-50"><span class="text-2xl mb-2">📜</span><p class="text-xs italic">El historial aparecerá aquí</p></div>'; return; }
             [...history].reverse().forEach((h, i) => {
                 const div = document.createElement("div");
                 div.className = `history-item border-b border-borderBase p-2 flex justify-between cursor-pointer hover:bg-bgBody ${history.length-1-i===currentHistoryIndex?'bg-blue-50 border-l-4 border-l-primary':''}`;
@@ -791,12 +798,11 @@
             });
         }
         function displayOperationExplanation(op, from, to, fMidi, tMidi) {
-            // SPANISH ONLY FOR MAIN UI
             const opDefinitions = { "L": "Sensible", "P": "Paralela", "R": "Relativa", "N": "Vecina", "H": "Polo", "S": "Slide" };
             const opName = opDefinitions[op] || op;
-            let html = op ? `<strong class="text-accent block mb-2 text-center text-base border-b border-borderBase pb-2">Operación: ${opName}</strong>` : "Selecciona una operación.";
+            let html = op ? `<strong class="text-accent block mb-2 text-center text-xs border-b border-borderBase pb-1">Operación: ${opName}</strong>` : "Selecciona una operación.";
             if(from && to && fMidi && tMidi) {
-                html += `<div class="mt-2 text-xs text-textMuted"><strong>Conducción de Voces:</strong><br><span class="text-xs block mb-1 font-normal">(Haz clic en una fila para escuchar)</span><div class="flex flex-col gap-1 mt-1 bg-bgPanel p-2 rounded border border-borderBase">`;
+                html += `<div class="mt-1 text-[10px] text-textMuted"><span class="block mb-1 font-normal text-center">(Clic en fila para escuchar)</span><div class="flex flex-col gap-1 mt-1 bg-bgPanel p-1 rounded border border-borderBase">`;
                 const currentColors = ['#ef4444', '#16a34a', '#2563eb'];
                 for(let i=0; i<fMidi.length; i++) {
                      const fm = fMidi[i]; const tm = tMidi[i];
@@ -804,11 +810,11 @@
                      const noteNameFrom = getNoteNameFromMidi(fm); const noteNameTo = getNoteNameFromMidi(tm);
                      const voiceColor = currentColors[i % currentColors.length];
                      html += `
-                    <div class="voice-row flex justify-between p-1 cursor-pointer transition-colors" style="color:${voiceColor}" onclick="window.playVoiceLeading(${fm}, ${tm})" title="Reproducir: ${noteNameFrom} -> ${noteNameTo}">
+                    <div class="voice-row flex justify-between p-0.5 cursor-pointer transition-colors" style="color:${voiceColor}" onclick="window.playVoiceLeading(${fm}, ${tm})" title="Reproducir: ${noteNameFrom} -> ${noteNameTo}">
                         <span class="${isCommon ? 'common-tone' : ''} w-1/3 text-right">${noteNameFrom}</span>
                         <span class="text-textMuted w-1/6 text-center">→</span>
                         <span class="${isCommon ? 'common-tone' : ''} w-1/3 text-left">${noteNameTo}</span>
-                        <span class="w-1/6 text-xs text-textMuted text-right flex items-center justify-end">${isCommon ? 'Común' : '🔊'}</span>
+                        <span class="w-1/6 text-[9px] text-textMuted text-right flex items-center justify-end">${isCommon ? '🤝' : '🔊'}</span>
                     </div>`;
                 }
                 html += `</div></div>`;
@@ -888,24 +894,14 @@
             const cx = 150, cy = 150, r = 120;
             const labelsGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
             
-            // ROTATION LOGIC: Find index of sessionStartTriad if available, else current act
-            // We use visualRotationRoot which is set by setStartChord
             let rotationIndex = 0;
             const targetRoot = visualRotationRoot || act;
             
             if (targetRoot) {
-                // Find this chord in the current cycle members
-                // We need to match pitch classes AND type
                 const foundIdx = cycle.members.findIndex(m => m.hasSamePitchClasses(targetRoot) && m.type === targetRoot.type);
-                if (foundIdx !== -1) {
-                    rotationIndex = foundIdx;
-                }
+                if (foundIdx !== -1) { rotationIndex = foundIdx; }
             }
             
-            // Calculate rotation offset angle to put index at -90deg (top)
-            // Normal pos for index i is: (i * 60 - 90). 
-            // We want index `rotationIndex` to be at -90.
-            // So we subtract (rotationIndex * 60) from all angles.
             const rotationOffset = -(rotationIndex * 60);
 
             // Pole Line
@@ -944,7 +940,7 @@
                 const nextAng = (nextIdx * 60 + rotationOffset - 90) * Math.PI / 180;
                 const nextX = cx + r * Math.cos(nextAng), nextY = cy + r * Math.sin(nextAng);
                 
-                // Lines - Shortened to stop at box edges
+                // Lines
                 let dx = nextX - x; let dy = nextY - y;
                 let dist = Math.sqrt(dx*dx + dy*dy);
                 let offsetX = (dx/dist) * 35; 
@@ -997,7 +993,6 @@
                 g.appendChild(c); g.appendChild(t); svg.appendChild(g);
                 g.onclick = () => highlightTonnetzByNote(n.pc);
             });
-            // VIEWBOX AMPLIADO (-150 X para evitar corte izquierda)
             svg.setAttribute("viewBox", "-150 -50 650 600"); 
             div.appendChild(svg);
         }
@@ -1101,7 +1096,11 @@
             renderKeyboard();
             
             getElement("startChord").onchange = (e) => setStartChord(e.target.value);
-            getElement("resetButton").onclick = () => setStartChord("C Mayor");
+            getElement("resetButton").onclick = () => {
+                setStartChord("C Mayor");
+                const sel = getElement("startChord");
+                if(sel) sel.value = "C Mayor";
+            };
             getElement("enharmonicToggle").onchange = (e) => { enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; generateAllTriads(); genCycles(); populateStartChordSelect(); setStartChord(currentTriad.name, true); };
             document.getElementById("themeToggleBtn").onclick = toggleTheme;
             
@@ -1191,12 +1190,26 @@
                     document.getElementById('enharmonicToggle').click();
                 }
 
+                // New Shortcuts for V and D
+                if (key === 'v') {
+                    const vizToggle = document.getElementById('vizToggle');
+                    if(vizToggle) {
+                        vizToggle.checked = !vizToggle.checked;
+                        // Trigger change event manually
+                        const event = new Event('change');
+                        vizToggle.dispatchEvent(event);
+                    }
+                }
+                
+                if (key === 'd') {
+                    toggleTheme();
+                }
+
                 if (['l', 'p', 'r', 'n', 's', 'h'].includes(key)) {
                     if(isQuizMode) {
                         if(!checkQuizAnswer(key.toUpperCase())) return;
                     }
                     
-                    // Feedback visual en el botón
                     const btn = document.querySelector(`button[data-op="${key.toUpperCase()}"]`);
                     if(btn) {
                         btn.classList.add('ring-4', 'ring-blue-300');
