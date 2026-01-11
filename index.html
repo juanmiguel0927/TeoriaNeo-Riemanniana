@@ -205,7 +205,7 @@
             <div class="flex flex-col gap-6">
                 <!-- IMAGEN GRANDE Y CLARA (Con URL raw) -->
                 <div id="analysisScoreContainer" class="w-full bg-white rounded p-2 flex items-center justify-center border border-borderBase shadow-inner min-h-[250px] relative overflow-hidden">
-                     <div class="text-gray-400 italic">Selecciona un análisis...</div>
+                    <!-- Image inserted via JS -->
                 </div>
                 <div class="w-full flex flex-col">
                     <div id="analysisExplanation" class="flex-grow bg-bgBody p-4 rounded border border-borderBase mb-2 text-sm overflow-y-auto text-textMain"></div>
@@ -239,9 +239,9 @@
                             </div>
                         </div>
                         <div class="flex-grow relative flex flex-col items-center justify-center p-2 overflow-hidden">
-                            <!-- Agregado preserveAspectRatio para que no se salga del marco -->
+                            <!-- ViewBox ajustado para márgenes -->
                             <div id="hexatonicCircle" class="w-full h-full flex items-center justify-center">
-                                <svg width="100%" height="100%" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet"></svg>
+                                <svg width="100%" height="100%" viewBox="-50 -50 400 400" preserveAspectRatio="xMidYMid meet"></svg>
                             </div>
                             <div class="absolute bottom-2 left-2 right-2 bg-bgBody/80 backdrop-blur-sm p-2 rounded text-center text-xs border border-borderBase text-textMain">
                                 Ciclo: <span id="currentHexatonicCycle" class="font-bold text-accent">-</span> | Región: <span id="currentWeitzmannRegion" class="font-bold text-accent">-</span>
@@ -255,7 +255,7 @@
                             <span class="font-bold text-sm text-textMain">Tonnetz</span>
                         </div>
                         <div id="vizPaneTonnetz" class="flex-grow w-full h-full overflow-hidden">
-                            <!-- Agregado preserveAspectRatio y viewBox ajustado -->
+                            <!-- ViewBox ajustado para Tonnetz más amplio -->
                             <div id="tonnetzVisualization" class="w-full h-full flex items-center justify-center"></div>
                         </div>
                     </div>
@@ -501,6 +501,7 @@
                             <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">N</kbd> : Neighbor</li>
                             <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">S</kbd> : Slide</li>
                             <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">H</kbd> : Hexatonic Pole</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">E</kbd> : Toggle ♯/♭</li>
                         </ul>
                     </div>
                     <div class="bg-bgBody p-3 rounded border border-borderBase">
@@ -538,6 +539,7 @@
         let enharmonicPreference = 'sharp';
         let isToneStarted = false, isMuted = false, lastPlayedVoicing = [];
         let isQuizMode = false, quizTargetTriadName = null;
+        let visualRotationRoot = null; // New state for rotation anchor
 
         const voiceColors = ['#ef4444', '#22c55e', '#3b82f6']; 
 
@@ -557,13 +559,13 @@
 
         // TONNETZ EXTENDIDO (Más nodos a la izquierda)
         const tonnetzNodesData = [
-            { note: "D♯", pc: 3, x: -100, y: 0 }, { note: "A♯", pc: 10, x: -20, y: 0 }, { note: "E♯", pc: 5, x: 60, y: 0 }, { note: "B♯", pc: 0, x: 140, y: 0 }, { note: "Gx", pc: 9, x: 220, y: 0 }, { note: "Dx", pc: 4, x: 300, y: 0 },
-            { note: "G♯", pc: 8, x: -60, y: 75 }, { note: "D♯", pc: 3, x: 20, y: 75 }, { note: "A♯", pc: 10, x: 100, y: 75 }, { note: "F", pc: 5, x: 180, y: 75 }, { note: "C", pc: 0, x: 260, y: 75 }, { note: "G", pc: 7, x: 340, y: 75 },
-            { note: "C♯", pc: 1, x: -100, y: 150 }, { note: "G♯", pc: 8, x: -20, y: 150 }, { note: "D♯", pc: 3, x: 60, y: 150 }, { note: "A♯", pc: 10, x: 140, y: 150 }, { note: "F", pc: 5, x: 220, y: 150 }, { note: "C", pc: 0, x: 300, y: 150 }, { note: "G", pc: 7, x: 380, y: 150 },
-            { note: "F♯", pc: 6, x: -60, y: 225 }, { note: "C♯", pc: 1, x: 20, y: 225 }, { note: "G♯", pc: 8, x: 100, y: 225 }, { note: "D♯", pc: 3, x: 180, y: 225 }, { note: "A♯", pc: 10, x: 260, y: 225 }, { note: "F", pc: 5, x: 340, y: 225 },
-            { note: "B", pc: 11, x: -100, y: 300 }, { note: "F♯", pc: 6, x: -20, y: 300 }, { note: "C♯", pc: 1, x: 60, y: 300 }, { note: "G♯", pc: 8, x: 140, y: 300 }, { note: "D♯", pc: 3, x: 220, y: 300 }, { note: "A♯", pc: 10, x: 300, y: 300 }, { note: "F", pc: 5, x: 380, y: 300 },
-            { note: "E", pc: 4, x: -60, y: 375 }, { note: "B", pc: 11, x: 20, y: 375 }, { note: "F♯", pc: 6, x: 100, y: 375 }, { note: "C♯", pc: 1, x: 180, y: 375 }, { note: "G♯", pc: 8, x: 260, y: 375 }, { note: "D♯", pc: 3, x: 340, y: 375 },
-            { note: "A", pc: 9, x: -20, y: 450 }, { note: "E", pc: 4, x: 60, y: 450 }, { note: "B", pc: 11, x: 140, y: 450 }, { note: "F♯", pc: 6, x: 220, y: 450 }, { note: "C♯", pc: 1, x: 300, y: 450 }
+            { note: "D♯", pc: 3, x: -150, y: 0 }, { note: "A♯", pc: 10, x: -70, y: 0 }, { note: "E♯", pc: 5, x: 10, y: 0 }, { note: "B♯", pc: 0, x: 90, y: 0 }, { note: "Gx", pc: 9, x: 170, y: 0 }, { note: "Dx", pc: 4, x: 250, y: 0 },
+            { note: "G♯", pc: 8, x: -110, y: 75 }, { note: "D♯", pc: 3, x: -30, y: 75 }, { note: "A♯", pc: 10, x: 50, y: 75 }, { note: "F", pc: 5, x: 130, y: 75 }, { note: "C", pc: 0, x: 210, y: 75 }, { note: "G", pc: 7, x: 290, y: 75 },
+            { note: "C♯", pc: 1, x: -150, y: 150 }, { note: "G♯", pc: 8, x: -70, y: 150 }, { note: "D♯", pc: 3, x: 10, y: 150 }, { note: "A♯", pc: 10, x: 90, y: 150 }, { note: "F", pc: 5, x: 170, y: 150 }, { note: "C", pc: 0, x: 250, y: 150 }, { note: "G", pc: 7, x: 330, y: 150 },
+            { note: "F♯", pc: 6, x: -110, y: 225 }, { note: "C♯", pc: 1, x: -30, y: 225 }, { note: "G♯", pc: 8, x: 50, y: 225 }, { note: "D♯", pc: 3, x: 130, y: 225 }, { note: "A♯", pc: 10, x: 210, y: 225 }, { note: "F", pc: 5, x: 290, y: 225 },
+            { note: "B", pc: 11, x: -150, y: 300 }, { note: "F♯", pc: 6, x: -70, y: 300 }, { note: "C♯", pc: 1, x: 10, y: 300 }, { note: "G♯", pc: 8, x: 90, y: 300 }, { note: "D♯", pc: 3, x: 170, y: 300 }, { note: "A♯", pc: 10, x: 250, y: 300 }, { note: "F", pc: 5, x: 330, y: 300 },
+            { note: "E", pc: 4, x: -110, y: 375 }, { note: "B", pc: 11, x: -30, y: 375 }, { note: "F♯", pc: 6, x: 50, y: 375 }, { note: "C♯", pc: 1, x: 130, y: 375 }, { note: "G♯", pc: 8, x: 210, y: 375 }, { note: "D♯", pc: 3, x: 290, y: 375 },
+            { note: "A", pc: 9, x: -70, y: 450 }, { note: "E", pc: 4, x: 10, y: 450 }, { note: "B", pc: 11, x: 90, y: 450 }, { note: "F♯", pc: 6, x: 170, y: 450 }, { note: "C♯", pc: 1, x: 250, y: 450 }
         ];
 
         // DATOS ANALISIS (Updated Images with Raw GitHub Links - Final Fix)
@@ -710,7 +712,10 @@
         // --- FUNCIONES UI PRINCIPALES ---
         function setStartChord(name, preserve) {
             if(!preserve) exitAnalysis();
-            currentTriad = getPreferredSpelling(getTriadByName(name) || allTriads[0]);
+            const newStart = getPreferredSpelling(getTriadByName(name) || allTriads[0]);
+            visualRotationRoot = newStart; // Update rotation anchor on manual start change
+            currentTriad = newStart;
+            
             if(!preserve) { history=[]; currentHistoryIndex=-1; previousTriad=null; updateVoicing(currentTriad.getNotes().map(n=>Tone.Frequency(n.replace('♯','#').replace('♭','b')+"4").toMidi())); }
             updateUI(); if(!preserve) displayOperationExplanation('');
         }
@@ -883,12 +888,32 @@
             const cx = 150, cy = 150, r = 120;
             const labelsGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
             
+            // ROTATION LOGIC: Find index of sessionStartTriad if available, else current act
+            // We use visualRotationRoot which is set by setStartChord
+            let rotationIndex = 0;
+            const targetRoot = visualRotationRoot || act;
+            
+            if (targetRoot) {
+                // Find this chord in the current cycle members
+                // We need to match pitch classes AND type
+                const foundIdx = cycle.members.findIndex(m => m.hasSamePitchClasses(targetRoot) && m.type === targetRoot.type);
+                if (foundIdx !== -1) {
+                    rotationIndex = foundIdx;
+                }
+            }
+            
+            // Calculate rotation offset angle to put index at -90deg (top)
+            // Normal pos for index i is: (i * 60 - 90). 
+            // We want index `rotationIndex` to be at -90.
+            // So we subtract (rotationIndex * 60) from all angles.
+            const rotationOffset = -(rotationIndex * 60);
+
             // Pole Line
             if(act) {
                 const poleLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 const actIdx = cycle.members.findIndex(m => m.hasSamePitchClasses(act) && m.type===act.type);
                 if(actIdx !== -1) {
-                    const ang = (actIdx * 60 - 90) * Math.PI / 180;
+                    const ang = (actIdx * 60 + rotationOffset - 90) * Math.PI / 180;
                     const x1 = cx + (r-35) * Math.cos(ang); const y1 = cy + (r-35) * Math.sin(ang);
                     const x2 = cx + (r-35) * Math.cos(ang + Math.PI); const y2 = cy + (r-35) * Math.sin(ang + Math.PI);
                     poleLine.setAttribute("x1", x1); poleLine.setAttribute("y1", y1); 
@@ -899,7 +924,7 @@
             }
 
             cycle.members.forEach((m, i) => {
-                const ang = (i * 60 - 90) * Math.PI / 180;
+                const ang = (i * 60 + rotationOffset - 90) * Math.PI / 180;
                 const x = cx + r * Math.cos(ang), y = cy + r * Math.sin(ang);
                 const isActive = (act && m.hasSamePitchClasses(act) && m.type===act.type);
                 
@@ -915,7 +940,8 @@
                 
                 svg.appendChild(rect); svg.appendChild(txt);
                 
-                const nextIdx = (i + 1) % 6; const nextAng = (nextIdx * 60 - 90) * Math.PI / 180;
+                const nextIdx = (i + 1) % 6; 
+                const nextAng = (nextIdx * 60 + rotationOffset - 90) * Math.PI / 180;
                 const nextX = cx + r * Math.cos(nextAng), nextY = cy + r * Math.sin(nextAng);
                 
                 // Lines - Shortened to stop at box edges
@@ -971,8 +997,8 @@
                 g.appendChild(c); g.appendChild(t); svg.appendChild(g);
                 g.onclick = () => highlightTonnetzByNote(n.pc);
             });
-            // VIEWBOX AMPLIADO (-100 X)
-            svg.setAttribute("viewBox", "-100 -25 600 550"); 
+            // VIEWBOX AMPLIADO (-150 X para evitar corte izquierda)
+            svg.setAttribute("viewBox", "-150 -50 650 600"); 
             div.appendChild(svg);
         }
 
@@ -1160,6 +1186,11 @@
             document.addEventListener('keydown', (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
                 const key = e.key.toLowerCase();
+                
+                if (key === 'e') {
+                    document.getElementById('enharmonicToggle').click();
+                }
+
                 if (['l', 'p', 'r', 'n', 's', 'h'].includes(key)) {
                     if(isQuizMode) {
                         if(!checkQuizAnswer(key.toUpperCase())) return;
