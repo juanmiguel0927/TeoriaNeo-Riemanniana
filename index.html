@@ -203,9 +203,9 @@
                 <button id="exitAnalysisBtn" class="text-xs px-3 py-1 rounded border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors">✕ Salir (Esc)</button>
             </div>
             <div class="flex flex-col gap-6">
-                <!-- IMAGEN GRANDE Y CLARA -->
-                <div class="w-full bg-white rounded p-2 flex items-center justify-center border border-borderBase shadow-inner min-h-[250px] relative">
-                    <img id="analysisScoreImage" src="" alt="Partitura del análisis" class="w-full h-auto shadow-sm" style="display: block;" onerror="this.parentElement.innerHTML='<p class=\'text-gray-400 italic p-4\'>Imagen no disponible.</p>'">
+                <!-- IMAGEN GRANDE Y CLARA (Con URL raw) -->
+                <div id="analysisScoreContainer" class="w-full bg-white rounded p-2 flex items-center justify-center border border-borderBase shadow-inner min-h-[250px] relative overflow-hidden">
+                     <div class="text-gray-400 italic">Selecciona un análisis...</div>
                 </div>
                 <div class="w-full flex flex-col">
                     <div id="analysisExplanation" class="flex-grow bg-bgBody p-4 rounded border border-borderBase mb-2 text-sm overflow-y-auto text-textMain"></div>
@@ -238,9 +238,10 @@
                                 <span>R/N</span>
                             </div>
                         </div>
-                        <div class="flex-grow relative flex flex-col items-center justify-center p-2">
+                        <div class="flex-grow relative flex flex-col items-center justify-center p-2 overflow-hidden">
+                            <!-- Agregado preserveAspectRatio para que no se salga del marco -->
                             <div id="hexatonicCircle" class="w-full h-full flex items-center justify-center">
-                                <svg width="100%" height="100%" viewBox="0 0 300 300"></svg>
+                                <svg width="100%" height="100%" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet"></svg>
                             </div>
                             <div class="absolute bottom-2 left-2 right-2 bg-bgBody/80 backdrop-blur-sm p-2 rounded text-center text-xs border border-borderBase text-textMain">
                                 Ciclo: <span id="currentHexatonicCycle" class="font-bold text-accent">-</span> | Región: <span id="currentWeitzmannRegion" class="font-bold text-accent">-</span>
@@ -253,7 +254,8 @@
                         <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl">
                             <span class="font-bold text-sm text-textMain">Tonnetz</span>
                         </div>
-                        <div id="vizPaneTonnetz" class="flex-grow w-full h-full">
+                        <div id="vizPaneTonnetz" class="flex-grow w-full h-full overflow-hidden">
+                            <!-- Agregado preserveAspectRatio y viewBox ajustado -->
                             <div id="tonnetzVisualization" class="w-full h-full flex items-center justify-center"></div>
                         </div>
                     </div>
@@ -366,8 +368,9 @@
         <div class="modal-content bg-bgPanel rounded-xl shadow-2xl w-[90%] max-w-2xl p-6 text-textMain border border-borderBase">
             <h2 class="text-2xl font-bold text-accent mb-4 text-center">Conceptos y Operaciones (Concepts & Operations)</h2>
             <div class="flex border-b border-borderBase mb-4">
-                <button class="tab-btn w-1/2 py-2 text-textMuted hover:text-textMain active border-b-2 border-primary font-bold" data-tab="operaciones">Operaciones / Operations</button>
-                <button class="tab-btn w-1/2 py-2 text-textMuted hover:text-textMain" data-tab="conceptos">Teoría / Theory</button>
+                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain active border-b-2 border-primary font-bold" data-tab="operaciones">Operaciones</button>
+                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain" data-tab="conceptos">Teoría</button>
+                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain" data-tab="atajos">Atajos</button>
             </div>
             
             <div id="tabOperaciones" class="tab-pane active h-[400px] overflow-y-auto text-sm space-y-6 pr-2">
@@ -448,6 +451,7 @@
                 </div>
             </div>
             
+            <!-- Pestaña Teoría -->
             <div id="tabConceptos" class="tab-pane hidden h-[400px] overflow-y-auto text-sm space-y-6 pr-2">
                 <div class="pb-4 border-b border-borderBase">
                     <strong class="text-accent text-lg block mb-2">Ciclos L/P (Hexatonic Cycles)</strong>
@@ -482,6 +486,34 @@
                         <li><strong>Diagonal (/):</strong> Terceras Mayores (Major 3rds).</li>
                         <li><strong>Diagonal (\):</strong> Terceras Menores (Minor 3rds).</li>
                     </ul>
+                </div>
+            </div>
+            
+            <!-- Nueva Pestaña Atajos -->
+            <div id="tabAtajos" class="tab-pane hidden h-[400px] overflow-y-auto text-sm space-y-4 pr-2">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-bgBody p-3 rounded border border-borderBase">
+                        <strong class="block text-accent mb-2">Operaciones</strong>
+                        <ul class="space-y-1 text-textMuted">
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">L</kbd> : Leittonwechsel</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">P</kbd> : Parallel</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">R</kbd> : Relative</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">N</kbd> : Neighbor</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">S</kbd> : Slide</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">H</kbd> : Hexatonic Pole</li>
+                        </ul>
+                    </div>
+                    <div class="bg-bgBody p-3 rounded border border-borderBase">
+                        <strong class="block text-accent mb-2">Navegación y Audio</strong>
+                        <ul class="space-y-1 text-textMuted">
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">Espacio</kbd> : Reproducir Acorde</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">A</kbd> : Arpegio</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">M</kbd> : Silenciar/Mute</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">←</kbd> / <kbd class="bg-white dark:bg-slate-700 px-1 rounded border">→</kbd> : Pasos de Análisis</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">Esc</kbd> : Salir de Análisis</li>
+                            <li><kbd class="bg-white dark:bg-slate-700 px-1 rounded border">Backspace</kbd> : Resetear App</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             
@@ -534,17 +566,17 @@
             { note: "A", pc: 9, x: -20, y: 450 }, { note: "E", pc: 4, x: 60, y: 450 }, { note: "B", pc: 11, x: 140, y: 450 }, { note: "F♯", pc: 6, x: 220, y: 450 }, { note: "C♯", pc: 1, x: 300, y: 450 }
         ];
 
-        // DATOS ANALISIS (Updated Images with Raw GitHub Links)
+        // DATOS ANALISIS (Updated Images with Raw GitHub Links - Final Fix)
         const analysisData = {
             'liszt': { 
                 name: "Liszt - Consolación IV", 
-                imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/23011dc2c56fa8496845f7d55678cb8393a302b0/Liszt.png", 
+                imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/f5b5e3be5b7127f25004f8fa6f6a8086515f617a/Liszt.png", 
                 citation: "Calabrese, A. (2025). <em>Armonía de los Siglos XIX al XXI: Claves para navegar el espacio cromático</em>. Ombú Ediciones Musicales.",
                 steps: [ { chord: 'B♭ menor', op: null, text: "Inicio en Si♭m." }, { chord: 'D♭ Mayor', op: 'R', text: "Relativa Mayor." }, { chord: 'D♭ menor', op: 'P', text: "Paralela Menor." }, { chord: 'E Mayor', op: 'R', text: "Relativa (Fb)." }, { chord: 'E menor', op: 'P', text: "Paralela Menor." }, { chord: 'G menor', op: null, text: "Salto cromático." } ] 
             },
             'schubert': { 
                 name: "Schubert - D.946 Nº2", 
-                imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/23011dc2c56fa8496845f7d55678cb8393a302b0/Schubert.png", 
+                imageUrl: "https://raw.githubusercontent.com/juanmiguel0927/TeoriaNeo-Riemanniana/f5b5e3be5b7127f25004f8fa6f6a8086515f617a/Schubert.png", 
                 citation: "Calabrese, A. (2025). <em>Armonía de los Siglos XIX al XXI: Claves para navegar el espacio cromático</em>. Ombú Ediciones Musicales.",
                 steps: [ { chord: 'D menor', op: null, text: "Inicio Dm." }, { chord: 'A Mayor', op: 'N', text: "Vecina (Dominante)." }, { chord: 'F menor', op: 'H', text: "Polo Hexatónico." }, { chord: 'C Mayor', op: 'N', text: "Vecina." }, { chord: 'A♭ menor', op: 'H', text: "Polo Hexatónico." } ] 
             }
@@ -629,12 +661,12 @@
             isInAnalysisMode = true; currentAnalysis = analysisData[key]; currentAnalysisStep = 0;
             const t = getElement("analysisTitle"); if(t) t.textContent = currentAnalysis.name;
             const cit = getElement("analysisCitation"); if(cit) cit.innerHTML = currentAnalysis.citation || ""; 
-            const img = getElement("analysisScoreImage"); const cont = getElement("analysisScoreContainer");
+            const cont = getElement("analysisScoreContainer");
             
-            if(img && cont) { 
-                if(currentAnalysis.imageUrl) { 
-                    img.src = currentAnalysis.imageUrl; 
-                    img.style.display = 'block'; 
+            if(cont) { 
+                if(currentAnalysis.imageUrl) {
+                    // Force refresh image tag
+                    cont.innerHTML = `<img id="analysisScoreImage" src="${currentAnalysis.imageUrl}" alt="Partitura" class="w-full h-auto shadow-sm" onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=\\'text-gray-400 italic p-4\\'>Imagen no disponible.</p>'">`;
                     cont.classList.remove('hidden'); 
                 } 
                 else { 
@@ -755,7 +787,7 @@
         }
         function displayOperationExplanation(op, from, to, fMidi, tMidi) {
             // SPANISH ONLY FOR MAIN UI
-            const opDefinitions = { "L": "Sensible (L)", "P": "Paralela (P)", "R": "Relativa (R)", "N": "Vecina (N)", "H": "Polo (H)", "S": "Slide (S)" };
+            const opDefinitions = { "L": "Sensible", "P": "Paralela", "R": "Relativa", "N": "Vecina", "H": "Polo", "S": "Slide" };
             const opName = opDefinitions[op] || op;
             let html = op ? `<strong class="text-accent block mb-2 text-center text-base border-b border-borderBase pb-2">Operación: ${opName}</strong>` : "Selecciona una operación.";
             if(from && to && fMidi && tMidi) {
