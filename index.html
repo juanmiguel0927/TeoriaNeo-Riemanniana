@@ -147,7 +147,7 @@
     </style>
 </head>
 <body class="bg-bgBody text-textMain min-h-screen">
-    <div class="container p-4 mx-auto max-w-7xl">
+    <div class="container p-4 mx-auto max-w-[96%]">
         
         <!-- HEADER -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -218,11 +218,11 @@
             </div>
         </div>
 
-        <!-- GRID PRINCIPAL (Fila Superior - Altura aumentada a 680px) -->
+        <!-- GRID PRINCIPAL (Fila Superior - Altura aumentada a 720px) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-32">
             
             <!-- Círculo Hexatónico -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[680px]">
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[720px]">
                 <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl flex justify-between items-center">
                     <span class="font-bold text-sm text-textMain" id="circleTitle">Círculo Hexatónico</span>
                     <div class="flex items-center gap-2 text-xs text-textMuted">
@@ -245,7 +245,7 @@
             </div>
 
             <!-- Tonnetz -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[680px]">
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[720px]">
                 <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl">
                     <span class="font-bold text-sm text-textMain">Tonnetz</span>
                 </div>
@@ -255,7 +255,7 @@
             </div>
 
              <!-- Display Acorde & Operaciones (Altura aumentada para ver tabla completa) -->
-             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col h-[680px]">
+             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col h-[720px]">
                 
                 <!-- Sección superior: Acorde y Piano -->
                 <div class="text-center mb-4 p-4 rounded-lg bg-gradient-to-br from-bgBody to-bgHeader border border-borderBase flex-shrink-0 mt-2">
@@ -303,11 +303,11 @@
             </div>
         </div>
 
-        <!-- GRID INFERIOR (Empujada hacia abajo) -->
+        <!-- GRID INFERIOR (Empujada hacia abajo y con altura aumentada) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
             
             <!-- Herramientas & Quiz -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[300px] flex flex-col">
+            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[500px] flex flex-col">
                 <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center">
                     <span>Herramientas de Análisis</span>
                     <span class="text-xs text-accent">Quiz & Análisis Libre</span>
@@ -349,7 +349,7 @@
             </div>
 
             <!-- Historial -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[300px] flex flex-col">
+            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[500px] flex flex-col">
                 <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center">
                     <span>Historial de Transformaciones</span>
                     <button onclick="document.getElementById('resetButton').click()" class="text-xs text-textMuted hover:text-red-500 transition-colors">Borrar Todo</button>
