@@ -144,6 +144,11 @@
         .tab-btn.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: 700; }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
+
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--border-base); border-radius: 20px; }
     </style>
 </head>
 <body class="bg-bgBody text-textMain min-h-screen">
@@ -184,6 +189,7 @@
             <div class="flex items-center gap-3 px-4 border-l border-borderBase">
                 <div class="flex flex-col">
                     <span class="text-[10px] uppercase text-textMuted font-bold">Vol</span>
+                    <!-- Slider de Volumen ahora funciona -->
                     <input type="range" id="volumeSlider" min="-30" max="0" value="-10" class="w-24 h-1 bg-borderBase rounded-lg appearance-none cursor-pointer">
                 </div>
                 <button id="muteButton" class="w-8 h-8 flex items-center justify-center rounded bg-bgBody border border-borderBase hover:border-primary transition-colors text-textMain">🔊</button>
@@ -218,12 +224,12 @@
             </div>
         </div>
 
-        <!-- GRID PRINCIPAL (Fila Superior - Altura aumentada a 720px) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-32">
+        <!-- GRID PRINCIPAL (Adaptable) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
             
             <!-- Círculo Hexatónico -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[720px]">
-                <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl flex justify-between items-center">
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col min-h-[500px] h-[65vh]">
+                <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl flex justify-between items-center shrink-0">
                     <span class="font-bold text-sm text-textMain" id="circleTitle">Círculo Hexatónico</span>
                     <div class="flex items-center gap-2 text-xs text-textMuted">
                         <span>L/P</span>
@@ -245,8 +251,8 @@
             </div>
 
             <!-- Tonnetz -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col h-[720px]">
-                <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl">
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col min-h-[500px] h-[65vh]">
+                <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl shrink-0">
                     <span class="font-bold text-sm text-textMain">Tonnetz</span>
                 </div>
                 <div id="vizPaneTonnetz" class="flex-grow w-full h-full overflow-hidden">
@@ -254,48 +260,52 @@
                 </div>
             </div>
 
-             <!-- Display Acorde & Operaciones (Altura aumentada para ver tabla completa) -->
-             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col h-[720px]">
+             <!-- Display Acorde & Operaciones -->
+             <!-- CAMBIO: Se cambia h-[65vh] por min-h-[65vh] h-auto para que crezca si el contenido lo requiere y no se corte nada -->
+             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col min-h-[500px] min-h-[65vh] h-auto relative">
                 
                 <!-- Sección superior: Acorde y Piano -->
-                <div class="text-center mb-4 p-4 rounded-lg bg-gradient-to-br from-bgBody to-bgHeader border border-borderBase flex-shrink-0 mt-2">
-                    <h2 class="text-3xl font-bold text-accent mb-1"><span id="currentChordName">C Mayor</span></h2>
-                    <p class="text-sm text-textMuted tracking-[0.2em] font-mono mb-4"><span id="currentChordNotes">C E G</span></p>
+                <!-- CAMBIO: Márgenes reducidos (mb-1, p-2) para ganar espacio vertical -->
+                <div class="text-center mb-1 p-2 rounded-lg bg-gradient-to-br from-bgBody to-bgHeader border border-borderBase flex-shrink-0 mt-1">
+                    <h2 class="text-2xl font-bold text-accent mb-0"><span id="currentChordName">C Mayor</span></h2>
+                    <p class="text-xs text-textMuted tracking-[0.2em] font-mono mb-2"><span id="currentChordNotes">C E G</span></p>
                     
-                    <div class="flex justify-center gap-2 mb-4">
-                        <button id="playChordButton" class="px-4 py-1.5 rounded-full bg-primary text-primaryText text-xs font-bold shadow transition-transform hover:scale-105" title="Espacio">▶ Acorde</button>
-                        <button id="playArpeggioButton" class="px-4 py-1.5 rounded-full bg-bgBody border border-borderBase text-textMain text-xs font-bold hover:border-primary transition-colors" title="Tecla: A">🎹 Arpegio</button>
+                    <div class="flex justify-center gap-2 mb-2">
+                        <button id="playChordButton" class="px-3 py-1 rounded-full bg-primary text-primaryText text-[10px] font-bold shadow transition-transform hover:scale-105" title="Espacio">▶ Acorde</button>
+                        <button id="playArpeggioButton" class="px-3 py-1 rounded-full bg-bgBody border border-borderBase text-textMain text-[10px] font-bold hover:border-primary transition-colors" title="Tecla: A">🎹 Arpegio</button>
                     </div>
 
                     <!-- Piano SVG Container -->
-                    <div id="pianoContainer" class="h-20 w-full rounded overflow-hidden border border-borderBase bg-white/50"></div>
+                    <div id="pianoContainer" class="h-14 w-full rounded overflow-hidden border border-borderBase bg-white/50"></div>
                 </div>
 
-                <!-- Operaciones Grid (Ahora tiene mucho más espacio abajo) -->
-                <div id="operationsBox" class="flex-grow flex flex-col justify-center">
-                    <div class="grid grid-cols-3 gap-2 mb-4">
-                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="L">
+                <!-- Operaciones Grid -->
+                <!-- CAMBIO: Eliminado overflow-hidden para asegurar que el marco de enlaces se vea completo -->
+                <div id="operationsBox" class="flex-grow flex flex-col justify-between">
+                    <div class="grid grid-cols-3 gap-2 mb-1">
+                        <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="L">
                             <strong class="text-lg">L</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Leading<br>Sensible</span>
                         </button>
-                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="P">
+                        <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="P">
                             <strong class="text-lg">P</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Parallel<br>Paralela</span>
                         </button>
-                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="R">
+                        <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="R">
                             <strong class="text-lg">R</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Relative<br>Relativa</span>
                         </button>
-                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="N">
+                        <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="N">
                             <strong class="text-lg">N</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Neighbor<br>Vecina</span>
                         </button>
-                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="S">
+                        <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="S">
                             <strong class="text-lg">S</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Slide<br>Deslizar</span>
                         </button>
-                        <button class="op-btn py-3 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="H">
+                        <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="H">
                             <strong class="text-lg">H</strong><span class="text-[9px] text-textMuted uppercase text-center leading-tight">Hex Pole<br>Polo</span>
                         </button>
                     </div>
                     
                     <!-- Explicación (Conducción de voces aparecerá aquí) -->
-                    <div class="bg-bgBody border border-borderBase rounded-lg p-3 min-h-[60px] flex items-center justify-center flex-col">
+                    <!-- CAMBIO: Se asegura que este bloque no se colapse -->
+                    <div class="bg-bgBody border border-borderBase rounded-lg p-2 min-h-[60px] flex items-center justify-center flex-col shrink-0 mt-1">
                         <div id="explanationTitleContainer"></div>
                         <div id="operationExplanation" class="text-xs text-center text-textMuted italic w-full">Selecciona una transformación para ver detalles.</div>
                     </div>
@@ -303,16 +313,16 @@
             </div>
         </div>
 
-        <!-- GRID INFERIOR (Empujada hacia abajo y con altura aumentada) -->
+        <!-- GRID INFERIOR -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
             
             <!-- Herramientas & Quiz -->
             <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[500px] flex flex-col">
-                <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center">
+                <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center shrink-0">
                     <span>Herramientas de Análisis</span>
                     <span class="text-xs text-accent">Quiz & Análisis Libre</span>
                 </div>
-                <div class="p-4 flex-grow flex flex-col gap-4 overflow-y-auto">
+                <div class="p-4 flex-grow flex flex-col gap-4 overflow-y-auto custom-scrollbar">
                     <div>
                          <label class="text-xs font-bold text-textMuted uppercase mb-1 block">Análisis Guiado</label>
                         <select id="analysisSelect" class="w-full p-2 text-sm bg-bgBody border border-borderBase rounded text-textMain focus:border-primary outline-none">
@@ -350,7 +360,7 @@
 
             <!-- Historial -->
             <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[500px] flex flex-col">
-                <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center">
+                <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center shrink-0">
                     <span>Historial de Transformaciones</span>
                     <button onclick="document.getElementById('resetButton').click()" class="text-xs text-textMuted hover:text-red-500 transition-colors">Borrar Todo</button>
                 </div>
@@ -365,21 +375,73 @@
         </div>
         
         <div class="mt-8 text-center text-xs text-textMuted pb-4">
-            Realizado por: <strong>Juan Miguel Ríos Redondo</strong>
+            Realizado por: <strong>Juan Miguel Ríos Redondo</strong> | Optimizado por Asistente
         </div>
     </div>
 
     <!-- MODAL AYUDA (Contenido Académico y Bilingüe) -->
     <div id="glossaryModal" class="modal-overlay">
-        <div class="modal-content bg-bgPanel rounded-xl shadow-2xl w-[90%] max-w-2xl p-6 text-textMain border border-borderBase">
-            <h2 class="text-2xl font-bold text-accent mb-4 text-center">Conceptos y Operaciones (Concepts & Operations)</h2>
-            <div class="flex border-b border-borderBase mb-4">
-                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain active border-b-2 border-primary font-bold" data-tab="operaciones">Operaciones</button>
-                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain" data-tab="conceptos">Teoría</button>
+        <div class="modal-content bg-bgPanel rounded-xl shadow-2xl w-[90%] max-w-2xl p-6 text-textMain border border-borderBase h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b border-borderBase pb-2">
+                <h2 class="text-2xl font-bold text-accent">Conceptos y Operaciones</h2>
+                <button id="headerCloseBtn" class="text-textMuted hover:text-textMain text-xl font-bold px-2">&times;</button>
+            </div>
+            
+            <div class="flex border-b border-borderBase mb-4 shrink-0">
+                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain active border-b-2 border-primary font-bold" data-tab="conceptos">Teoría</button>
+                <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain" data-tab="operaciones">Operaciones</button>
                 <button class="tab-btn w-1/3 py-2 text-textMuted hover:text-textMain" data-tab="atajos">Atajos</button>
             </div>
             
-            <div id="tabOperaciones" class="tab-pane active h-[400px] overflow-y-auto text-sm space-y-6 pr-2">
+            <!-- Pestaña Teoría (AMPLIADA) -->
+            <div id="tabConceptos" class="tab-pane active overflow-y-auto pr-2 text-sm space-y-6 flex-grow custom-scrollbar">
+                <div class="prose prose-sm dark:prose-invert max-w-none text-textMain">
+                    <h3 class="text-accent text-lg font-bold mb-2">Teoría Neo-Riemanniana: Navegando el Espacio Cromático</h3>
+                    <p class="mb-2">
+                        La teoría Neo-Riemanniana ofrece una perspectiva transformacional de la armonía, enfocándose no en la función de los acordes dentro de una tonalidad (tónica, dominante), sino en cómo las triadas se transforman unas en otras a través de una <strong>conducción de voces parsimoniosa</strong>.
+                    </p>
+                    
+                    <h4 class="font-bold text-primary mt-4 mb-1">1. Conducción de Voces Parsimoniosa (Parsimonious Voice Leading)</h4>
+                    <p class="mb-2">
+                        Es el principio fundamental que rige las operaciones. Implica mover las voces de un acorde la distancia mínima posible (generalmente un semitono o tono) mientras se mantienen notas comunes. Esto permite navegar suavemente entre tonalidades lejanas sin necesidad de cadencias funcionales.
+                    </p>
+
+                    <h4 class="font-bold text-primary mt-4 mb-1">2. Dualismo Armónico</h4>
+                    <p class="mb-2">
+                        A diferencia de la teoría tradicional que ve la triada menor como una "alteración" de la mayor, el enfoque Neo-Riemanniano (siguiendo a Oettingen y Riemann) trata a las triadas mayores y menores como objetos simétricos inversos. El Tonnetz refleja esta simetría perfecta.
+                    </p>
+
+                    <h4 class="font-bold text-primary mt-4 mb-1">3. Ciclos Hexatónicos (Operaciones L y P)</h4>
+                    <p class="mb-2">
+                        Al alternar las operaciones <strong>L</strong> (Leading-tone) y <strong>P</strong> (Parallel), se genera un ciclo cerrado de 6 triadas (ej: C - Cm - Ab - Abm - E - Em - C).
+                    </p>
+                    <ul class="list-disc pl-5 mb-2 text-textMuted">
+                        <li>Este ciclo recorre las notas de una escala hexatónica (1-3-1-3 semitonos).</li>
+                        <li>Las triadas en este ciclo comparten un "centro de gravedad" invisible: la <strong>Triada Aumentada</strong>. Por ejemplo, el ciclo de C mayor gira alrededor de la tríada aumentada [C-E-Ab].</li>
+                        <li>Genera una sensación de "flotación" o suspensión tonal, muy usada por Liszt, Wagner y en música de cine.</li>
+                    </ul>
+
+                    <h4 class="font-bold text-primary mt-4 mb-1">4. Regiones de Weitzmann (Operaciones R y N)</h4>
+                    <p class="mb-2">
+                        Generadas al alternar <strong>R</strong> (Relative) y <strong>N</strong> (Neighbor). Estas regiones exploran relaciones de tercera menor y vecindad cromática, expandiendo el concepto de la región de subdominante menor.
+                    </p>
+
+                    <h4 class="font-bold text-primary mt-4 mb-1">5. El Tonnetz (Red de Tonos)</h4>
+                    <p class="mb-2">
+                        Es un mapa geométrico donde los acordes son triángulos. Los ejes representan intervalos constantes:
+                    </p>
+                    <ul class="list-disc pl-5 text-textMuted">
+                        <li><strong>Horizontal:</strong> Quintas Justas (C - G).</li>
+                        <li><strong>Diagonal (/):</strong> Terceras Mayores (C - E).</li>
+                        <li><strong>Diagonal (\):</strong> Terceras Menores (C - Eb).</li>
+                    </ul>
+                    <p class="mt-2 text-xs italic text-textMuted border-t border-borderBase pt-2">
+                        Fuente conceptual: Calabrese, A. (2025). <em>Armonía de los Siglos XIX al XXI: Claves para navegar el espacio cromático</em>. Ombú Ediciones Musicales.
+                    </p>
+                </div>
+            </div>
+            
+            <div id="tabOperaciones" class="tab-pane hidden overflow-y-auto pr-2 text-sm space-y-6 flex-grow custom-scrollbar">
                 <!-- P -->
                 <div class="pb-3 border-b border-borderBase">
                     <div class="flex items-center gap-2 mb-1">
@@ -457,46 +519,8 @@
                 </div>
             </div>
             
-            <!-- Pestaña Teoría -->
-            <div id="tabConceptos" class="tab-pane hidden h-[400px] overflow-y-auto text-sm space-y-6 pr-2">
-                <div class="pb-4 border-b border-borderBase">
-                    <strong class="text-accent text-lg block mb-2">Ciclos L/P (Hexatonic Cycles)</strong>
-                    <p class="text-textMuted leading-relaxed">
-                        Son cadenas cerradas de 6 acordes generadas alternando las operaciones <strong>Leittonwechsel (L)</strong> y <strong>Parallel (P)</strong>. Estos ciclos recorren un conjunto de 6 clases de alturas que forman la escala hexatónica (set-class 6-20), caracterizada por la alternancia de semitonos y terceras menores (1, 3, 1, 3...).
-                    </p>
-                    <p class="text-xs italic bg-bgBody p-2 mt-2 rounded border border-borderBase block">
-                        <em>Ejemplo: C Major → E Minor → E Major → C# Minor → Ab Major → Ab Minor → C Major.</em>
-                    </p>
-                    <p class="text-textMuted mt-2 leading-relaxed">
-                        Musicalmente, estos ciclos carecen de un centro tonal estable, creando una sensación de "flotación" armónica muy utilizada por compositores como Wagner, Liszt y Rimsky-Korsakov para suspender la tonalidad funcional.
-                    </p>
-                </div>
-
-                <div class="pb-4 border-b border-borderBase">
-                    <strong class="text-accent text-lg block mb-2">Ciclos R/N (Weitzmann Regions)</strong>
-                    <p class="text-textMuted leading-relaxed">
-                        Estas regiones se generan alternando las operaciones <strong>Relative (R)</strong> y <strong>Neighbor (N)</strong>. A diferencia de los ciclos hexatónicos, estos ciclos exploran relaciones de tercera menor y vecindad cromática alrededor de un eje tónico-dominante implícito extendido.
-                    </p>
-                    <p class="text-xs italic bg-bgBody p-2 mt-2 rounded border border-borderBase block">
-                        <em>Ejemplo: C Major → A Minor → F Major → D Minor...</em>
-                    </p>
-                </div>
-
-                <div class="pb-4 border-b border-borderBase">
-                    <strong class="text-accent text-lg block mb-2">Tonnetz (Tone Network)</strong>
-                    <p class="text-textMuted leading-relaxed">
-                        El Tonnetz es una representación geométrica del espacio armónico, originada por Euler y desarrollada por Riemann. A diferencia del círculo de quintas (que solo muestra cercanía por quintas), el Tonnetz mapea las relaciones de:
-                    </p>
-                    <ul class="list-disc list-inside mt-2 text-textMuted pl-2">
-                        <li><strong>Eje Horizontal:</strong> Quintas Justas (Perfect 5ths).</li>
-                        <li><strong>Diagonal (/):</strong> Terceras Mayores (Major 3rds).</li>
-                        <li><strong>Diagonal (\):</strong> Terceras Menores (Minor 3rds).</li>
-                    </ul>
-                </div>
-            </div>
-            
             <!-- Nueva Pestaña Atajos -->
-            <div id="tabAtajos" class="tab-pane hidden h-[400px] overflow-y-auto text-sm space-y-4 pr-2">
+            <div id="tabAtajos" class="tab-pane hidden overflow-y-auto pr-2 text-sm space-y-4 flex-grow custom-scrollbar">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-bgBody p-3 rounded border border-borderBase">
                         <strong class="block text-accent mb-2">Operaciones</strong>
@@ -547,12 +571,24 @@
         let enharmonicPreference = 'sharp';
         let isToneStarted = false, isMuted = false, lastPlayedVoicing = [];
         let isQuizMode = false, quizTargetTriadName = null;
-        let visualRotationRoot = null; // New state for rotation anchor
+        let visualRotationRoot = null; 
 
         const voiceColors = ['#ef4444', '#22c55e', '#3b82f6']; 
 
-        const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
-        const arpeggioSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
+        // Configuración Synth Ajustada
+        const synth = new Tone.PolySynth(Tone.Synth, { 
+            oscillator: { type: "triangle" }, 
+            envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 },
+            maxPolyphony: 6
+        }).toDestination();
+        
+        const arpeggioSynth = new Tone.Synth({ 
+            oscillator: { type: "triangle" }, 
+            envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 } 
+        }).toDestination();
+
+        // Control de Volumen Inicial
+        Tone.Destination.volume.value = -10;
 
         const noteToPitchClass = { "C":0, "C♯":1, "D♭":1, "D":2, "D♯":3, "E♭":3, "E":4, "F":5, "F♯":6, "G♭":6, "G":7, "G♯":8, "A♭":8, "A":9, "A♯":10, "B♭":10, "B":11, "E♯":5, "B♯":0, "C♭":11, "F♭":4, "Gx":9, "Ax":11 };
         const canonicalSpelling = {
@@ -565,18 +601,28 @@
             flat:  ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]
         };
 
-        // TONNETZ EXTENDIDO
-        const tonnetzNodesData = [
-            { note: "D♯", pc: 3, x: -150, y: 0 }, { note: "A♯", pc: 10, x: -70, y: 0 }, { note: "E♯", pc: 5, x: 10, y: 0 }, { note: "B♯", pc: 0, x: 90, y: 0 }, { note: "Gx", pc: 9, x: 170, y: 0 }, { note: "Dx", pc: 4, x: 250, y: 0 },
-            { note: "G♯", pc: 8, x: -110, y: 75 }, { note: "D♯", pc: 3, x: -30, y: 75 }, { note: "A♯", pc: 10, x: 50, y: 75 }, { note: "F", pc: 5, x: 130, y: 75 }, { note: "C", pc: 0, x: 210, y: 75 }, { note: "G", pc: 7, x: 290, y: 75 },
-            { note: "C♯", pc: 1, x: -150, y: 150 }, { note: "G♯", pc: 8, x: -70, y: 150 }, { note: "D♯", pc: 3, x: 10, y: 150 }, { note: "A♯", pc: 10, x: 90, y: 150 }, { note: "F", pc: 5, x: 170, y: 150 }, { note: "C", pc: 0, x: 250, y: 150 }, { note: "G", pc: 7, x: 330, y: 150 },
-            { note: "F♯", pc: 6, x: -110, y: 225 }, { note: "C♯", pc: 1, x: -30, y: 225 }, { note: "G♯", pc: 8, x: 50, y: 225 }, { note: "D♯", pc: 3, x: 130, y: 225 }, { note: "A♯", pc: 10, x: 210, y: 225 }, { note: "F", pc: 5, x: 290, y: 225 },
-            { note: "B", pc: 11, x: -150, y: 300 }, { note: "F♯", pc: 6, x: -70, y: 300 }, { note: "C♯", pc: 1, x: 10, y: 300 }, { note: "G♯", pc: 8, x: 90, y: 300 }, { note: "D♯", pc: 3, x: 170, y: 300 }, { note: "A♯", pc: 10, x: 250, y: 300 }, { note: "F", pc: 5, x: 330, y: 300 },
-            { note: "E", pc: 4, x: -110, y: 375 }, { note: "B", pc: 11, x: -30, y: 375 }, { note: "F♯", pc: 6, x: 50, y: 375 }, { note: "C♯", pc: 1, x: 130, y: 375 }, { note: "G♯", pc: 8, x: 210, y: 375 }, { note: "D♯", pc: 3, x: 290, y: 375 },
-            { note: "A", pc: 9, x: -70, y: 450 }, { note: "E", pc: 4, x: 10, y: 450 }, { note: "B", pc: 11, x: 90, y: 450 }, { note: "F♯", pc: 6, x: 170, y: 450 }, { note: "C♯", pc: 1, x: 250, y: 450 }
-        ];
+        // TONNETZ 6x7 CON INCLINACIÓN (SHEAR)
+        const tonnetzNodesData = [];
+        const rows = 6;
+        const cols = 7;
+        const startPC = 7; 
+        
+        for(let r=0; r<rows; r++) {
+            for(let c=0; c<cols; c++) {
+                const pc = (startPC + (r * 4) + (c * 7)) % 12;
+                let label = canonicalSpelling[enharmonicPreference][pc];
+                
+                const spacingX = 70;
+                const spacingY = 60;
+                const offsetX = 35; 
+                
+                const x = (c * spacingX) + (r * offsetX);
+                const y = r * spacingY;
+                
+                tonnetzNodesData.push({ r: r, c: c, pc: pc, note: label, x: x, y: y });
+            }
+        }
 
-        // DATOS ANALISIS
         const analysisData = {
             'liszt': { 
                 name: "Liszt - Consolación IV", 
@@ -674,7 +720,7 @@
             const cont = getElement("analysisScoreContainer");
             if(cont) { 
                 if(currentAnalysis.imageUrl) {
-                    cont.innerHTML = `<img id="analysisScoreImage" src="${currentAnalysis.imageUrl}" alt="Partitura" class="w-full h-auto shadow-sm" onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=\\'text-gray-400 italic p-4\\'>Imagen no disponible.</p>'">`;
+                    cont.innerHTML = `<img id="analysisScoreImage" src="${currentAnalysis.imageUrl}" alt="Partitura" class="w-full h-auto shadow-sm object-contain max-h-[250px]" onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=\\'text-gray-400 italic p-4\\'>Imagen no disponible.</p>'">`;
                     cont.classList.remove('hidden'); 
                 } 
                 else { cont.classList.add('hidden'); } 
@@ -719,14 +765,18 @@
             visualRotationRoot = newStart; 
             currentTriad = newStart;
             
-            // Sync the dropdown explicitly to match internal state
             const sel = getElement("startChord");
             if(sel && newStart) sel.value = newStart.name;
 
             if(!preserve) { history=[]; currentHistoryIndex=-1; previousTriad=null; updateVoicing(currentTriad.getNotes().map(n=>Tone.Frequency(n.replace('♯','#').replace('♭','b')+"4").toMidi())); }
             updateUI(); if(!preserve) displayOperationExplanation('');
         }
-        async function startAudioContext() { if(!isToneStarted){ await Tone.start(); isToneStarted=true; } }
+        async function startAudioContext() { 
+            if(!isToneStarted){ 
+                await Tone.start(); 
+                isToneStarted=true; 
+            } 
+        }
         function updateVoicing(m) { lastPlayedVoicing = m.map(x=>Tone.Frequency(x,"midi").toNote()); }
         
         function getSmartVoicing(fromMidi, toTriad) {
@@ -781,7 +831,7 @@
             if(history.length === 0) { log.innerHTML = '<div class="h-full flex flex-col items-center justify-center text-textMuted opacity-50"><span class="text-2xl mb-2">📜</span><p class="text-xs italic">El historial aparecerá aquí</p></div>'; return; }
             [...history].reverse().forEach((h, i) => {
                 const div = document.createElement("div");
-                div.className = `history-item border-b border-borderBase p-2 flex justify-between cursor-pointer hover:bg-bgBody ${history.length-1-i===currentHistoryIndex?'bg-blue-50 border-l-4 border-l-primary':''}`;
+                div.className = `history-item border-b border-borderBase p-2 flex justify-between cursor-pointer hover:bg-bgBody ${history.length-1-i===currentHistoryIndex?'bg-blue-50 dark:bg-blue-900 border-l-4 border-l-primary':''}`;
                 const fT = getPreferredSpelling(getTriadByName(h.from)); const tT = getPreferredSpelling(getTriadByName(h.to));
                 div.innerHTML = `<span class="text-textMain text-sm">${fT?fT.name:h.from} <span class="text-accent font-bold">→</span> ${tT?tT.name:h.to}</span> <span class="text-xs bg-bgPanel border border-borderBase px-2 py-0.5 rounded font-bold">${h.operation}</span>`;
                 div.onclick = () => { 
@@ -805,11 +855,11 @@
                 html += `<div class="mt-1 text-[10px] text-textMuted"><span class="block mb-1 font-normal text-center">(Clic en fila para escuchar)</span><div class="flex flex-col gap-1 mt-1 bg-bgPanel p-1 rounded border border-borderBase">`;
                 const currentColors = ['#ef4444', '#16a34a', '#2563eb'];
                 for(let i=0; i<fMidi.length; i++) {
-                     const fm = fMidi[i]; const tm = tMidi[i];
-                     const isCommon = (fm % 12) === (tm % 12);
-                     const noteNameFrom = getNoteNameFromMidi(fm); const noteNameTo = getNoteNameFromMidi(tm);
-                     const voiceColor = currentColors[i % currentColors.length];
-                     html += `
+                      const fm = fMidi[i]; const tm = tMidi[i];
+                      const isCommon = (fm % 12) === (tm % 12);
+                      const noteNameFrom = getNoteNameFromMidi(fm); const noteNameTo = getNoteNameFromMidi(tm);
+                      const voiceColor = currentColors[i % currentColors.length];
+                      html += `
                     <div class="voice-row flex justify-between p-0.5 cursor-pointer transition-colors" style="color:${voiceColor}" onclick="window.playVoiceLeading(${fm}, ${tm})" title="Reproducir: ${noteNameFrom} -> ${noteNameTo}">
                         <span class="${isCommon ? 'common-tone' : ''} w-1/3 text-right">${noteNameFrom}</span>
                         <span class="text-textMuted w-1/6 text-center">→</span>
@@ -979,7 +1029,10 @@
             tonnetzNodesData.forEach(n => {
                 tonnetzNodesData.forEach(n2 => {
                     const dx = Math.abs(n.x - n2.x), dy = Math.abs(n.y - n2.y);
-                    if ((dx === 80 && dy === 0) || (dx === 40 && dy === 75)) {
+                    const isHoriz = (Math.abs(dx - 70) < 1 && Math.abs(dy) < 1);
+                    const isVert = (Math.abs(dx - 35) < 1 && Math.abs(dy - 60) < 1);
+                    
+                    if (isHoriz || isVert) {
                         const l = document.createElementNS(svgNS, "line");
                         l.setAttribute("x1", n.x + 40); l.setAttribute("y1", n.y + 40); l.setAttribute("x2", n2.x + 40); l.setAttribute("y2", n2.y + 40);
                         l.setAttribute("class", "line-connection"); svg.appendChild(l);
@@ -993,7 +1046,7 @@
                 g.appendChild(c); g.appendChild(t); svg.appendChild(g);
                 g.onclick = () => highlightTonnetzByNote(n.pc);
             });
-            svg.setAttribute("viewBox", "-150 -50 650 600"); 
+            svg.setAttribute("viewBox", "-20 -20 700 450"); 
             div.appendChild(svg);
         }
 
@@ -1010,8 +1063,10 @@
                 triad.pitchClasses.forEach(pc => {
                     const nodes = document.querySelectorAll(`.tonnetz-node-group[data-pc="${pc}"]`);
                     nodes.forEach(g => {
-                        g.querySelector("circle").classList.add("node-active");
-                        g.querySelector("text").classList.add("node-active-text");
+                        const circle = g.querySelector("circle");
+                        const text = g.querySelector("text");
+                        if(circle) circle.classList.add("node-active");
+                        if(text) text.classList.add("node-active-text");
                     });
                 });
             }
@@ -1022,9 +1077,11 @@
                  const c = g.querySelector("circle");
                  const t = g.querySelector("text");
                  if(parseInt(g.dataset.pc) === pc) {
-                     c.classList.add("node-active"); t.classList.add("node-active-text");
+                     if(c) c.classList.add("node-active"); 
+                     if(t) t.classList.add("node-active-text");
                  } else {
-                     c.setAttribute("class", "tonnetz-node-circle node-base"); t.setAttribute("class", "tonnetz-node-text node-text");
+                     if(c) c.setAttribute("class", "tonnetz-node-circle node-base"); 
+                     if(t) t.setAttribute("class", "tonnetz-node-text node-text");
                  }
              });
         }
@@ -1095,6 +1152,7 @@
             setStartChord("C Mayor"); 
             renderKeyboard();
             
+            // Eventos
             getElement("startChord").onchange = (e) => setStartChord(e.target.value);
             getElement("resetButton").onclick = () => {
                 setStartChord("C Mayor");
@@ -1104,6 +1162,17 @@
             getElement("enharmonicToggle").onchange = (e) => { enharmonicPreference = e.target.checked ? 'flat' : 'sharp'; generateAllTriads(); genCycles(); populateStartChordSelect(); setStartChord(currentTriad.name, true); };
             document.getElementById("themeToggleBtn").onclick = toggleTheme;
             
+            // Volume logic - NUEVA
+            const volSlider = getElement("volumeSlider");
+            if(volSlider) {
+                volSlider.oninput = (e) => {
+                    // Convertir rango lineal a decibeles si es necesario, pero Tone acepta -Infinity a 0
+                    const val = parseFloat(e.target.value);
+                    if(val <= -30) Tone.Destination.volume.rampTo(-Infinity, 0.1);
+                    else Tone.Destination.volume.rampTo(val, 0.1);
+                };
+            }
+
             document.querySelectorAll('button[data-op]').forEach(b => b.onclick = (e) => {
                 const op = e.currentTarget.dataset.op; 
                 if(isQuizMode) return;
@@ -1115,6 +1184,7 @@
 
             function handleOperation(op) {
                 if(isInAnalysisMode) return;
+                startAudioContext(); // Ensure audio context starts on interaction
                 let n; 
                 if(op==='L') n=opL(currentTriad); else if(op==='P') n=opP(currentTriad); else if(op==='R') n=opR(currentTriad);
                 else if(op==='N') n=opN(currentTriad); else if(op==='H') n=opH(currentTriad); else if(op==='S') n=opS(currentTriad);
@@ -1136,44 +1206,72 @@
             getElement("nextStepBtn").onclick = () => loadAnalysisStep(currentAnalysisStep+1);
             getElement("prevStepBtn").onclick = () => loadAnalysisStep(currentAnalysisStep-1);
 
-            // Free Analysis
+            // Free Analysis - Mejorado
             getElement("freeAnalysisButton").onclick = () => {
+                startAudioContext();
                 const txt = getElement("freeAnalysisInput").value;
-                const names = txt.split(/[\s,]+/).filter(s=>s);
-                if(names.length < 2) return;
+                // Mejor limpieza de input
+                const names = txt.replace(/min/gi, 'm').split(/[\s,-]+/).filter(s=>s);
+                
+                if(names.length < 2) {
+                     getElement("freeAnalysisError").textContent = "Ingresa al menos 2 acordes.";
+                     return;
+                }
                 const t1 = getTriadByName(names[0]);
-                if(!t1) { getElement("freeAnalysisError").textContent = "Acorde no reconocido."; return; }
+                if(!t1) { getElement("freeAnalysisError").textContent = `Acorde inicial "${names[0]}" no reconocido.`; return; }
                 getElement("freeAnalysisError").textContent = "";
-                exitAnalysis(); history=[]; currentHistoryIndex=-1; startAudioContext();
+                exitAnalysis(); history=[]; currentHistoryIndex=-1;
                 currentTriad = t1; updateVoicing(t1.getNotes().map(n=>Tone.Frequency(n.replace('♯','#').replace('♭','b')+"4").toMidi())); updateUI();
                 let curr = t1, cmidi = lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi());
+                
+                let hasError = false;
                 for(let i=1; i<names.length; i++){
-                    const next = getTriadByName(names[i]); if(!next) continue;
+                    const next = getTriadByName(names[i]); 
+                    if(!next) {
+                        getElement("freeAnalysisError").textContent = `Acorde "${names[i]}" no reconocido.`;
+                        hasError = true;
+                        break;
+                    }
                     const op = findBestOperation(curr, next); const tMidi = getSmartVoicing(cmidi, next);
                     addHistoryEntry(op, curr, next, cmidi, tMidi); curr = next; cmidi = tMidi;
                 }
-                currentTriad = curr; updateVoicing(cmidi); updateUI();
+                if(!hasError) {
+                    currentTriad = curr; updateVoicing(cmidi); updateUI();
+                }
             };
 
             // Audio
-            getElement("playChordButton").onclick = () => playVoicing(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()));
-            getElement("playArpeggioButton").onclick = () => playArpeggio(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi()));
+            getElement("playChordButton").onclick = () => { startAudioContext(); playVoicing(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi())); };
+            getElement("playArpeggioButton").onclick = () => { startAudioContext(); playArpeggio(lastPlayedVoicing.map(x=>Tone.Frequency(x).toMidi())); };
             getElement("muteButton").onclick = () => { isMuted = !isMuted; getElement("muteButton").textContent = isMuted ? "🔇" : "🔊"; };
             getElement("vizToggle").onchange = (e) => { currentVisualizationMode = e.target.checked ? 'rn' : 'lp'; updateCircleVisualization(currentTriad, previousTriad); };
 
             // Modals
-            getElement("glossaryButton").onclick = () => getElement("glossaryModal").classList.add("show");
-            getElement("closeGlossaryButton").onclick = () => getElement("glossaryModal").classList.remove("show");
+            const modal = getElement("glossaryModal");
+            const headerCloseBtn = getElement("headerCloseBtn");
+            
+            getElement("glossaryButton").onclick = () => { if(modal) modal.classList.add("show"); };
+            getElement("closeGlossaryButton").onclick = () => { if(modal) modal.classList.remove("show"); };
+            if(headerCloseBtn) headerCloseBtn.onclick = () => { if(modal) modal.classList.remove("show"); };
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
+                    const tabBtn = e.currentTarget;
+                    const tabName = tabBtn.getAttribute('data-tab');
+                    if(!tabName) return;
+
                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
+                    tabBtn.classList.add('active');
+                    
                     document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
                     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-                    const targetId = 'tab' + e.target.getAttribute('data-tab').charAt(0).toUpperCase() + e.target.getAttribute('data-tab').slice(1);
-                    document.getElementById(targetId).classList.remove('hidden');
-                    document.getElementById(targetId).classList.add('active');
+                    
+                    const targetId = 'tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+                    const targetEl = document.getElementById(targetId);
+                    if(targetEl) {
+                        targetEl.classList.remove('hidden');
+                        targetEl.classList.add('active');
+                    }
                 });
             });
 
@@ -1186,30 +1284,12 @@
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
                 const key = e.key.toLowerCase();
                 
-                if (key === 'e') {
-                    document.getElementById('enharmonicToggle').click();
-                }
-
-                // New Shortcuts for V and D
-                if (key === 'v') {
-                    const vizToggle = document.getElementById('vizToggle');
-                    if(vizToggle) {
-                        vizToggle.checked = !vizToggle.checked;
-                        // Trigger change event manually
-                        const event = new Event('change');
-                        vizToggle.dispatchEvent(event);
-                    }
-                }
-                
-                if (key === 'd') {
-                    toggleTheme();
-                }
+                if (key === 'e') { document.getElementById('enharmonicToggle').click(); }
+                if (key === 'v') { const vizToggle = document.getElementById('vizToggle'); if(vizToggle) { vizToggle.checked = !vizToggle.checked; const event = new Event('change'); vizToggle.dispatchEvent(event); } }
+                if (key === 'd') { toggleTheme(); }
 
                 if (['l', 'p', 'r', 'n', 's', 'h'].includes(key)) {
-                    if(isQuizMode) {
-                        if(!checkQuizAnswer(key.toUpperCase())) return;
-                    }
-                    
+                    if(isQuizMode) return;
                     const btn = document.querySelector(`button[data-op="${key.toUpperCase()}"]`);
                     if(btn) {
                         btn.classList.add('ring-4', 'ring-blue-300');
@@ -1222,10 +1302,17 @@
                 if (key === ' ' || key === 'spacebar') { e.preventDefault(); document.getElementById('playChordButton').click(); }
                 if (key === 'a') { document.getElementById('playArpeggioButton').click(); }
                 if (key === 'm') { document.getElementById('muteButton').click(); }
+                
+                // Escape key
+                if (key === 'escape') {
+                    const modal = getElement("glossaryModal");
+                    if (modal && modal.classList.contains('show')) { modal.classList.remove('show'); return; }
+                    if (isInAnalysisMode) { document.getElementById('exitAnalysisBtn').click(); }
+                }
+
                 if (isInAnalysisMode) {
                     if (key === 'arrowright') document.getElementById('nextStepBtn').click();
                     if (key === 'arrowleft') document.getElementById('prevStepBtn').click();
-                    if (key === 'escape') document.getElementById('exitAnalysisBtn').click();
                 } else { if (key === 'backspace' || key === 'delete') { document.getElementById('resetButton').click(); } }
             });
         };
