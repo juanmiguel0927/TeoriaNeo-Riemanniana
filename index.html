@@ -152,10 +152,11 @@
     </style>
 </head>
 <body class="bg-bgBody text-textMain min-h-screen">
-    <div class="container p-4 mx-auto max-w-[96%]">
+    <!-- CONTENEDOR PRINCIPAL EXPANDIDO -->
+    <div class="container p-2 mx-auto w-full max-w-[99%]">
         
         <!-- HEADER -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
             <h1 class="text-2xl font-bold flex items-center gap-2">
                 <span class="text-3xl text-accent">✦</span> 
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
@@ -168,7 +169,7 @@
         </header>
 
         <!-- BARRA DE CONTROL GLOBAL -->
-        <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm mb-6 flex flex-wrap items-center gap-4">
+        <div class="bg-bgPanel border border-borderBase rounded-xl p-3 shadow-sm mb-4 flex flex-wrap items-center gap-4">
             <!-- Acorde Inicio -->
             <div class="flex items-center gap-2 min-w-[200px] flex-1">
                 <span class="text-xs font-bold uppercase text-textMuted tracking-wider">Inicio (Start):</span>
@@ -189,7 +190,6 @@
             <div class="flex items-center gap-3 px-4 border-l border-borderBase">
                 <div class="flex flex-col">
                     <span class="text-[10px] uppercase text-textMuted font-bold">Vol</span>
-                    <!-- Slider de Volumen ahora funciona -->
                     <input type="range" id="volumeSlider" min="-30" max="0" value="-10" class="w-24 h-1 bg-borderBase rounded-lg appearance-none cursor-pointer">
                 </div>
                 <button id="muteButton" class="w-8 h-8 flex items-center justify-center rounded bg-bgBody border border-borderBase hover:border-primary transition-colors text-textMain">🔊</button>
@@ -203,14 +203,14 @@
         </div>
 
         <!-- PANEL DE ANÁLISIS (Oculto por defecto) -->
-        <div id="analysisControls" class="hidden bg-bgPanel border-2 border-primary rounded-xl p-4 mb-6 relative">
+        <div id="analysisControls" class="hidden bg-bgPanel border-2 border-primary rounded-xl p-4 mb-4 relative">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-lg text-primary">Análisis Guiado: <span id="analysisTitle" class="text-textMain"></span></h3>
                 <button id="exitAnalysisBtn" class="text-xs px-3 py-1 rounded border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors">✕ Salir (Esc)</button>
             </div>
             <div class="flex flex-col gap-6">
-                <!-- IMAGEN GRANDE Y CLARA -->
-                <div id="analysisScoreContainer" class="w-full bg-white rounded p-2 flex items-center justify-center border border-borderBase shadow-inner min-h-[250px] relative overflow-hidden">
+                <!-- IMAGEN GRANDE Y CLARA (EXPANDIDA) -->
+                <div id="analysisScoreContainer" class="w-full bg-white rounded p-2 flex items-center justify-center border border-borderBase shadow-inner min-h-[400px] relative overflow-hidden">
                     <!-- Image inserted via JS -->
                 </div>
                 <div class="w-full flex flex-col">
@@ -224,11 +224,11 @@
             </div>
         </div>
 
-        <!-- GRID PRINCIPAL (Adaptable) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
+        <!-- GRID PRINCIPAL (Altura Aumentada) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
             
             <!-- Círculo Hexatónico -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col min-h-[500px] h-[65vh]">
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col min-h-[600px] h-[75vh]">
                 <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl flex justify-between items-center shrink-0">
                     <span class="font-bold text-sm text-textMain" id="circleTitle">Círculo Hexatónico</span>
                     <div class="flex items-center gap-2 text-xs text-textMuted">
@@ -251,7 +251,7 @@
             </div>
 
             <!-- Tonnetz -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col min-h-[500px] h-[65vh]">
+            <div class="bg-bgPanel border border-borderBase rounded-xl shadow-sm flex flex-col min-h-[600px] h-[75vh]">
                 <div class="p-3 border-b border-borderBase bg-bgHeader rounded-t-xl shrink-0">
                     <span class="font-bold text-sm text-textMain">Tonnetz</span>
                 </div>
@@ -261,11 +261,9 @@
             </div>
 
              <!-- Display Acorde & Operaciones -->
-             <!-- CAMBIO: Se cambia h-[65vh] por min-h-[65vh] h-auto para que crezca si el contenido lo requiere y no se corte nada -->
-             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col min-h-[500px] min-h-[65vh] h-auto relative">
+             <div class="bg-bgPanel border border-borderBase rounded-xl p-4 shadow-sm flex flex-col min-h-[600px] min-h-[75vh] h-auto relative">
                 
                 <!-- Sección superior: Acorde y Piano -->
-                <!-- CAMBIO: Márgenes reducidos (mb-1, p-2) para ganar espacio vertical -->
                 <div class="text-center mb-1 p-2 rounded-lg bg-gradient-to-br from-bgBody to-bgHeader border border-borderBase flex-shrink-0 mt-1">
                     <h2 class="text-2xl font-bold text-accent mb-0"><span id="currentChordName">C Mayor</span></h2>
                     <p class="text-xs text-textMuted tracking-[0.2em] font-mono mb-2"><span id="currentChordNotes">C E G</span></p>
@@ -280,7 +278,6 @@
                 </div>
 
                 <!-- Operaciones Grid -->
-                <!-- CAMBIO: Eliminado overflow-hidden para asegurar que el marco de enlaces se vea completo -->
                 <div id="operationsBox" class="flex-grow flex flex-col justify-between">
                     <div class="grid grid-cols-3 gap-2 mb-1">
                         <button class="op-btn py-2 rounded-lg bg-bgBody border border-borderBase text-textMain hover:border-primary hover:text-primary transition-all flex flex-col items-center justify-center relative group" data-op="L">
@@ -303,8 +300,7 @@
                         </button>
                     </div>
                     
-                    <!-- Explicación (Conducción de voces aparecerá aquí) -->
-                    <!-- CAMBIO: Se asegura que este bloque no se colapse -->
+                    <!-- Explicación -->
                     <div class="bg-bgBody border border-borderBase rounded-lg p-2 min-h-[60px] flex items-center justify-center flex-col shrink-0 mt-1">
                         <div id="explanationTitleContainer"></div>
                         <div id="operationExplanation" class="text-xs text-center text-textMuted italic w-full">Selecciona una transformación para ver detalles.</div>
@@ -314,10 +310,10 @@
         </div>
 
         <!-- GRID INFERIOR -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
             
             <!-- Herramientas & Quiz -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[500px] flex flex-col">
+            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm min-h-[400px] h-auto flex flex-col">
                 <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center shrink-0">
                     <span>Herramientas de Análisis</span>
                     <span class="text-xs text-accent">Quiz & Análisis Libre</span>
@@ -359,7 +355,7 @@
             </div>
 
             <!-- Historial -->
-            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm h-[500px] flex flex-col">
+            <div class="bg-bgPanel border border-borderBase rounded-xl overflow-hidden shadow-sm min-h-[400px] h-auto flex flex-col">
                 <div class="bg-bgHeader p-3 border-b border-borderBase font-bold text-sm text-textMain flex justify-between items-center shrink-0">
                     <span>Historial de Transformaciones</span>
                     <button onclick="document.getElementById('resetButton').click()" class="text-xs text-textMuted hover:text-red-500 transition-colors">Borrar Todo</button>
@@ -720,7 +716,8 @@
             const cont = getElement("analysisScoreContainer");
             if(cont) { 
                 if(currentAnalysis.imageUrl) {
-                    cont.innerHTML = `<img id="analysisScoreImage" src="${currentAnalysis.imageUrl}" alt="Partitura" class="w-full h-auto shadow-sm object-contain max-h-[250px]" onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=\\'text-gray-400 italic p-4\\'>Imagen no disponible.</p>'">`;
+                    // CAMBIO: max-h aumentado para que la imagen sea más grande
+                    cont.innerHTML = `<img id="analysisScoreImage" src="${currentAnalysis.imageUrl}" alt="Partitura" class="w-full h-auto shadow-sm object-contain max-h-[60vh]" onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=\\'text-gray-400 italic p-4\\'>Imagen no disponible.</p>'">`;
                     cont.classList.remove('hidden'); 
                 } 
                 else { cont.classList.add('hidden'); } 
